@@ -70,6 +70,10 @@ class MainActivity : Activity(), SensorEventListener {
         cityName = getPreferences(0).getString("city_name", cityName) ?: cityName
         locationMode = getPreferences(0).getString("location_mode", "gps") ?: "gps"
         calculationMethod = getPreferences(0).getString("calculation_method", calculationMethod) ?: calculationMethod
+        if (calculationMethod == "الأردن (18° / 17°)") {
+            calculationMethod = "الأردن (18° / 18°)"
+            getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
+        }
         use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
         count = getPreferences(0).getInt("tasbeeh", 0)
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
