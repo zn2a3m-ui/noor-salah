@@ -14,6 +14,8 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.content.pm.PackageManager
 import android.Manifest
 import android.location.Location
@@ -47,6 +49,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var calculationMethod = "الأردن (18° / 17°)"
     private var use24Hour = true
     private var cityName = "عمّان، الأردن"
+    private var locationMode = "gps"
     private val clockHandler = Handler(Looper.getMainLooper())
     private var countdownView: TextView? = null
     private var nextPrayerView: TextView? = null
@@ -65,6 +68,7 @@ class MainActivity : Activity(), SensorEventListener {
         latitude = getPreferences(0).getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         longitude = getPreferences(0).getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
         cityName = getPreferences(0).getString("city_name", cityName) ?: cityName
+        locationMode = getPreferences(0).getString("location_mode", "gps") ?: "gps"
         calculationMethod = getPreferences(0).getString("calculation_method", calculationMethod) ?: calculationMethod
         use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
         count = getPreferences(0).getInt("tasbeeh", 0)
@@ -251,6 +255,7 @@ class MainActivity : Activity(), SensorEventListener {
             line("تنبيهات الصلاة", 18f, gold, true)
             line("فعّل التنبيهات ليصلك إشعار عند دخول وقت كل صلاة. الصوت الحالي هو صوت إشعار الهاتف، وليس ملف أذان.", 13f, muted)
             addView(button("تفعيل تنبيهات الصلاة") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("السماح بالتنبيه الدقيق في وقته") { requestExactAlarmPermission() }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
         card {
@@ -266,6 +271,7 @@ class MainActivity : Activity(), SensorEventListener {
                     if (diff < -720) diff += 1440
                     timeOffsetMinutes = diff
                     getPreferences(0).edit().putInt("time_offset", diff).apply()
+                    PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
                     showPage("settings")
                 }, baseMinutes / 60, baseMinutes % 60, true).show()
             }, LinearLayout.LayoutParams(-1, -2))
@@ -298,7 +304,7 @@ class MainActivity : Activity(), SensorEventListener {
                 val coords = arrayOf(doubleArrayOf(31.9539,35.9106), doubleArrayOf(32.5556,35.8500), doubleArrayOf(32.0728,36.0880), doubleArrayOf(29.5267,35.0078), doubleArrayOf(31.7683,35.2137), doubleArrayOf(21.4225,39.8262), doubleArrayOf(24.4672,39.6111))
                 AlertDialog.Builder(this@MainActivity).setTitle("اختر المدينة").setItems(names) { _, i ->
                     cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
-                    getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).apply()
+                    getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "manual").apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
@@ -309,7 +315,8 @@ class MainActivity : Activity(), SensorEventListener {
             line("الموقع", 18f, gold, true)
             line("خط العرض: ${"%.4f".format(Locale.US, latitude)}", 14f, cream)
             line("خط الطول: ${"%.4f".format(Locale.US, longitude)}", 14f, cream)
-            addView(button("تحديث الموقع") { requestLocation() }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تحديث الموقع") { requestLocation(true) }, LinearLayout.LayoutParams(-1, -2))
+            line(if (locationMode == "manual") "الموقع مضبوط يدوياً" else "الموقع من الهاتف", 12f, muted)
         }
         gap(10)
         card {
@@ -440,7 +447,8 @@ class MainActivity : Activity(), SensorEventListener {
         countdownView?.text = countdownLabel(n.second)
     }
 
-    private fun requestLocation() {
+    private fun requestLocation(forceGps: Boolean = false) {
+        if (locationMode == "manual" && !forceGps) return
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
             checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 100); return
@@ -449,14 +457,20 @@ class MainActivity : Activity(), SensorEventListener {
             val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val loc: Location? = try { lm.getLastKnownLocation(LocationManager.GPS_PROVIDER) } catch (_: SecurityException) { null }
                 ?: try { lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) } catch (_: SecurityException) { null }
-            if (loc != null) { latitude = loc.latitude; longitude = loc.longitude; if (page == "home" || page == "settings") showPage(page) }
+            if (loc != null) {
+                latitude = loc.latitude; longitude = loc.longitude
+                cityName = "موقعي الحالي"; locationMode = "gps"
+                getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "gps").apply()
+                PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+                if (page == "home" || page == "settings") showPage(page)
+            }
             else Toast.makeText(this, "لم يتوفر موقع حديث؛ نستخدم الموقع الافتراضي", Toast.LENGTH_LONG).show()
         } catch (_: Exception) { Toast.makeText(this, "تعذر قراءة الموقع حالياً", Toast.LENGTH_SHORT).show() }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 100 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) requestLocation()
+        if (requestCode == 100 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) requestLocation(true)
         if (requestCode == 200 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
             PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
             Toast.makeText(this, "تم تفعيل تنبيهات الصلاة", Toast.LENGTH_SHORT).show()
@@ -470,6 +484,25 @@ class MainActivity : Activity(), SensorEventListener {
         } else {
             PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
             Toast.makeText(this, "تمت جدولة تنبيهات الصلاة لليوم والغد", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun requestExactAlarmPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val alarm = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            if (!alarm.canScheduleExactAlarms()) {
+                try {
+                    startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, android.net.Uri.parse("package:$packageName")))
+                } catch (_: Exception) {
+                    Toast.makeText(this, "افتح إعدادات التطبيقات واسمح للمنبهات الدقيقة لتطبيق نور الصلاة", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+                Toast.makeText(this, "التنبيهات الدقيقة مفعّلة", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+            Toast.makeText(this, "تمت جدولة التنبيهات", Toast.LENGTH_SHORT).show()
         }
     }
 
