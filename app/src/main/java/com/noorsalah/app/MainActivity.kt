@@ -79,7 +79,7 @@ class MainActivity : Activity(), SensorEventListener {
         content.removeAllViews()
         when (target) {
             "home" -> home()
-            "qibla" -> qibla()
+            "qibla" -> qiblaScreen()
             "azkar" -> azkar()
             "quran" -> quran()
             "settings" -> settings()
@@ -123,7 +123,7 @@ class MainActivity : Activity(), SensorEventListener {
         card { line("ذكر اليوم", 16f, gold, true, Gravity.CENTER); line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 21f, cream, true, Gravity.CENTER) }
     }
 
-    private fun qibla() {
+    private fun qiblaScreen() {
         text("اتجاه القبلة", 26f, gold, true, Gravity.CENTER)
         text("أمسك الهاتف أفقياً وبعيداً عن المعادن", 13f, muted, false, Gravity.CENTER)
         gap(22)
@@ -208,7 +208,7 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(box, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
     }
 
-    private fun line(value: String, size: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START) {
+    private fun LinearLayout.line(value: String, size: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START) {
         val v = TextView(this).apply {
             text = value; textSize = size; setTextColor(color); this.gravity = gravity
             if (bold) typeface = Typeface.DEFAULT_BOLD
@@ -217,7 +217,7 @@ class MainActivity : Activity(), SensorEventListener {
         addView(v, LinearLayout.LayoutParams(-1, -2))
     }
     private fun text(value: String, size: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START) {
-        line(value, size, color, bold, gravity)
+        content.line(value, size, color, bold, gravity)
     }
     private fun gap(h: Int) { content.addView(View(this), LinearLayout.LayoutParams(1, dp(h))) }
     private fun button(label: String, action: () -> Unit) = Button(this).apply {
