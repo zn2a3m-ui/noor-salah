@@ -10,12 +10,12 @@ def releaseKeyPassword = System.getenv("KEY_PASSWORD")
 
 android {
     namespace 'com.noorsalah.app'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.noorsalah.app'
         minSdk 23
-        targetSdk 32
+        targetSdk 36
         versionCode 1
         versionName '1.0'
     }
