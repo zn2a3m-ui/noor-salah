@@ -199,10 +199,12 @@ private var locationLoaded = false
                 manager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                     ?: manager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
 
-            if (location != null) {
-                latitude = location.latitude
-                longitude = location.longitude
-                showHome()
+            if (location != null && !locationLoaded) {
+    locationLoaded = true
+    latitude = location.latitude
+    longitude = location.longitude
+    showHome()
+}
             }
         } catch (_: Exception) {
         }
