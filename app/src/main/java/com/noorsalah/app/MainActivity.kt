@@ -46,7 +46,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var selectedDateMillis = 0L
     private var timeOffsetMinutes = 0
     private var selectedMuezzin = "المؤذن الافتراضي"
-    private var calculationMethod = "الأردن (18° / 17°)"
+    private var calculationMethod = "الأردن (18° / 18°)"
     private var use24Hour = true
     private var cityName = "عمّان، الأردن"
     private var locationMode = "gps"
@@ -338,7 +338,7 @@ class MainActivity : Activity(), SensorEventListener {
             line("طريقة الحساب", 18f, gold, true)
             line(calculationMethod, 13f, cream)
             addView(button("اختيار طريقة الحساب") {
-                val methods = arrayOf("الأردن (18° / 17°)", "رابطة العالم الإسلامي (18° / 17°)", "أم القرى (18.5° / 90 دقيقة)")
+                val methods = arrayOf("الأردن (18° / 18°)", "رابطة العالم الإسلامي (18° / 17°)", "أم القرى (18.5° / 90 دقيقة)")
                 AlertDialog.Builder(this@MainActivity).setTitle("طريقة الحساب").setItems(methods) { _, i ->
                     calculationMethod = methods[i]
                     getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
@@ -346,7 +346,7 @@ class MainActivity : Activity(), SensorEventListener {
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
-            line("الحساب الفلكي يعطي نتيجة تقديرية، وقد يختلف عن جدول الجهة الرسمية بدقائق.", 12f, muted)
+            line("حساب الأردن هنا تقديري (18° للفجر والعشاء واحتياط 5 دقائق للمغرب)، وقد يختلف عن جدول وزارة الأوقاف؛ اعتمد الجدول الرسمي عند توفره.", 12f, muted)
         }
         gap(10)
         card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.2", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
@@ -403,15 +403,16 @@ class MainActivity : Activity(), SensorEventListener {
             return Math.toDegrees(acos(v.coerceIn(-1.0,1.0)))*4.0
         }
         val fajrAngle = if (calculationMethod.startsWith("أم القرى")) 18.5 else 18.0
-        val ishaAngle = if (calculationMethod.startsWith("أم القرى")) 0.0 else 17.0
+        val ishaAngle = if (calculationMethod.startsWith("أم القرى")) 0.0 else if (calculationMethod.startsWith("الأردن")) 18.0 else 17.0
         val fajr = noon-ha(-fajrAngle)
         val sunrise = noon-ha(-0.833)
         val dhuhr = noon+2.0
         val asrAltitude = Math.toDegrees(atan(1.0/(1.0+tan(abs(lat-dec)))))
         val asr = noon+ha(asrAltitude)
         val sunset = noon+ha(-0.833)
+        val maghrib = sunset + if (calculationMethod.startsWith("الأردن")) 5.0 else 0.0
         val isha = if (ishaAngle == 0.0) sunset+90.0 else noon+ha(-ishaAngle)
-        return listOf(fajr,sunrise,dhuhr,asr,sunset,isha).map { ((it.roundToInt()%1440)+1440)%1440 }
+        return listOf(fajr,sunrise,dhuhr,asr,maghrib,isha).map { ((it.roundToInt()%1440)+1440)%1440 }
     }
 
     private fun formatPrayerTime(minutes: Int): String {
