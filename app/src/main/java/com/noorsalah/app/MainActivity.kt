@@ -1,6 +1,8 @@
 package com.noorsalah.app
 
 import android.app.Activity
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.os.Bundle
 import android.graphics.Color
 import android.graphics.Typeface
@@ -36,6 +38,9 @@ class MainActivity : Activity(), SensorEventListener {
     private var heading = 0f
     private var page = "home"
     private var count = 0
+    private var selectedDateMillis = 0L
+    private var timeOffsetMinutes = 0
+    private var selectedMuezzin = "المؤذن الافتراضي"
     private var arrow: TextView? = null
     private var compassInfo: TextView? = null
     private var countView: TextView? = null
@@ -46,6 +51,9 @@ class MainActivity : Activity(), SensorEventListener {
         window.navigationBarColor = bg
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         count = getPreferences(0).getInt("tasbeeh", 0)
+        selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
+        timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
+        selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
@@ -92,7 +100,7 @@ class MainActivity : Activity(), SensorEventListener {
         gap(18)
         card {
             line("عمّان، الأردن", 14f, muted, false, Gravity.CENTER)
-            line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date()), 16f, cream, true, Gravity.CENTER)
+            line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 16f, cream, true, Gravity.CENTER)
         }
         gap(12)
         text("مواقيت الصلاة", 21f, gold, true)
@@ -189,6 +197,63 @@ class MainActivity : Activity(), SensorEventListener {
         text("الإعدادات", 26f, gold, true, Gravity.CENTER)
         gap(12)
         card {
+            line("التاريخ المعتمد للمواقيت", 18f, gold, true)
+            line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 15f, cream)
+            addView(button("تعديل التاريخ") {
+                val cal = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+                DatePickerDialog(this@MainActivity, { _, year, month, day ->
+                    val chosen = java.util.Calendar.getInstance().apply {
+                        timeInMillis = selectedDateMillis
+                        set(java.util.Calendar.YEAR, year)
+                        set(java.util.Calendar.MONTH, month)
+                        set(java.util.Calendar.DAY_OF_MONTH, day)
+                    }
+                    selectedDateMillis = chosen.timeInMillis
+                    getPreferences(0).edit().putLong("selected_date", selectedDateMillis).apply()
+                    showPage("settings")
+                }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            line("هذا يغيّر تاريخ الحساب داخل التطبيق فقط، ولا يغيّر تاريخ الهاتف.", 12f, muted)
+        }
+        gap(10)
+        card {
+            line("ضبط فرق الوقت", 18f, gold, true)
+            line("الفرق الحالي: ${if (timeOffsetMinutes >= 0) "+" else ""}$timeOffsetMinutes دقيقة", 15f, cream)
+            addView(button("تعديل الوقت") {
+                val now = java.util.Calendar.getInstance()
+                val baseMinutes = (now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE) + timeOffsetMinutes + 1440) % 1440
+                TimePickerDialog(this@MainActivity, { _, hour, minute ->
+                    val actual = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+                    var diff = hour * 60 + minute - actual
+                    if (diff > 720) diff -= 1440
+                    if (diff < -720) diff += 1440
+                    timeOffsetMinutes = diff
+                    getPreferences(0).edit().putInt("time_offset", diff).apply()
+                    showPage("settings")
+                }, baseMinutes / 60, baseMinutes % 60, true).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            line("هذا فرق تصحيحي لمواقيت التطبيق، وليس تغييراً لساعة الجهاز.", 12f, muted)
+        }
+        gap(10)
+        card {
+            line("المؤذّن المفضّل", 18f, gold, true)
+            val choices = listOf("المؤذن الافتراضي", "مشاري العفاسي", "عبدالرحمن السديس", "ماهر المعيقلي")
+            val picker = Spinner(this@MainActivity).apply {
+                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, choices)
+                setSelection(choices.indexOf(selectedMuezzin).coerceAtLeast(0))
+                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        selectedMuezzin = choices[position]
+                        getPreferences(0).edit().putString("muezzin", selectedMuezzin).apply()
+                    }
+                }
+            }
+            addView(picker, LinearLayout.LayoutParams(-1, -2))
+            line("تم حفظ اختيارك. تشغيل ملفات الأذان والتنبيه التلقائي يحتاج ربط الملفات وخدمة الأذان في التحديث التالي.", 12f, muted)
+        }
+        gap(10)
+        card {
             line("الموقع", 18f, gold, true)
             line("خط العرض: ${"%.4f".format(Locale.US, latitude)}", 14f, cream)
             line("خط الطول: ${"%.4f".format(Locale.US, longitude)}", 14f, cream)
@@ -197,7 +262,7 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         card {
             line("طريقة الحساب", 18f, gold, true)
-            line("الحساب الحالي تقريبي. سيتم ضبطه وفق الجهة الرسمية في الأردن قبل اعتماد المواقيت.", 13f, muted)
+            line("الحساب الحالي تقريبي وغير معتمد رسمياً. يجب ربط طريقة الحساب الأردنية الموثوقة قبل اعتماد المواقيت للتنبيه.", 13f, muted)
         }
         gap(10)
         card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.1", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
@@ -239,10 +304,11 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun prayerTimes(): List<String> {
-        val day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
+        val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        val day = dateCal.get(java.util.Calendar.DAY_OF_YEAR)
         val dec = 0.409 * sin(2 * PI * day / 365.0 - 1.39)
         val lat = Math.toRadians(latitude)
-        val noon = 12.0 - longitude / 15.0 + 2.0 * sin(2 * PI * day / 365.0) * 0.12
+        val noon = 12.0 - longitude / 15.0 + 2.0 * sin(2 * PI * day / 365.0) * 0.12 + timeOffsetMinutes / 60.0
         fun angle(a: Double): Double {
             val v = (sin(Math.toRadians(a)) - sin(lat) * sin(dec)) / (cos(lat) * cos(dec))
             return Math.toDegrees(acos(v.coerceIn(-1.0, 1.0))) / 15.0
