@@ -302,6 +302,21 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card {
+            line("تنسيق الوقت", 18f, gold, true)
+            val formatSwitch = Switch(this@MainActivity).apply {
+                text = "عرض الوقت بنظام 24 ساعة"
+                setTextColor(cream)
+                isChecked = use24Hour
+                setOnCheckedChangeListener { _, checked ->
+                    use24Hour = checked
+                    getPreferences(0).edit().putBoolean("use_24_hour", checked).apply()
+                    showPage("settings")
+                }
+            }
+            addView(formatSwitch, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
+        card {
             line("طريقة الحساب", 18f, gold, true)
             line(calculationMethod, 13f, cream)
             addView(button("اختيار طريقة الحساب") {
