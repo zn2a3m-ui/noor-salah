@@ -89,6 +89,8 @@ class MainActivity : Activity(), SensorEventListener {
         setContentView(shell)
         showPage("home")
         requestLocation()
+        PrayerAlarmScheduler.createChannel(this)
+        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
     }
 
     override fun onResume() {
@@ -97,6 +99,7 @@ class MainActivity : Activity(), SensorEventListener {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
         clockHandler.post(clockTick)
+        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
     }
     override fun onPause() { super.onPause(); sensorManager.unregisterListener(this); clockHandler.removeCallbacks(clockTick) }
 
@@ -245,6 +248,12 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card {
+            line("تنبيهات الصلاة", 18f, gold, true)
+            line("فعّل التنبيهات ليصلك إشعار عند دخول وقت كل صلاة. الصوت الحالي هو صوت إشعار الهاتف، وليس ملف أذان.", 13f, muted)
+            addView(button("تفعيل تنبيهات الصلاة") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
+        card {
             line("ضبط فرق الوقت", 18f, gold, true)
             line("الفرق الحالي: ${if (timeOffsetMinutes >= 0) "+" else ""}$timeOffsetMinutes دقيقة", 15f, cream)
             addView(button("تعديل الوقت") {
@@ -290,6 +299,7 @@ class MainActivity : Activity(), SensorEventListener {
                 AlertDialog.Builder(this@MainActivity).setTitle("اختر المدينة").setItems(names) { _, i ->
                     cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
                     getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).apply()
+                    PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
@@ -325,13 +335,14 @@ class MainActivity : Activity(), SensorEventListener {
                 AlertDialog.Builder(this@MainActivity).setTitle("طريقة الحساب").setItems(methods) { _, i ->
                     calculationMethod = methods[i]
                     getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
+                    PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
             line("الحساب الفلكي يعطي نتيجة تقديرية، وقد يختلف عن جدول الجهة الرسمية بدقائق.", 12f, muted)
         }
         gap(10)
-        card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.1", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
+        card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.2", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
     }
 
     private fun card(block: LinearLayout.() -> Unit) {
@@ -446,6 +457,20 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 100 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) requestLocation()
+        if (requestCode == 200 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
+            PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+            Toast.makeText(this, "تم تفعيل تنبيهات الصلاة", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun requestPrayerNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 200)
+        } else {
+            PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+            Toast.makeText(this, "تمت جدولة تنبيهات الصلاة لليوم والغد", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent) {
