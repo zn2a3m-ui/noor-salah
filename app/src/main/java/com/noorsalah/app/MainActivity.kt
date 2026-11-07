@@ -223,7 +223,7 @@ class MainActivity : Activity(), SensorEventListener {
         content.line(value, size, color, bold, gravity)
     }
     private fun gap(h: Int) { content.addView(View(this), LinearLayout.LayoutParams(1, dp(h))) }
-    private fun button(label: String, action: () -> Unit) = Button(this).apply {
+    private fun button(label: String, action: () -> Unit) = Button(this@MainActivity).apply {
         text = label; textSize = 14f; setTextColor(bg); background = shape(gold, 13); setOnClickListener { action() }
     }
     private fun shape(color: Int, radius: Int, stroke: Int? = null) = GradientDrawable().apply {
