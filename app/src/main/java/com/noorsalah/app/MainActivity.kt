@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -41,6 +43,15 @@ class MainActivity : Activity(), SensorEventListener {
     private var selectedDateMillis = 0L
     private var timeOffsetMinutes = 0
     private var selectedMuezzin = "المؤذن الافتراضي"
+    private var calculationMethod = "الأردن (18° / 17°)"
+    private var use24Hour = true
+    private var cityName = "عمّان، الأردن"
+    private val clockHandler = Handler(Looper.getMainLooper())
+    private var countdownView: TextView? = null
+    private var nextPrayerView: TextView? = null
+    private val clockTick = object : Runnable {
+        override fun run() { if (page == "home") refreshPrayerCountdown(); clockHandler.postDelayed(this, 30000L) }
+    }
     private var arrow: TextView? = null
     private var compassInfo: TextView? = null
     private var countView: TextView? = null
@@ -50,6 +61,11 @@ class MainActivity : Activity(), SensorEventListener {
         window.statusBarColor = bg
         window.navigationBarColor = bg
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        latitude = getPreferences(0).getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
+        longitude = getPreferences(0).getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+        cityName = getPreferences(0).getString("city_name", cityName) ?: cityName
+        calculationMethod = getPreferences(0).getString("calculation_method", calculationMethod) ?: calculationMethod
+        use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
         count = getPreferences(0).getInt("tasbeeh", 0)
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
         timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
@@ -79,8 +95,9 @@ class MainActivity : Activity(), SensorEventListener {
         sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
+        clockHandler.post(clockTick)
     }
-    override fun onPause() { super.onPause(); sensorManager.unregisterListener(this) }
+    override fun onPause() { super.onPause(); sensorManager.unregisterListener(this); clockHandler.removeCallbacks(clockTick) }
 
     private fun showPage(target: String) {
         page = target
@@ -99,8 +116,18 @@ class MainActivity : Activity(), SensorEventListener {
         text("رفيقك إلى الصلاة والذكر", 14f, muted, false, Gravity.CENTER)
         gap(18)
         card {
-            line("عمّان، الأردن", 14f, muted, false, Gravity.CENTER)
+            line(cityName, 14f, muted, false, Gravity.CENTER)
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 16f, cream, true, Gravity.CENTER)
+        }
+        gap(12)
+        card {
+            line("الصلاة القادمة", 14f, muted, false, Gravity.CENTER)
+            val next = nextPrayerInfo()
+            val name = TextView(this@MainActivity).apply { text = next.first; textSize = 24f; gravity = Gravity.CENTER; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
+            nextPrayerView = name; addView(name)
+            val timer = TextView(this@MainActivity).apply { text = countdownLabel(next.second); textSize = 25f; gravity = Gravity.CENTER; setTextColor(cream); typeface = Typeface.MONOSPACE }
+            countdownView = timer; addView(timer)
+            line("الوقت المتبقي", 11f, muted, false, Gravity.CENTER)
         }
         gap(12)
         text("مواقيت الصلاة", 21f, gold, true)
@@ -254,6 +281,20 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card {
+            line("المدينة", 18f, gold, true)
+            line(cityName, 14f, cream)
+            addView(button("اختيار مدينة") {
+                val names = arrayOf("عمّان، الأردن", "إربد، الأردن", "الزرقاء، الأردن", "العقبة، الأردن", "القدس، فلسطين", "مكة المكرمة، السعودية", "المدينة المنورة، السعودية")
+                val coords = arrayOf(doubleArrayOf(31.9539,35.9106), doubleArrayOf(32.5556,35.8500), doubleArrayOf(32.0728,36.0880), doubleArrayOf(29.5267,35.0078), doubleArrayOf(31.7683,35.2137), doubleArrayOf(21.4225,39.8262), doubleArrayOf(24.4672,39.6111))
+                AlertDialog.Builder(this@MainActivity).setTitle("اختر المدينة").setItems(names) { _, i ->
+                    cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
+                    getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).apply()
+                    showPage("settings")
+                }.setNegativeButton("إلغاء", null).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
+        card {
             line("الموقع", 18f, gold, true)
             line("خط العرض: ${"%.4f".format(Locale.US, latitude)}", 14f, cream)
             line("خط الطول: ${"%.4f".format(Locale.US, longitude)}", 14f, cream)
@@ -262,7 +303,16 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         card {
             line("طريقة الحساب", 18f, gold, true)
-            line("الحساب الحالي تقريبي وغير معتمد رسمياً. يجب ربط طريقة الحساب الأردنية الموثوقة قبل اعتماد المواقيت للتنبيه.", 13f, muted)
+            line(calculationMethod, 13f, cream)
+            addView(button("اختيار طريقة الحساب") {
+                val methods = arrayOf("الأردن (18° / 17°)", "رابطة العالم الإسلامي (18° / 17°)", "أم القرى (18.5° / 90 دقيقة)")
+                AlertDialog.Builder(this@MainActivity).setTitle("طريقة الحساب").setItems(methods) { _, i ->
+                    calculationMethod = methods[i]
+                    getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
+                    showPage("settings")
+                }.setNegativeButton("إلغاء", null).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            line("الحساب الفلكي يعطي نتيجة تقديرية، وقد يختلف عن جدول الجهة الرسمية بدقائق.", 12f, muted)
         }
         gap(10)
         card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.1", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
@@ -303,24 +353,64 @@ class MainActivity : Activity(), SensorEventListener {
         return (Math.toDegrees(atan2(y, x)) + 360) % 360
     }
 
-    private fun prayerTimes(): List<String> {
-        val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-        val day = dateCal.get(java.util.Calendar.DAY_OF_YEAR)
-        val dec = 0.409 * sin(2 * PI * day / 365.0 - 1.39)
+    private fun prayerTimesMinutes(): List<Int> {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        val day = cal.get(java.util.Calendar.DAY_OF_YEAR)
+        val days = if (cal.getActualMaximum(java.util.Calendar.DAY_OF_YEAR) == 366) 366.0 else 365.0
+        val g = 2.0 * Math.PI / days * (day - 1)
+        val eq = 229.18 * (0.000075 + 0.001868*cos(g) - 0.032077*sin(g) - 0.014615*cos(2*g) - 0.040849*sin(2*g))
+        val dec = 0.006918 - 0.399912*cos(g) + 0.070257*sin(g) - 0.006758*cos(2*g) + 0.000907*sin(2*g) - 0.002697*cos(3*g) + 0.00148*sin(3*g)
         val lat = Math.toRadians(latitude)
-        val noon = 12.0 - longitude / 15.0 + 2.0 * sin(2 * PI * day / 365.0) * 0.12 + timeOffsetMinutes / 60.0
-        fun angle(a: Double): Double {
-            val v = (sin(Math.toRadians(a)) - sin(lat) * sin(dec)) / (cos(lat) * cos(dec))
-            return Math.toDegrees(acos(v.coerceIn(-1.0, 1.0))) / 15.0
+        val zone = (cal.get(java.util.Calendar.ZONE_OFFSET) + cal.get(java.util.Calendar.DST_OFFSET)) / 60000.0
+        val noon = 720.0 - 4.0*longitude - eq + zone + timeOffsetMinutes
+        fun ha(altitude: Double): Double {
+            val a = Math.toRadians(altitude)
+            val v = (sin(a)-sin(lat)*sin(dec))/(cos(lat)*cos(dec))
+            return Math.toDegrees(acos(v.coerceIn(-1.0,1.0)))*4.0
         }
-        val fajr = noon - angle(-18.0); val sunrise = noon - angle(-0.833)
-        val dhuhr = noon
-        val asrAngle = Math.toDegrees(atan(1.0 / (1.0 + tan(abs(lat - dec)))))
-        val asr = noon + angle(asrAngle); val sunset = noon + angle(-0.833); val isha = noon + angle(-17.0)
-        return listOf(fajr, sunrise, dhuhr, asr, sunset, isha).map {
-            val m = ((it * 60).roundToInt() + 1440) % 1440
-            "%02d:%02d".format(Locale.US, m / 60, m % 60)
-        }
+        val fajrAngle = if (calculationMethod.startsWith("أم القرى")) 18.5 else 18.0
+        val ishaAngle = if (calculationMethod.startsWith("أم القرى")) 0.0 else 17.0
+        val fajr = noon-ha(-fajrAngle)
+        val sunrise = noon-ha(-0.833)
+        val dhuhr = noon+2.0
+        val asrAltitude = Math.toDegrees(atan(1.0/(1.0+tan(abs(lat-dec)))))
+        val asr = noon+ha(asrAltitude)
+        val sunset = noon+ha(-0.833)
+        val isha = if (ishaAngle == 0.0) sunset+90.0 else noon+ha(-ishaAngle)
+        return listOf(fajr,sunrise,dhuhr,asr,sunset,isha).map { ((it.roundToInt()%1440)+1440)%1440 }
+    }
+
+    private fun formatPrayerTime(minutes: Int): String {
+        val h = (minutes/60)%24
+        val m = minutes%60
+        if (use24Hour) return "%02d:%02d".format(Locale.US,h,m)
+        val suffix = if (h<12) "ص" else "م"
+        val hour = if (h%12==0) 12 else h%12
+        return "%d:%02d %s".format(Locale("ar"),hour,m,suffix)
+    }
+
+    private fun prayerTimes(): List<String> = prayerTimesMinutes().map { formatPrayerTime(it) }
+
+    private fun nextPrayerInfo(): Pair<String,Int> {
+        val now = java.util.Calendar.getInstance()
+        val date = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        if (now.get(java.util.Calendar.YEAR)!=date.get(java.util.Calendar.YEAR) ||
+            now.get(java.util.Calendar.DAY_OF_YEAR)!=date.get(java.util.Calendar.DAY_OF_YEAR)) return "تاريخ الحساب المختار" to 0
+        val current = now.get(java.util.Calendar.HOUR_OF_DAY)*60+now.get(java.util.Calendar.MINUTE)
+        val times = prayerTimesMinutes()
+        val indexes = listOf(0,2,3,4,5)
+        val names = listOf("الفجر","الظهر","العصر","المغرب","العشاء")
+        val pos = indexes.indexOfFirst { times[it]>current }
+        val target = if (pos<0) times[0]+1440 else times[indexes[pos]]
+        return (if (pos<0) "الفجر" else names[pos]) to (target-current)
+    }
+
+    private fun countdownLabel(minutes: Int): String = "%02d:%02d".format(Locale.US,minutes/60,minutes%60)
+
+    private fun refreshPrayerCountdown() {
+        val n = nextPrayerInfo()
+        nextPrayerView?.text = n.first
+        countdownView?.text = countdownLabel(n.second)
     }
 
     private fun requestLocation() {
