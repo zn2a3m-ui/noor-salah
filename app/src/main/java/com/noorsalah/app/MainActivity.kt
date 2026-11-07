@@ -43,6 +43,9 @@ class MainActivity : Activity(), SensorEventListener {
     private var heading = 0f
     private var page = "home"
     private var count = 0
+    private var selectedDhikr = "سُبْحَانَ اللهِ وَبِحَمْدِهِ"
+    private var tasbeehTarget = 100
+    private var vibrationEnabled = true
     private var selectedDateMillis = 0L
     private var timeOffsetMinutes = 0
     private var selectedMuezzin = "المؤذن الافتراضي"
@@ -76,6 +79,9 @@ class MainActivity : Activity(), SensorEventListener {
         }
         use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
         count = getPreferences(0).getInt("tasbeeh", 0)
+        selectedDhikr = getPreferences(0).getString("selected_dhikr", "سُبْحَانَ اللهِ وَبِحَمْدِهِ") ?: "سُبْحَانَ اللهِ وَبِحَمْدِهِ"
+        tasbeehTarget = getPreferences(0).getInt("tasbeeh_target", 100)
+        vibrationEnabled = getPreferences(0).getBoolean("tasbeeh_vibration", true)
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
         timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
         selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
@@ -195,18 +201,104 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun azkar() {
         text("الأذكار والمسبحة", 25f, gold, true, Gravity.CENTER)
+        text("اختر الذكر والهدف، وسيُحفظ تقدمك تلقائياً", 13f, muted, false, Gravity.CENTER)
         gap(12)
         card {
-            line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 22f, cream, true, Gravity.CENTER)
-            val counter = TextView(this@MainActivity).apply { text = count.toString(); textSize = 42f; gravity = Gravity.CENTER; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
+            line("الذكر الحالي", 15f, muted, false, Gravity.CENTER)
+            val dhikrText = TextView(this@MainActivity).apply {
+                text = selectedDhikr; textSize = 21f; gravity = Gravity.CENTER
+                setTextColor(cream); typeface = Typeface.DEFAULT_BOLD
+            }
+            addView(dhikrText, LinearLayout.LayoutParams(-1, -2))
+            addView(button("اختيار الذكر") {
+                val choices = arrayOf(
+                    "سُبْحَانَ اللهِ وَبِحَمْدِهِ",
+                    "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ",
+                    "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّد",
+                    "لَا إِلَهَ إِلَّا اللهُ",
+                    "سُبْحَانَ اللهِ، وَالْحَمْدُ لِلَّهِ، وَاللهُ أَكْبَر"
+                )
+                AlertDialog.Builder(this@MainActivity).setTitle("اختر الذكر").setItems(choices) { _, which ->
+                    selectedDhikr = choices[which]
+                    getPreferences(0).edit().putString("selected_dhikr", selectedDhikr).apply()
+                    showPage("azkar")
+                }.setNegativeButton("إلغاء", null).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            gap(8)
+            val counter = TextView(this@MainActivity).apply {
+                text = count.toString(); textSize = 48f; gravity = Gravity.CENTER
+                setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
+            }
             countView = counter
-            addView(counter)
+            addView(counter, LinearLayout.LayoutParams(-1, -2))
+            val progress = TextView(this@MainActivity).apply {
+                text = "الهدف: $tasbeehTarget • المتبقي: ${tasbeehTarget - (count % tasbeehTarget)}"
+                textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted)
+            }
+            addView(progress, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تغيير الهدف") {
+                val targets = arrayOf("33", "100", "1000", "هدف مخصص")
+                AlertDialog.Builder(this@MainActivity).setTitle("هدف التسبيح").setItems(targets) { _, which ->
+                    if (which < 3) {
+                        tasbeehTarget = listOf(33, 100, 1000)[which]
+                        getPreferences(0).edit().putInt("tasbeeh_target", tasbeehTarget).apply()
+                        showPage("azkar")
+                    } else {
+                        val field = EditText(this@MainActivity).apply {
+                            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                            hint = "اكتب الهدف"
+                        }
+                        AlertDialog.Builder(this@MainActivity).setTitle("هدف مخصص").setView(field)
+                            .setPositiveButton("حفظ") { _, _ ->
+                                val value = field.text.toString().toIntOrNull()
+                                if (value != null && value in 1..100000) {
+                                    tasbeehTarget = value
+                                    getPreferences(0).edit().putInt("tasbeeh_target", value).apply()
+                                    showPage("azkar")
+                                } else Toast.makeText(this@MainActivity, "أدخل رقماً من 1 إلى 100000", Toast.LENGTH_SHORT).show()
+                            }.setNegativeButton("إلغاء", null).show()
+                    }
+                }.setNegativeButton("إلغاء", null).show()
+            }, LinearLayout.LayoutParams(-1, -2))
             addView(button("تسبيح  +") {
-                count++; getPreferences(0).edit().putInt("tasbeeh", count).apply(); countView?.text = count.toString()
+                count++
+                getPreferences(0).edit().putInt("tasbeeh", count).apply()
+                counter.text = count.toString()
+                progress.text = "الهدف: $tasbeehTarget • المتبقي: ${tasbeehTarget - (count % tasbeehTarget)}"
+                if (vibrationEnabled) {
+                    try {
+                        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                        if (android.os.Build.VERSION.SDK_INT >= 26) {
+                            vibrator.vibrate(android.os.VibrationEffect.createOneShot(25, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vibrator.vibrate(25)
+                        }
+                    } catch (_: Exception) {}
+                }
+                if (count % tasbeehTarget == 0) {
+                    Toast.makeText(this@MainActivity, "ما شاء الله! أتممت هدف $tasbeehTarget", Toast.LENGTH_LONG).show()
+                }
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("تصفير العداد") {
-                count = 0; getPreferences(0).edit().putInt("tasbeeh", 0).apply(); countView?.text = "0"
+                AlertDialog.Builder(this@MainActivity).setTitle("تصفير المسبحة؟")
+                    .setMessage("سيتم تصفير العدد المحفوظ.")
+                    .setNegativeButton("إلغاء", null)
+                    .setPositiveButton("تصفير") { _, _ ->
+                        count = 0
+                        getPreferences(0).edit().putInt("tasbeeh", 0).apply()
+                        showPage("azkar")
+                    }.show()
             }, LinearLayout.LayoutParams(-1, -2))
+            val vibrationSwitch = Switch(this@MainActivity).apply {
+                text = "اهتزاز خفيف عند التسبيح"
+                setTextColor(cream); isChecked = vibrationEnabled
+                setOnCheckedChangeListener { _, checked ->
+                    vibrationEnabled = checked
+                    getPreferences(0).edit().putBoolean("tasbeeh_vibration", checked).apply()
+                }
+            }
+            addView(vibrationSwitch, LinearLayout.LayoutParams(-1, -2))
         }
         gap(12)
         card {
@@ -214,8 +306,9 @@ class MainActivity : Activity(), SensorEventListener {
             line("أستغفر الله العظيم وأتوب إليه", 17f, cream)
             line("لا إله إلا الله وحده لا شريك له", 17f, cream)
             line("اللهم صل وسلم على نبينا محمد", 17f, cream)
+            line("سبحان الله والحمد لله ولا إله إلا الله والله أكبر", 17f, cream)
         }
-        text("هذه مجموعة أولية؛ سيضاف فهرس الأذكار الكامل مع مراجعة المصادر.", 12f, muted)
+        text("الأذكار المعروضة مختارات أولية؛ سيُستكمل فهرس أذكار الصباح والمساء وما بعد الصلاة مع توثيق النصوص والمصادر.", 12f, muted)
     }
 
     private fun quran() {
