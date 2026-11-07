@@ -27,7 +27,7 @@ class MainActivity : Activity() {
     private val white = Color.WHITE
     private var latitude = 31.9539
     private var longitude = 35.9106
-
+private var locationLoaded = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showHome()
