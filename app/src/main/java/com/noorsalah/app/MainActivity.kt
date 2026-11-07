@@ -129,16 +129,18 @@ class MainActivity : Activity(), SensorEventListener {
         gap(22)
         card {
             line("الكعبة المشرفة", 18f, gold, true, Gravity.CENTER)
-            arrow = TextView(this).apply {
+            val arrowView = TextView(this).apply {
                 text = "➤"; textSize = 86f; gravity = Gravity.CENTER; setTextColor(gold)
                 rotation = qibla().toFloat() - heading
             }
-            addView(arrow, LinearLayout.LayoutParams(-1, dp(155)))
-            compassInfo = TextView(this).apply {
+            arrow = arrowView
+            addView(arrowView, LinearLayout.LayoutParams(-1, dp(155)))
+            val infoView = TextView(this).apply {
                 text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الهاتف ${"%.0f".format(heading)}°"
                 textSize = 18f; gravity = Gravity.CENTER; setTextColor(cream)
             }
-            addView(compassInfo)
+            compassInfo = infoView
+            addView(infoView)
         }
         gap(12)
         card { line("معايرة البوصلة", 16f, gold, true); line("حرّك الهاتف على شكل رقم 8 عند عدم استقرار القراءة. قد تتأثر البوصلة بالمغناطيس والمعادن.", 13f, muted) }
@@ -149,8 +151,9 @@ class MainActivity : Activity(), SensorEventListener {
         gap(12)
         card {
             line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 22f, cream, true, Gravity.CENTER)
-            countView = TextView(this@MainActivity).apply { text = count.toString(); textSize = 42f; gravity = Gravity.CENTER; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
-            addView(countView)
+            val counter = TextView(this@MainActivity).apply { text = count.toString(); textSize = 42f; gravity = Gravity.CENTER; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
+            countView = counter
+            addView(counter)
             addView(button("تسبيح  +") {
                 count++; getPreferences(0).edit().putInt("tasbeeh", count).apply(); countView?.text = count.toString()
             }, LinearLayout.LayoutParams(-1, -2))
