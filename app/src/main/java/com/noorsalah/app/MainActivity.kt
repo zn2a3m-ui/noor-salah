@@ -52,7 +52,7 @@ class MainActivity : Activity(), SensorEventListener {
         shell.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         val nav = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(dp(4), dp(5), dp(4), dp(5)); background = shape(panel, 18) }
         listOf("الرئيسية" to "home", "القبلة" to "qibla", "الأذكار" to "azkar", "القرآن" to "quran", "الإعدادات" to "settings").forEach { item ->
-            val b = TextView(this).apply {
+            val b = TextView(this@MainActivity).apply {
                 text = item.first; gravity = Gravity.CENTER; textSize = 11f
                 setTextColor(if (item.second == page) gold else cream)
                 setPadding(dp(4), dp(12), dp(4), dp(12))
@@ -104,8 +104,8 @@ class MainActivity : Activity(), SensorEventListener {
                 setPadding(dp(16), dp(13), dp(16), dp(13))
                 background = shape(if (i % 2 == 0) panel else panelAlt, 13)
             }
-            val n = TextView(this).apply { text = name; textSize = 16f; setTextColor(cream); typeface = Typeface.DEFAULT_BOLD }
-            val t = TextView(this).apply { text = times[i]; textSize = 17f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
+            val n = TextView(this@MainActivity).apply { text = name; textSize = 16f; setTextColor(cream); typeface = Typeface.DEFAULT_BOLD }
+            val t = TextView(this@MainActivity).apply { text = times[i]; textSize = 17f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
             row.addView(n, LinearLayout.LayoutParams(0, -2, 1f)); row.addView(t)
             content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
         }
@@ -129,13 +129,13 @@ class MainActivity : Activity(), SensorEventListener {
         gap(22)
         card {
             line("الكعبة المشرفة", 18f, gold, true, Gravity.CENTER)
-            val arrowView = TextView(this).apply {
+            val arrowView = TextView(this@MainActivity).apply {
                 text = "➤"; textSize = 86f; gravity = Gravity.CENTER; setTextColor(gold)
                 rotation = qibla().toFloat() - heading
             }
             arrow = arrowView
             addView(arrowView, LinearLayout.LayoutParams(-1, dp(155)))
-            val infoView = TextView(this).apply {
+            val infoView = TextView(this@MainActivity).apply {
                 text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الهاتف ${"%.0f".format(heading)}°"
                 textSize = 18f; gravity = Gravity.CENTER; setTextColor(cream)
             }
@@ -212,7 +212,7 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun LinearLayout.line(value: String, size: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START) {
-        val v = TextView(this).apply {
+        val v = TextView(this@MainActivity).apply {
             text = value; textSize = size; setTextColor(color); this.gravity = gravity
             if (bold) typeface = Typeface.DEFAULT_BOLD
             setPadding(0, dp(4), 0, dp(4))
