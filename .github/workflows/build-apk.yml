@@ -1,4 +1,4 @@
-name: Build Noor Salah APK
+name: Build Noor Salah Release
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get source code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -19,14 +19,25 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Build APK
+      - name: Prepare signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/noor-release.jks"
+
+      - name: Build signed Release APK
         uses: gradle/gradle-build-action@v3
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/noor-release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         with:
           gradle-version: 8.9
-          arguments: assembleDebug
+          arguments: assembleRelease
 
-      - name: Save APK
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Noor-Salah-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: Noor-Salah-Release
+          path: app/build/outputs/apk/release/*.apk
