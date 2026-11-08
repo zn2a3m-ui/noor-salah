@@ -108,8 +108,10 @@ object PrayerTimesRemoteRepository {
     }
 
     fun getTimes(context: Context, date: Calendar): List<Int>? {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString("prayer_remote_times_${dateKey(date)}", null) ?: return null
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
+        if (!selectedMethod.startsWith("الأردن")) return null
+        val raw = prefs.getString("prayer_remote_times_${dateKey(date)}", null) ?: return null
         return try {
             val values = JSONArray(raw)
             if (values.length() != 6) return null
@@ -125,6 +127,9 @@ object PrayerTimesRemoteRepository {
 
     fun getMethodLabel(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (getTimes(context, Calendar.getInstance()) == null) {
+            return "المواقيت المحلية الحسابية • تقديرية أو حسب طريقة الحساب المختارة"
+        }
         val method = prefs.getString("prayer_remote_method", null)
             ?: return "المواقيت المحلية الحسابية • تقديرية عند عدم توفر الإنترنت"
         val status = prefs.getString("prayer_remote_method_status", "")
@@ -136,7 +141,7 @@ object PrayerTimesRemoteRepository {
     }
 
     fun getProviderLabel(context: Context): String =
-        if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).contains("prayer_remote_method")) {
+        if (getTimes(context, Calendar.getInstance()) != null) {
             "مصدر البيانات: prayertime.si • CC BY 4.0"
         } else {
             "مصدر احتياطي: الحساب المحلي التقديري"
