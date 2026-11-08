@@ -576,6 +576,7 @@ class MainActivity : Activity(), SensorEventListener {
                 line("التاريخ الهجري لهذا اليوم غير محفوظ. فعّل مصدر المواقيت عبر الإنترنت من الصفحة الرئيسية للحصول على بيانات الشهر.", 12f, muted)
                 addView(button("الذهاب لتفعيل مصدر المواقيت") { showPage("home") }, LinearLayout.LayoutParams(-1, -2))
             }
+            line(PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity), 11f, muted)
             val names = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
             val times = prayerTimesMinutes()
             names.forEachIndexed { index, name ->
