@@ -114,29 +114,9 @@ object PrayerAlarmScheduler {
         val longitude = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
         val method = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         val offset = prefs.getInt("time_offset", 0)
-        val day = date.get(Calendar.DAY_OF_YEAR)
-        val days = if (date.getActualMaximum(Calendar.DAY_OF_YEAR) == 366) 366.0 else 365.0
-        val g = 2.0 * Math.PI / days * (day - 1)
-        val eq = 229.18 * (0.000075 + 0.001868*cos(g) - 0.032077*sin(g) - 0.014615*cos(2*g) - 0.040849*sin(2*g))
-        val dec = 0.006918 - 0.399912*cos(g) + 0.070257*sin(g) - 0.006758*cos(2*g) + 0.000907*sin(2*g) - 0.002697*cos(3*g) + 0.00148*sin(3*g)
-        val lat = Math.toRadians(latitude)
-        val zone = (date.get(Calendar.ZONE_OFFSET) + date.get(Calendar.DST_OFFSET)) / 60000.0
-        val noon = 720.0 - 4.0*longitude - eq + zone + offset
-        fun hourAngle(altitude: Double): Double {
-            val a = Math.toRadians(altitude)
-            val v = (sin(a)-sin(lat)*sin(dec))/(cos(lat)*cos(dec))
-            return Math.toDegrees(acos(v.coerceIn(-1.0,1.0)))*4.0
-        }
-        val fajrAngle = if (method.startsWith("أم القرى")) 18.5 else 18.0
-        val ishaAngle = if (method.startsWith("أم القرى")) 0.0 else if (method.startsWith("الأردن")) 18.0 else 17.0
-        val fajr = noon - hourAngle(-fajrAngle)
-        val dhuhr = noon + 2.0
-        val asrAltitude = Math.toDegrees(atan(1.0/(1.0+tan(abs(lat-dec)))))
-        val asr = noon + hourAngle(asrAltitude)
-        val sunset = noon + hourAngle(-0.833)
-        val maghrib = sunset + if (method.startsWith("الأردن")) 5.0 else 0.0
-        val isha = if (ishaAngle == 0.0) sunset + 90.0 else noon + hourAngle(-ishaAngle)
-        return listOf(fajr, dhuhr, asr, maghrib, isha).map { ((it.roundToInt() % 1440) + 1440) % 1440 }
+        val allTimes = PrayerTimesCalculator.calculate(date, latitude, longitude, method, offset)
+        // Sunrise is not an obligatory prayer and must not trigger an adhan.
+        return listOf(allTimes[0], allTimes[2], allTimes[3], allTimes[4], allTimes[5])
     }
 }
 
