@@ -181,6 +181,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         clockHandler.post(clockTick)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        PrayerWidgetProvider.updateAll(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
@@ -291,6 +292,7 @@ class MainActivity : Activity(), SensorEventListener {
             "calendar" -> hijriCalendar()
             "settings" -> settings()
         }
+        PrayerWidgetProvider.updateAll(this)
     }
 
     private fun updateNavigationSelection() {
