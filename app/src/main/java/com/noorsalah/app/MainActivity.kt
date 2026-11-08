@@ -514,6 +514,7 @@ class MainActivity : Activity(), SensorEventListener {
             addView(button("العودة إلى شهر اليوم") {
                 calendarMonthMillis = System.currentTimeMillis()
                 selectedDateMillis = System.currentTimeMillis()
+                getPreferences(0).edit().putLong("selected_date", selectedDateMillis).apply()
                 showPage("calendar")
             }, LinearLayout.LayoutParams(-1, -2))
         }
