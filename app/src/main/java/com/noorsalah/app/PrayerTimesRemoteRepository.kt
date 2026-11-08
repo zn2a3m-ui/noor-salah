@@ -27,7 +27,7 @@ import kotlin.math.sqrt
  */
 object PrayerTimesRemoteRepository {
     private const val PREFS = "MainActivity"
-    private const val REFRESH_INTERVAL_MS = 18L * 60L * 60L * 1000L
+    private const val REFRESH_INTERVAL_MS = 24L * 60L * 60L * 1000L
     private val executor = Executors.newSingleThreadExecutor()
     private val refreshLock = Any()
     @Volatile private var refreshInFlight = false
