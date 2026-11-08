@@ -732,6 +732,9 @@ class MainActivity : Activity(), SensorEventListener {
             line("تُصحّح البوصلة الانحراف المغناطيسي تلقائياً وفق موقعك، وقد تتأثر بالدقة والمعادن حول الهاتف.", 11f, muted, false, Gravity.CENTER)
         }
         gap(10)
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null) {
+            text("لا يتوفر مستشعر بوصلة في هذا الجهاز. يظهر اتجاه القبلة الرقمي، لكن السهم لن يتحرك.", 12f, muted, false, Gravity.CENTER)
+        }
         card {
             line("معايرة البوصلة", 16f, gold, true)
             line("أمسك الهاتف أفقياً وحرّكه على شكل رقم 8 إذا لم يستقر المؤشر. أبعده عن المعادن والمغناطيس.", 13f, muted)
@@ -2052,8 +2055,22 @@ class MainActivity : Activity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
-        val matrix = FloatArray(9); SensorManager.getRotationMatrixFromVector(matrix, event.values)
-        val orientation = FloatArray(3); SensorManager.getOrientation(matrix, orientation)
+        val matrix = FloatArray(9)
+        SensorManager.getRotationMatrixFromVector(matrix, event.values)
+        val rotation = windowManager.defaultDisplay.rotation
+        val (axisX, axisY) = when (rotation) {
+            android.view.Surface.ROTATION_90 ->
+                SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
+            android.view.Surface.ROTATION_180 ->
+                SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
+            android.view.Surface.ROTATION_270 ->
+                SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
+            else -> SensorManager.AXIS_X to SensorManager.AXIS_Y
+        }
+        val remapped = FloatArray(9)
+        SensorManager.remapCoordinateSystem(matrix, axisX, axisY, remapped)
+        val orientation = FloatArray(3)
+        SensorManager.getOrientation(remapped, orientation)
         val magneticHeading = (Math.toDegrees(orientation[0].toDouble()).toFloat() + 360f) % 360f
         val declination = android.hardware.GeomagneticField(
             latitude.toFloat(),
@@ -2063,7 +2080,8 @@ class MainActivity : Activity(), SensorEventListener {
         ).declination
         heading = QiblaCalculator.trueHeading(magneticHeading, declination)
         arrow?.rotation = qibla().toFloat() - heading
-        compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°"
+        val accuracyHint = if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) " • حرّك الهاتف للمعايرة" else ""
+        compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°$accuracyHint"
     }
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
