@@ -737,7 +737,7 @@ class MainActivity : Activity(), SensorEventListener {
         content.removeAllViews()
         text("نتائج البحث", 25f, gold, true, Gravity.CENTER)
         text("الكلمة: $query", 13f, muted, false, Gravity.CENTER)
-        addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
+        content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         if (results.isEmpty()) {
             text("لا توجد نتائج مطابقة. جرّب كتابة جزء آخر من الآية.", 14f, muted, false, Gravity.CENTER)
         } else {
