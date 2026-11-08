@@ -78,7 +78,7 @@ class MainActivity : Activity(), SensorEventListener {
             getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
         }
         use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
-        count = getPreferences(0).getInt("tasbeeh", 0)
+        count = getPreferences(0).getInt("tasbeeh_count_$selectedDhikr", getPreferences(0).getInt("tasbeeh", 0))
         selectedDhikr = getPreferences(0).getString("selected_dhikr", "سُبْحَانَ اللهِ وَبِحَمْدِهِ") ?: "سُبْحَانَ اللهِ وَبِحَمْدِهِ"
         tasbeehTarget = getPreferences(0).getInt("tasbeeh_target", 100)
         vibrationEnabled = getPreferences(0).getBoolean("tasbeeh_vibration", true)
@@ -219,8 +219,11 @@ class MainActivity : Activity(), SensorEventListener {
                     "سُبْحَانَ اللهِ، وَالْحَمْدُ لِلَّهِ، وَاللهُ أَكْبَر"
                 )
                 AlertDialog.Builder(this@MainActivity).setTitle("اختر الذكر").setItems(choices) { _, which ->
+                    val prefs = getPreferences(0)
+                    prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
                     selectedDhikr = choices[which]
-                    getPreferences(0).edit().putString("selected_dhikr", selectedDhikr).apply()
+                    count = prefs.getInt("tasbeeh_count_$selectedDhikr", 0)
+                    prefs.edit().putString("selected_dhikr", selectedDhikr).putInt("tasbeeh", count).apply()
                     showPage("azkar")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
@@ -232,7 +235,7 @@ class MainActivity : Activity(), SensorEventListener {
             countView = counter
             addView(counter, LinearLayout.LayoutParams(-1, -2))
             val progress = TextView(this@MainActivity).apply {
-                text = "الهدف: $tasbeehTarget • المتبقي: ${tasbeehTarget - (count % tasbeehTarget)}"
+                text = "الهدف: $tasbeehTarget • المتبقي: ${(tasbeehTarget - (count % tasbeehTarget)) % tasbeehTarget}"
                 textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted)
             }
             addView(progress, LinearLayout.LayoutParams(-1, -2))
@@ -262,9 +265,9 @@ class MainActivity : Activity(), SensorEventListener {
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("تسبيح  +") {
                 count++
-                getPreferences(0).edit().putInt("tasbeeh", count).apply()
+                getPreferences(0).edit().putInt("tasbeeh", count).putInt("tasbeeh_count_$selectedDhikr", count).apply()
                 counter.text = count.toString()
-                progress.text = "الهدف: $tasbeehTarget • المتبقي: ${tasbeehTarget - (count % tasbeehTarget)}"
+                progress.text = "الهدف: $tasbeehTarget • المتبقي: ${(tasbeehTarget - (count % tasbeehTarget)) % tasbeehTarget}"
                 if (vibrationEnabled) {
                     try {
                         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
@@ -286,7 +289,7 @@ class MainActivity : Activity(), SensorEventListener {
                     .setNegativeButton("إلغاء", null)
                     .setPositiveButton("تصفير") { _, _ ->
                         count = 0
-                        getPreferences(0).edit().putInt("tasbeeh", 0).apply()
+                        getPreferences(0).edit().putInt("tasbeeh", 0).putInt("tasbeeh_count_$selectedDhikr", 0).apply()
                         showPage("azkar")
                     }.show()
             }, LinearLayout.LayoutParams(-1, -2))
