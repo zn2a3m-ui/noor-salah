@@ -725,10 +725,12 @@ class MainActivity : Activity(), SensorEventListener {
                 gravity = Gravity.CENTER; topMargin = dp(12); bottomMargin = dp(14)
             })
             val infoView = TextView(this@MainActivity).apply {
-                text = if (hasCompassReading) {
-                    "اتجاه الهاتف عن الشمال الحقيقي: ${"%.0f".format(heading)}°"
-                } else {
-                    "جارٍ قراءة اتجاه الهاتف من البوصلة…"
+                text = when {
+                    sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null ->
+                        "مستشعر البوصلة غير متاح على هذا الجهاز"
+                    hasCompassReading ->
+                        "اتجاه الهاتف عن الشمال الحقيقي: ${"%.0f".format(heading)}°"
+                    else -> "جارٍ قراءة اتجاه الهاتف من البوصلة…"
                 }
                 textSize = 14f; gravity = Gravity.CENTER; setTextColor(cream)
             }
