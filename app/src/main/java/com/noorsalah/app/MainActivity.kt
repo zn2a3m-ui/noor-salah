@@ -1478,6 +1478,9 @@ class MainActivity : Activity(), SensorEventListener {
             val volumeSlider = android.widget.SeekBar(this@MainActivity).apply {
                 max = 100
                 progress = savedVolume
+                progressTintList = android.content.res.ColorStateList.valueOf(gold)
+                thumbTintList = android.content.res.ColorStateList.valueOf(gold)
+                progressBackgroundTintList = android.content.res.ColorStateList.valueOf(Color.rgb(49, 83, 67))
                 setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
                     override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
                     override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
