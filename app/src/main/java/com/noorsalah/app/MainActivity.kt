@@ -975,6 +975,9 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
 
+        quranBookmarksCard()
+        gap(10)
+
         card {
             line("البحث في آيات القرآن", 17f, gold, true)
             val query = EditText(this@MainActivity).apply {
@@ -1061,6 +1064,81 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+    private fun quranBookmarksCard() {
+        val prefs = getPreferences(0)
+        val count = prefs.getInt("quran_bookmark_count", 0).coerceIn(0, 20)
+        card {
+            line("علاماتي المرجعية", 17f, gold, true)
+            if (count == 0) {
+                line("احفظ مواضعك المفضلة من داخل السورة لتظهر هنا.", 12f, muted)
+            } else {
+                val surahs = quranRepository.loadSurahs()
+                for (index in 0 until count) {
+                    val surahNumber = prefs.getInt("quran_bookmark_${index}_surah", -1)
+                    val ayahNumber = prefs.getInt("quran_bookmark_${index}_ayah", -1)
+                    val surah = surahs.getOrNull(surahNumber - 1) ?: continue
+                    if (ayahNumber !in 1..surah.ayahCount) continue
+                    val row = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                    row.addView(button("${surah.name} • آية $ayahNumber") {
+                        quranSurah(surahNumber, ayahNumber)
+                    }, LinearLayout.LayoutParams(0, -2, 1f))
+                    row.addView(button("×") {
+                        removeQuranBookmark(surahNumber, ayahNumber)
+                        showPage("quran")
+                    }, LinearLayout.LayoutParams(dp(48), -2))
+                    addView(row, LinearLayout.LayoutParams(-1, -2))
+                }
+            }
+        }
+    }
+
+    private fun saveQuranBookmark(surahNumber: Int, ayahNumber: Int) {
+        val prefs = getPreferences(0)
+        val count = prefs.getInt("quran_bookmark_count", 0).coerceIn(0, 20)
+        val exists = (0 until count).any { index ->
+            prefs.getInt("quran_bookmark_${index}_surah", -1) == surahNumber &&
+                prefs.getInt("quran_bookmark_${index}_ayah", -1) == ayahNumber
+        }
+        if (exists) {
+            Toast.makeText(this, "هذه الآية محفوظة في علاماتك المرجعية", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (count >= 20) {
+            Toast.makeText(this, "وصلت إلى الحد الأقصى: 20 علامة مرجعية. احذف علامة قديمة أولاً.", Toast.LENGTH_LONG).show()
+            return
+        }
+        prefs.edit()
+            .putInt("quran_bookmark_${count}_surah", surahNumber)
+            .putInt("quran_bookmark_${count}_ayah", ayahNumber)
+            .putInt("quran_bookmark_count", count + 1)
+            .apply()
+        Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun removeQuranBookmark(surahNumber: Int, ayahNumber: Int) {
+        val prefs = getPreferences(0)
+        val count = prefs.getInt("quran_bookmark_count", 0).coerceIn(0, 20)
+        val remaining = (0 until count).mapNotNull { index ->
+            val surah = prefs.getInt("quran_bookmark_${index}_surah", -1)
+            val ayah = prefs.getInt("quran_bookmark_${index}_ayah", -1)
+            if (surah == surahNumber && ayah == ayahNumber) null else surah to ayah
+        }
+        val editor = prefs.edit().putInt("quran_bookmark_count", remaining.size)
+        for (index in 0 until 20) {
+            if (index < remaining.size) {
+                editor.putInt("quran_bookmark_${index}_surah", remaining[index].first)
+                editor.putInt("quran_bookmark_${index}_ayah", remaining[index].second)
+            } else {
+                editor.remove("quran_bookmark_${index}_surah")
+                    .remove("quran_bookmark_${index}_ayah")
+            }
+        }
+        editor.apply()
+    }
+
     private fun quranSurah(surahNumber: Int, focusAyah: Int = 1) {
         val surah = try {
             quranRepository.loadSurahs().first { it.number == surahNumber }
@@ -1138,6 +1216,12 @@ class MainActivity : Activity(), SensorEventListener {
             }
             verseCard.addView(verseText, LinearLayout.LayoutParams(-1, -2))
             verseCard.addView(verseNumber, LinearLayout.LayoutParams(-1, -2))
+            verseCard.addView(
+                button("حفظ علامة مرجعية") {
+                    saveQuranBookmark(surahNumber, ayah.number)
+                },
+                LinearLayout.LayoutParams(-1, -2)
+            )
             content.addView(verseCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
             if (ayah.number == focusAyah) focusView = verseCard
         }
