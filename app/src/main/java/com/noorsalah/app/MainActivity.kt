@@ -998,7 +998,9 @@ class MainActivity : Activity(), SensorEventListener {
             val onlineSwitch = Switch(this@MainActivity).apply {
                 text = "السماح بتحديث المواقيت عبر الإنترنت"
                 setTextColor(cream)
-                isChecked = getPreferences(0).getBoolean("prayer_remote_consent", false)
+                isEnabled = calculationMethod.startsWith("الأردن") &&
+                    PrayerTimesRemoteRepository.isJordan(latitude, longitude)
+                isChecked = getPreferences(0).getBoolean("prayer_remote_consent", false) && isEnabled
                 setOnCheckedChangeListener { _, enabled ->
                     getPreferences(0).edit()
                         .putBoolean("prayer_remote_consent", enabled)
