@@ -374,7 +374,7 @@ class MainActivity : Activity(), SensorEventListener {
                 orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(15), dp(12), dp(15), dp(12))
                 background = shape(if (active) Color.rgb(15, 76, 55) else if (i % 2 == 0) panel else panelAlt,
-                    15, if (active) gold else null)
+                    15, if (active) goldOnDark else null)
             }
             val icon = TextView(this@MainActivity).apply {
                 text = symbols[i]; textSize = 20f; setTextColor(if (active) goldOnDark else gold); gravity = Gravity.CENTER
@@ -807,7 +807,7 @@ class MainActivity : Activity(), SensorEventListener {
         categoryButtons.forEach { (name, view) ->
             val active = name == selectedCategory
             view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
-                if (active) gold else Color.rgb(48, 99, 75))
+                if (active) goldOnDark else Color.rgb(48, 99, 75))
             view.setTextColor(if (active) goldOnDark else cream)
         }
         val categoryScroll = HorizontalScrollView(this@MainActivity).apply {
