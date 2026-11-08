@@ -45,6 +45,7 @@ object PrayerTimesRemoteRepository {
     ) {
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("prayer_remote_consent", false)) return
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         if (!selectedMethod.startsWith("الأردن") || !isJordan(latitude, longitude)) return
         val today = Calendar.getInstance()
@@ -85,7 +86,10 @@ object PrayerTimesRemoteRepository {
                 }
                 listOf(today, tomorrow).forEach { date ->
                     try {
-                        val remote = fetchDay(latitude, longitude, timezone, date)
+                        // Send only city-level approximate coordinates to the provider.
+                        val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
+                        val requestLongitude = String.format(Locale.US, "%.2f", longitude).toDouble()
+                        val remote = fetchDay(requestLatitude, requestLongitude, timezone, date)
                         val editor = prefs.edit()
                             .putString("prayer_remote_times_${remote.date}", JSONArray(remote.minutes).toString())
                             .putString("prayer_remote_hijri_${remote.date}", remote.hijriLabel)
@@ -121,6 +125,7 @@ object PrayerTimesRemoteRepository {
 
     fun getTimes(context: Context, date: Calendar): List<Int>? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("prayer_remote_consent", false)) return null
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         if (!selectedMethod.startsWith("الأردن")) return null
         val currentLat = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
