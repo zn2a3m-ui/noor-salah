@@ -39,6 +39,23 @@ class PrayerTimesCalculatorTest {
     }
 
     @Test
+    fun commonGlobalMethodsProduceValidChronologicalPrayerTimes() {
+        val methods = listOf(
+            "الهيئة المصرية (19.5° / 17.5°)",
+            "أمريكا الشمالية ISNA (15° / 15°)",
+            "جامعة كراتشي (18° / 18°)",
+            "ديانت تركيا (18° / 17°)",
+            "سنغافورة (20° / 18°)"
+        )
+        methods.forEach { method ->
+            val times = PrayerTimesCalculator.calculate(ammanDate(), 31.9539, 35.9106, method, 0)
+            assertEquals(method, 6, times.size)
+            assertTrue("$method times must be in range", times.all { it in 0..1439 })
+            assertTrue("$method times must be chronological", times.zipWithNext().all { (a, b) -> a < b })
+        }
+    }
+
+    @Test
     fun ummAlQuraIshaUsesNinetyMinutesAfterSunset() {
         val times = PrayerTimesCalculator.calculate(
             ammanDate(), 31.9539, 35.9106, "أم القرى (18.5° / 90 دقيقة)", 0
