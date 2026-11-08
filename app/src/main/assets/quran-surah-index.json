@@ -1,0 +1,808 @@
+{
+  "source": "Tanzil Project Quran Metadata",
+  "sourceUrl": "https://tanzil.net/res/text/metadata/quran-data.xml",
+  "mirrorRepository": "myquranapp/quran-data",
+  "mirrorCommit": "890c49cd61a3684b4bdebba0b62b2eed78811831",
+  "copyright": "(C) 2008-2009 Tanzil.info",
+  "license": "CC BY 3.0",
+  "suras": [
+    {
+      "number": 1,
+      "ayahs": 7,
+      "start": 0,
+      "name": "الفاتحة",
+      "type": "Meccan"
+    },
+    {
+      "number": 2,
+      "ayahs": 286,
+      "start": 7,
+      "name": "البقرة",
+      "type": "Medinan"
+    },
+    {
+      "number": 3,
+      "ayahs": 200,
+      "start": 293,
+      "name": "آل عمران",
+      "type": "Medinan"
+    },
+    {
+      "number": 4,
+      "ayahs": 176,
+      "start": 493,
+      "name": "النساء",
+      "type": "Medinan"
+    },
+    {
+      "number": 5,
+      "ayahs": 120,
+      "start": 669,
+      "name": "المائدة",
+      "type": "Medinan"
+    },
+    {
+      "number": 6,
+      "ayahs": 165,
+      "start": 789,
+      "name": "الأنعام",
+      "type": "Meccan"
+    },
+    {
+      "number": 7,
+      "ayahs": 206,
+      "start": 954,
+      "name": "الأعراف",
+      "type": "Meccan"
+    },
+    {
+      "number": 8,
+      "ayahs": 75,
+      "start": 1160,
+      "name": "الأنفال",
+      "type": "Medinan"
+    },
+    {
+      "number": 9,
+      "ayahs": 129,
+      "start": 1235,
+      "name": "التوبة",
+      "type": "Medinan"
+    },
+    {
+      "number": 10,
+      "ayahs": 109,
+      "start": 1364,
+      "name": "يونس",
+      "type": "Meccan"
+    },
+    {
+      "number": 11,
+      "ayahs": 123,
+      "start": 1473,
+      "name": "هود",
+      "type": "Meccan"
+    },
+    {
+      "number": 12,
+      "ayahs": 111,
+      "start": 1596,
+      "name": "يوسف",
+      "type": "Meccan"
+    },
+    {
+      "number": 13,
+      "ayahs": 43,
+      "start": 1707,
+      "name": "الرعد",
+      "type": "Medinan"
+    },
+    {
+      "number": 14,
+      "ayahs": 52,
+      "start": 1750,
+      "name": "ابراهيم",
+      "type": "Meccan"
+    },
+    {
+      "number": 15,
+      "ayahs": 99,
+      "start": 1802,
+      "name": "الحجر",
+      "type": "Meccan"
+    },
+    {
+      "number": 16,
+      "ayahs": 128,
+      "start": 1901,
+      "name": "النحل",
+      "type": "Meccan"
+    },
+    {
+      "number": 17,
+      "ayahs": 111,
+      "start": 2029,
+      "name": "الإسراء",
+      "type": "Meccan"
+    },
+    {
+      "number": 18,
+      "ayahs": 110,
+      "start": 2140,
+      "name": "الكهف",
+      "type": "Meccan"
+    },
+    {
+      "number": 19,
+      "ayahs": 98,
+      "start": 2250,
+      "name": "مريم",
+      "type": "Meccan"
+    },
+    {
+      "number": 20,
+      "ayahs": 135,
+      "start": 2348,
+      "name": "طه",
+      "type": "Meccan"
+    },
+    {
+      "number": 21,
+      "ayahs": 112,
+      "start": 2483,
+      "name": "الأنبياء",
+      "type": "Meccan"
+    },
+    {
+      "number": 22,
+      "ayahs": 78,
+      "start": 2595,
+      "name": "الحج",
+      "type": "Medinan"
+    },
+    {
+      "number": 23,
+      "ayahs": 118,
+      "start": 2673,
+      "name": "المؤمنون",
+      "type": "Meccan"
+    },
+    {
+      "number": 24,
+      "ayahs": 64,
+      "start": 2791,
+      "name": "النور",
+      "type": "Medinan"
+    },
+    {
+      "number": 25,
+      "ayahs": 77,
+      "start": 2855,
+      "name": "الفرقان",
+      "type": "Meccan"
+    },
+    {
+      "number": 26,
+      "ayahs": 227,
+      "start": 2932,
+      "name": "الشعراء",
+      "type": "Meccan"
+    },
+    {
+      "number": 27,
+      "ayahs": 93,
+      "start": 3159,
+      "name": "النمل",
+      "type": "Meccan"
+    },
+    {
+      "number": 28,
+      "ayahs": 88,
+      "start": 3252,
+      "name": "القصص",
+      "type": "Meccan"
+    },
+    {
+      "number": 29,
+      "ayahs": 69,
+      "start": 3340,
+      "name": "العنكبوت",
+      "type": "Meccan"
+    },
+    {
+      "number": 30,
+      "ayahs": 60,
+      "start": 3409,
+      "name": "الروم",
+      "type": "Meccan"
+    },
+    {
+      "number": 31,
+      "ayahs": 34,
+      "start": 3469,
+      "name": "لقمان",
+      "type": "Meccan"
+    },
+    {
+      "number": 32,
+      "ayahs": 30,
+      "start": 3503,
+      "name": "السجدة",
+      "type": "Meccan"
+    },
+    {
+      "number": 33,
+      "ayahs": 73,
+      "start": 3533,
+      "name": "الأحزاب",
+      "type": "Medinan"
+    },
+    {
+      "number": 34,
+      "ayahs": 54,
+      "start": 3606,
+      "name": "سبإ",
+      "type": "Meccan"
+    },
+    {
+      "number": 35,
+      "ayahs": 45,
+      "start": 3660,
+      "name": "فاطر",
+      "type": "Meccan"
+    },
+    {
+      "number": 36,
+      "ayahs": 83,
+      "start": 3705,
+      "name": "يس",
+      "type": "Meccan"
+    },
+    {
+      "number": 37,
+      "ayahs": 182,
+      "start": 3788,
+      "name": "الصافات",
+      "type": "Meccan"
+    },
+    {
+      "number": 38,
+      "ayahs": 88,
+      "start": 3970,
+      "name": "ص",
+      "type": "Meccan"
+    },
+    {
+      "number": 39,
+      "ayahs": 75,
+      "start": 4058,
+      "name": "الزمر",
+      "type": "Meccan"
+    },
+    {
+      "number": 40,
+      "ayahs": 85,
+      "start": 4133,
+      "name": "غافر",
+      "type": "Meccan"
+    },
+    {
+      "number": 41,
+      "ayahs": 54,
+      "start": 4218,
+      "name": "فصلت",
+      "type": "Meccan"
+    },
+    {
+      "number": 42,
+      "ayahs": 53,
+      "start": 4272,
+      "name": "الشورى",
+      "type": "Meccan"
+    },
+    {
+      "number": 43,
+      "ayahs": 89,
+      "start": 4325,
+      "name": "الزخرف",
+      "type": "Meccan"
+    },
+    {
+      "number": 44,
+      "ayahs": 59,
+      "start": 4414,
+      "name": "الدخان",
+      "type": "Meccan"
+    },
+    {
+      "number": 45,
+      "ayahs": 37,
+      "start": 4473,
+      "name": "الجاثية",
+      "type": "Meccan"
+    },
+    {
+      "number": 46,
+      "ayahs": 35,
+      "start": 4510,
+      "name": "الأحقاف",
+      "type": "Meccan"
+    },
+    {
+      "number": 47,
+      "ayahs": 38,
+      "start": 4545,
+      "name": "محمد",
+      "type": "Medinan"
+    },
+    {
+      "number": 48,
+      "ayahs": 29,
+      "start": 4583,
+      "name": "الفتح",
+      "type": "Medinan"
+    },
+    {
+      "number": 49,
+      "ayahs": 18,
+      "start": 4612,
+      "name": "الحجرات",
+      "type": "Medinan"
+    },
+    {
+      "number": 50,
+      "ayahs": 45,
+      "start": 4630,
+      "name": "ق",
+      "type": "Meccan"
+    },
+    {
+      "number": 51,
+      "ayahs": 60,
+      "start": 4675,
+      "name": "الذاريات",
+      "type": "Meccan"
+    },
+    {
+      "number": 52,
+      "ayahs": 49,
+      "start": 4735,
+      "name": "الطور",
+      "type": "Meccan"
+    },
+    {
+      "number": 53,
+      "ayahs": 62,
+      "start": 4784,
+      "name": "النجم",
+      "type": "Meccan"
+    },
+    {
+      "number": 54,
+      "ayahs": 55,
+      "start": 4846,
+      "name": "القمر",
+      "type": "Meccan"
+    },
+    {
+      "number": 55,
+      "ayahs": 78,
+      "start": 4901,
+      "name": "الرحمن",
+      "type": "Medinan"
+    },
+    {
+      "number": 56,
+      "ayahs": 96,
+      "start": 4979,
+      "name": "الواقعة",
+      "type": "Meccan"
+    },
+    {
+      "number": 57,
+      "ayahs": 29,
+      "start": 5075,
+      "name": "الحديد",
+      "type": "Medinan"
+    },
+    {
+      "number": 58,
+      "ayahs": 22,
+      "start": 5104,
+      "name": "المجادلة",
+      "type": "Medinan"
+    },
+    {
+      "number": 59,
+      "ayahs": 24,
+      "start": 5126,
+      "name": "الحشر",
+      "type": "Medinan"
+    },
+    {
+      "number": 60,
+      "ayahs": 13,
+      "start": 5150,
+      "name": "الممتحنة",
+      "type": "Medinan"
+    },
+    {
+      "number": 61,
+      "ayahs": 14,
+      "start": 5163,
+      "name": "الصف",
+      "type": "Medinan"
+    },
+    {
+      "number": 62,
+      "ayahs": 11,
+      "start": 5177,
+      "name": "الجمعة",
+      "type": "Medinan"
+    },
+    {
+      "number": 63,
+      "ayahs": 11,
+      "start": 5188,
+      "name": "المنافقون",
+      "type": "Medinan"
+    },
+    {
+      "number": 64,
+      "ayahs": 18,
+      "start": 5199,
+      "name": "التغابن",
+      "type": "Medinan"
+    },
+    {
+      "number": 65,
+      "ayahs": 12,
+      "start": 5217,
+      "name": "الطلاق",
+      "type": "Medinan"
+    },
+    {
+      "number": 66,
+      "ayahs": 12,
+      "start": 5229,
+      "name": "التحريم",
+      "type": "Medinan"
+    },
+    {
+      "number": 67,
+      "ayahs": 30,
+      "start": 5241,
+      "name": "الملك",
+      "type": "Meccan"
+    },
+    {
+      "number": 68,
+      "ayahs": 52,
+      "start": 5271,
+      "name": "القلم",
+      "type": "Meccan"
+    },
+    {
+      "number": 69,
+      "ayahs": 52,
+      "start": 5323,
+      "name": "الحاقة",
+      "type": "Meccan"
+    },
+    {
+      "number": 70,
+      "ayahs": 44,
+      "start": 5375,
+      "name": "المعارج",
+      "type": "Meccan"
+    },
+    {
+      "number": 71,
+      "ayahs": 28,
+      "start": 5419,
+      "name": "نوح",
+      "type": "Meccan"
+    },
+    {
+      "number": 72,
+      "ayahs": 28,
+      "start": 5447,
+      "name": "الجن",
+      "type": "Meccan"
+    },
+    {
+      "number": 73,
+      "ayahs": 20,
+      "start": 5475,
+      "name": "المزمل",
+      "type": "Meccan"
+    },
+    {
+      "number": 74,
+      "ayahs": 56,
+      "start": 5495,
+      "name": "المدثر",
+      "type": "Meccan"
+    },
+    {
+      "number": 75,
+      "ayahs": 40,
+      "start": 5551,
+      "name": "القيامة",
+      "type": "Meccan"
+    },
+    {
+      "number": 76,
+      "ayahs": 31,
+      "start": 5591,
+      "name": "الانسان",
+      "type": "Medinan"
+    },
+    {
+      "number": 77,
+      "ayahs": 50,
+      "start": 5622,
+      "name": "المرسلات",
+      "type": "Meccan"
+    },
+    {
+      "number": 78,
+      "ayahs": 40,
+      "start": 5672,
+      "name": "النبإ",
+      "type": "Meccan"
+    },
+    {
+      "number": 79,
+      "ayahs": 46,
+      "start": 5712,
+      "name": "النازعات",
+      "type": "Meccan"
+    },
+    {
+      "number": 80,
+      "ayahs": 42,
+      "start": 5758,
+      "name": "عبس",
+      "type": "Meccan"
+    },
+    {
+      "number": 81,
+      "ayahs": 29,
+      "start": 5800,
+      "name": "التكوير",
+      "type": "Meccan"
+    },
+    {
+      "number": 82,
+      "ayahs": 19,
+      "start": 5829,
+      "name": "الإنفطار",
+      "type": "Meccan"
+    },
+    {
+      "number": 83,
+      "ayahs": 36,
+      "start": 5848,
+      "name": "المطففين",
+      "type": "Meccan"
+    },
+    {
+      "number": 84,
+      "ayahs": 25,
+      "start": 5884,
+      "name": "الإنشقاق",
+      "type": "Meccan"
+    },
+    {
+      "number": 85,
+      "ayahs": 22,
+      "start": 5909,
+      "name": "البروج",
+      "type": "Meccan"
+    },
+    {
+      "number": 86,
+      "ayahs": 17,
+      "start": 5931,
+      "name": "الطارق",
+      "type": "Meccan"
+    },
+    {
+      "number": 87,
+      "ayahs": 19,
+      "start": 5948,
+      "name": "الأعلى",
+      "type": "Meccan"
+    },
+    {
+      "number": 88,
+      "ayahs": 26,
+      "start": 5967,
+      "name": "الغاشية",
+      "type": "Meccan"
+    },
+    {
+      "number": 89,
+      "ayahs": 30,
+      "start": 5993,
+      "name": "الفجر",
+      "type": "Meccan"
+    },
+    {
+      "number": 90,
+      "ayahs": 20,
+      "start": 6023,
+      "name": "البلد",
+      "type": "Meccan"
+    },
+    {
+      "number": 91,
+      "ayahs": 15,
+      "start": 6043,
+      "name": "الشمس",
+      "type": "Meccan"
+    },
+    {
+      "number": 92,
+      "ayahs": 21,
+      "start": 6058,
+      "name": "الليل",
+      "type": "Meccan"
+    },
+    {
+      "number": 93,
+      "ayahs": 11,
+      "start": 6079,
+      "name": "الضحى",
+      "type": "Meccan"
+    },
+    {
+      "number": 94,
+      "ayahs": 8,
+      "start": 6090,
+      "name": "الشرح",
+      "type": "Meccan"
+    },
+    {
+      "number": 95,
+      "ayahs": 8,
+      "start": 6098,
+      "name": "التين",
+      "type": "Meccan"
+    },
+    {
+      "number": 96,
+      "ayahs": 19,
+      "start": 6106,
+      "name": "العلق",
+      "type": "Meccan"
+    },
+    {
+      "number": 97,
+      "ayahs": 5,
+      "start": 6125,
+      "name": "القدر",
+      "type": "Meccan"
+    },
+    {
+      "number": 98,
+      "ayahs": 8,
+      "start": 6130,
+      "name": "البينة",
+      "type": "Medinan"
+    },
+    {
+      "number": 99,
+      "ayahs": 8,
+      "start": 6138,
+      "name": "الزلزلة",
+      "type": "Medinan"
+    },
+    {
+      "number": 100,
+      "ayahs": 11,
+      "start": 6146,
+      "name": "العاديات",
+      "type": "Meccan"
+    },
+    {
+      "number": 101,
+      "ayahs": 11,
+      "start": 6157,
+      "name": "القارعة",
+      "type": "Meccan"
+    },
+    {
+      "number": 102,
+      "ayahs": 8,
+      "start": 6168,
+      "name": "التكاثر",
+      "type": "Meccan"
+    },
+    {
+      "number": 103,
+      "ayahs": 3,
+      "start": 6176,
+      "name": "العصر",
+      "type": "Meccan"
+    },
+    {
+      "number": 104,
+      "ayahs": 9,
+      "start": 6179,
+      "name": "الهمزة",
+      "type": "Meccan"
+    },
+    {
+      "number": 105,
+      "ayahs": 5,
+      "start": 6188,
+      "name": "الفيل",
+      "type": "Meccan"
+    },
+    {
+      "number": 106,
+      "ayahs": 4,
+      "start": 6193,
+      "name": "قريش",
+      "type": "Meccan"
+    },
+    {
+      "number": 107,
+      "ayahs": 7,
+      "start": 6197,
+      "name": "الماعون",
+      "type": "Meccan"
+    },
+    {
+      "number": 108,
+      "ayahs": 3,
+      "start": 6204,
+      "name": "الكوثر",
+      "type": "Meccan"
+    },
+    {
+      "number": 109,
+      "ayahs": 6,
+      "start": 6207,
+      "name": "الكافرون",
+      "type": "Meccan"
+    },
+    {
+      "number": 110,
+      "ayahs": 3,
+      "start": 6213,
+      "name": "النصر",
+      "type": "Medinan"
+    },
+    {
+      "number": 111,
+      "ayahs": 5,
+      "start": 6216,
+      "name": "المسد",
+      "type": "Meccan"
+    },
+    {
+      "number": 112,
+      "ayahs": 4,
+      "start": 6221,
+      "name": "الإخلاص",
+      "type": "Meccan"
+    },
+    {
+      "number": 113,
+      "ayahs": 5,
+      "start": 6225,
+      "name": "الفلق",
+      "type": "Meccan"
+    },
+    {
+      "number": 114,
+      "ayahs": 6,
+      "start": 6230,
+      "name": "الناس",
+      "type": "Meccan"
+    }
+  ]
+}
