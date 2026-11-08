@@ -1924,6 +1924,7 @@ class MainActivity : Activity(), SensorEventListener {
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
             line("اختر طريقة الحساب المناسبة لموقعك. عند تفعيل المصدر المتصل تُرسل الطريقة المختارة للخدمة؛ وفي الأردن عند اختيار طريقة الوزارة تُستخدم بيانات جدول المدينة. قد تختلف المواقيت دقيقة أو دقيقتين عن أذان المسجد، وعند انقطاع الإنترنت يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
+            line("حساب وقت العصر المستخدم حالياً قياسي؛ خيار العصر الحنفي غير متاح بعد.", 11f, muted)
             if (PrayerTimesRemoteRepository.isJordan(latitude, longitude)) {
                 addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
                     try {
