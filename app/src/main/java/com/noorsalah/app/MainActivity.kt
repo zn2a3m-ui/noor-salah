@@ -293,7 +293,7 @@ class MainActivity : Activity(), SensorEventListener {
             val arrowView = TextView(this@MainActivity).apply {
                 text = "➤"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(gold)
                 rotation = qibla().toFloat() - heading
-                shadowLayer = dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK
+                setShadowLayer(dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
             }
             arrow = arrowView
             dial.addView(arrowView, FrameLayout.LayoutParams(-1, -1))
