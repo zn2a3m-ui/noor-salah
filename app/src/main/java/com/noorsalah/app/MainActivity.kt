@@ -41,6 +41,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var mainScroll: ScrollView? = null
     private val quranRepository by lazy(LazyThreadSafetyMode.NONE) { QuranRepository(this) }
     private var quranFontSize = 25f
+    private var adhanPreviewPlayer: MediaPlayer? = null
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
     private var longitude = 35.9106
@@ -145,7 +146,40 @@ class MainActivity : Activity(), SensorEventListener {
             if (!isFinishing && page == "home") showPage("home")
         }
     }
-    override fun onPause() { super.onPause(); sensorManager.unregisterListener(this); clockHandler.removeCallbacks(clockTick) }
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
+        clockHandler.removeCallbacks(clockTick)
+        stopAdhanPreview()
+    }
+
+    private fun previewAdhan() {
+        stopAdhanPreview()
+        if (selectedMuezzin.startsWith("تنبيه النظام")) {
+            Toast.makeText(this, "هذا الخيار يستخدم صوت إشعار الهاتف", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val resource = if (selectedMuezzin.startsWith("أذان قصير")) R.raw.adhan_short else R.raw.adhan_full
+        val player = MediaPlayer.create(this, resource)
+        if (player == null) {
+            Toast.makeText(this, "تعذّر تشغيل ملف الأذان", Toast.LENGTH_SHORT).show()
+            return
+        }
+        adhanPreviewPlayer = player
+        player.setOnCompletionListener {
+            it.release()
+            if (adhanPreviewPlayer === it) adhanPreviewPlayer = null
+        }
+        player.start()
+    }
+
+    private fun stopAdhanPreview() {
+        adhanPreviewPlayer?.let {
+            try { if (it.isPlaying) it.stop() } catch (_: Exception) {}
+            it.release()
+        }
+        adhanPreviewPlayer = null
+    }
 
     private fun showPage(target: String) {
         page = target
@@ -953,21 +987,27 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card {
-            line("المؤذّن المفضّل", 18f, gold, true)
-            val choices = listOf("المؤذن الافتراضي", "مشاري العفاسي", "عبدالرحمن السديس", "ماهر المعيقلي")
+            line("صوت الأذان", 18f, gold, true)
+            val choices = listOf("أذان كامل • 2:34", "أذان قصير • 0:42", "تنبيه النظام فقط")
+            if (choices.none { selectedMuezzin.startsWith(it.substringBefore(" •")) }) {
+                selectedMuezzin = choices[0]
+                getPreferences(0).edit().putString("muezzin", selectedMuezzin).apply()
+            }
             val picker = Spinner(this@MainActivity).apply {
                 adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, choices)
-                setSelection(choices.indexOf(selectedMuezzin).coerceAtLeast(0))
+                setSelection(choices.indexOfFirst { selectedMuezzin.startsWith(it.substringBefore(" •")) }.coerceAtLeast(0))
                 onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                     override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
                     override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                         selectedMuezzin = choices[position]
                         getPreferences(0).edit().putString("muezzin", selectedMuezzin).apply()
+                        stopAdhanPreview()
                     }
                 }
             }
             addView(picker, LinearLayout.LayoutParams(-1, -2))
-            line("تم حفظ اختيارك. تشغيل ملفات الأذان والتنبيه التلقائي يحتاج ربط الملفات وخدمة الأذان في التحديث التالي.", 12f, muted)
+            addView(button("معاينة الصوت المختار") { previewAdhan() }, LinearLayout.LayoutParams(-1, -2))
+            line("تسجيلان صوتيان مرخّصان CC0، مع خيار صوت إشعار الهاتف. لا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
         }
         gap(10)
         card {
