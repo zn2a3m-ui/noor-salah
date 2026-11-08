@@ -228,7 +228,7 @@ object PrayerTimesRemoteRepository {
         val method = prefs.getString("prayer_remote_method", null)
             ?: return "المواقيت المحلية الحسابية • تقديرية عند عدم توفر الإنترنت"
         val status = prefs.getString("prayer_remote_method_status", "")
-        return if (status == "verified") {
+        return if (status == "verified" || status == "fitted") {
             "$method • طريقة موثقة من الجهة"
         } else {
             "$method • طريقة حسابية من المصدر"
