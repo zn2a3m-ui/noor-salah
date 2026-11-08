@@ -1269,6 +1269,7 @@ class MainActivity : Activity(), SensorEventListener {
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختيار تسجيل أذان من الهاتف") { openAdhanFilePicker() }, LinearLayout.LayoutParams(-1, -2))
             line("تسجيلان صوتيان مرخّصان CC0، ويمكنك استيراد تسجيلك الخاص من الهاتف. الملف المخصص يبقى على جهازك ولا يُرفع إلى أي خدمة، ولا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
+            line("مستوى صوت تنبيه الأذان يتبع مستوى الإشعارات في الهاتف، ويمكنك اختباره من الزر أعلاه.", 11f, muted)
         }
         gap(10)
         card {
