@@ -1261,6 +1261,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(picker, LinearLayout.LayoutParams(-1, -2))
             addView(button("معاينة الصوت المختار") { previewAdhan() }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("إيقاف المعاينة") { stopAdhanPreview() }, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختبار تنبيه الأذان الآن") {
                 if (android.os.Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
