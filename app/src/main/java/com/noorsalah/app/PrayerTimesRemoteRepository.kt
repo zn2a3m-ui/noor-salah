@@ -104,7 +104,9 @@ object PrayerTimesRemoteRepository {
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("prayer_remote_consent", false)) return
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
-        if (!selectedMethod.startsWith("الأردن") || !isJordan(latitude, longitude)) return
+        val methodId = methodIdFor(selectedMethod)
+        val cachedMethodId = prefs.getString("prayer_remote_method_key", null)
+        if (cachedMethodId != methodId) clearRemoteDayCache(prefs)
         val today = Calendar.getInstance()
         val dates = (0..6).map { offset ->
             (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
@@ -115,6 +117,7 @@ object PrayerTimesRemoteRepository {
             ?: prefs.getString("prayer_remote_lon", null))?.toDoubleOrNull()
         val sameLocation = oldLat != null && oldLon != null &&
             abs(oldLat - latitude) < 0.015 && abs(oldLon - longitude) < 0.015
+        val sameMethodAttempt = prefs.getString("prayer_remote_attempt_method_key", null) == methodId
         val hasWeekCached = dates.all { getTimes(appContext, it) != null }
         val now = System.currentTimeMillis()
         val lastFetch = prefs.getLong("prayer_remote_fetch_time", 0L)
@@ -122,7 +125,7 @@ object PrayerTimesRemoteRepository {
         val lastAttempt = prefs.getLong("prayer_remote_last_attempt", 0L)
         val retryCooling = now - lastAttempt < 30L * 60L * 1000L
 
-        if (!force && sameLocation && ((hasWeekCached && fresh) || (!hasWeekCached && retryCooling))) return
+        if (!force && sameLocation && sameMethodAttempt && ((hasWeekCached && fresh) || (!hasWeekCached && retryCooling))) return
         synchronized(refreshLock) {
             if (refreshInFlight) {
                 pendingRefresh = PendingRefresh(appContext, latitude, longitude, force, onUpdated)
@@ -133,10 +136,13 @@ object PrayerTimesRemoteRepository {
         prefs.edit()
             .putString("prayer_remote_attempt_lat", latitude.toString())
             .putString("prayer_remote_attempt_lon", longitude.toString())
+            .putString("prayer_remote_attempt_method_key", methodId)
             .putLong("prayer_remote_last_attempt", now)
             .apply()
 
-        val placeSlug = placeSlugFor(prefs, latitude, longitude)
+        val placeSlug = if (methodId == "JORDAN" && isJordan(latitude, longitude)) {
+            placeSlugFor(prefs, latitude, longitude)
+        } else null
         executor.execute {
             var updated = 0
             var allSucceeded = true
@@ -182,7 +188,7 @@ object PrayerTimesRemoteRepository {
                     try {
                         val requests = dates.map { date ->
                             fetchPool.submit<RemoteDay> {
-                                fetchDay(requestLatitude, requestLongitude, timezone, date)
+                                fetchDay(requestLatitude, requestLongitude, timezone, date, methodId)
                             }
                         }
                         requests.forEach { request ->
@@ -206,6 +212,7 @@ object PrayerTimesRemoteRepository {
                         .putString("prayer_remote_lat", latitude.toString())
                         .putString("prayer_remote_lon", longitude.toString())
                         .putString("prayer_remote_place_slug", cachePlaceSlug)
+                        .putString("prayer_remote_method_key", methodId)
                         .putLong("prayer_remote_fetch_time", fetchTime)
                         .apply()
                     Handler(Looper.getMainLooper()).post {
@@ -247,7 +254,9 @@ object PrayerTimesRemoteRepository {
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("prayer_remote_consent", false)) return
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
-        if (!selectedMethod.startsWith("الأردن") || !isJordan(latitude, longitude)) return
+        val methodId = methodIdFor(selectedMethod)
+        if (methodId != "JORDAN" || !isJordan(latitude, longitude)) return
+        if (prefs.getString("prayer_remote_method_key", null) != methodId) clearRemoteDayCache(prefs)
         val placeSlug = placeSlugFor(prefs, latitude, longitude) ?: return
         val firstDay = Calendar.getInstance().apply {
             set(Calendar.YEAR, year)
@@ -278,6 +287,8 @@ object PrayerTimesRemoteRepository {
                             .putString("prayer_remote_lat", latitude.toString())
                             .putString("prayer_remote_lon", longitude.toString())
                             .putString("prayer_remote_place_slug", placeSlug)
+                            .putString("prayer_remote_method_key", methodId)
+                            .putString("prayer_remote_attempt_method_key", methodId)
                             .putLong("prayer_remote_fetch_time", System.currentTimeMillis())
                             .apply()
                         Handler(Looper.getMainLooper()).post {
@@ -300,12 +311,14 @@ object PrayerTimesRemoteRepository {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("prayer_remote_consent", false)) return null
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
-        if (!selectedMethod.startsWith("الأردن")) return null
+        val methodId = methodIdFor(selectedMethod)
+        if (prefs.getString("prayer_remote_method_key", null) != methodId) return null
         val currentLat = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         val currentLon = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
-        if (!isJordan(currentLat, currentLon)) return null
         val cachedPlace = prefs.getString("prayer_remote_place_slug", null)
-        val currentPlace = placeSlugFor(prefs, currentLat, currentLon)
+        val currentPlace = if (methodId == "JORDAN" && isJordan(currentLat, currentLon)) {
+            placeSlugFor(prefs, currentLat, currentLon)
+        } else null
         if (cachedPlace != null) {
             if (currentPlace != cachedPlace) return null
         } else {
@@ -383,6 +396,31 @@ object PrayerTimesRemoteRepository {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("prayer_remote_authority_url", null)
             ?.takeIf { it.startsWith("https://") }
+
+    private fun methodIdFor(label: String): String = when {
+        label.startsWith("الأردن") -> "JORDAN"
+        label.startsWith("رابطة") -> "MWL"
+        label.startsWith("أم القرى") -> "UMM_AL_QURA"
+        else -> "MWL"
+    }
+
+    private fun clearRemoteDayCache(prefs: android.content.SharedPreferences) {
+        val editor = prefs.edit()
+        prefs.all.keys
+            .filter { it.startsWith("prayer_remote_times_") || it.startsWith("prayer_remote_hijri_") }
+            .forEach { editor.remove(it) }
+        editor.remove("prayer_remote_method_key")
+            .remove("prayer_remote_method")
+            .remove("prayer_remote_method_status")
+            .remove("prayer_remote_authority_url")
+            .remove("prayer_remote_page_url")
+            .remove("prayer_remote_license")
+            .remove("prayer_remote_place_slug")
+            .remove("prayer_remote_fetch_time")
+            .remove("prayer_remote_lat")
+            .remove("prayer_remote_lon")
+            .apply()
+    }
 
     private fun storeRemoteDay(prefs: android.content.SharedPreferences, remote: RemoteDay) {
         prefs.edit()
@@ -489,7 +527,8 @@ object PrayerTimesRemoteRepository {
         latitude: Double,
         longitude: Double,
         timezone: String,
-        date: Calendar
+        date: Calendar,
+        methodId: String
     ): RemoteDay {
         val day = dateKey(date)
         val query = buildString {
@@ -497,6 +536,7 @@ object PrayerTimesRemoteRepository {
             append("&lon=").append(longitude)
             append("&timezone=").append(URLEncoder.encode(timezone, "UTF-8"))
             if (isJordan(latitude, longitude)) append("&country_code=JO")
+            append("&method=").append(URLEncoder.encode(methodId, "UTF-8"))
             append("&date=").append(day)
         }
         val connection = (URL("https://prayertime.si/api/v1/times?$query").openConnection() as HttpURLConnection).apply {
