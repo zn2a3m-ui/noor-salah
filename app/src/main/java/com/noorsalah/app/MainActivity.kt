@@ -998,7 +998,7 @@ class MainActivity : Activity(), SensorEventListener {
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
-            line("عند توفر الإنترنت تُجلب المواقيت بطريقة وزارة الأوقاف الأردنية المطابقة لجدولها المنشور عبر prayertime.si. عند انقطاع الإنترنت يُستخدم الحساب المحلي التقديري.", 12f, muted)
+            line("في الأردن تُستخدم عند الاتصال طريقة وزارة الأوقاف الأردنية المطابقة لجدولها المنشور عبر prayertime.si. إذا اخترت طريقة حساب أخرى أو انقطع الإنترنت، يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
             addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
