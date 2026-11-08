@@ -1103,7 +1103,7 @@ class MainActivity : Activity(), SensorEventListener {
                 background = shape(
                     if (ayah.number == focusAyah) Color.rgb(24, 66, 49) else panel,
                     15,
-                    if (ayah.number == focusAyah || ayah.number == savedAyah) gold else Color.rgb(42, 91, 72)
+                    if (ayah.number == focusAyah) goldOnDark else if (ayah.number == savedAyah) gold else Color.rgb(42, 91, 72)
                 )
                 setOnClickListener {
                     getPreferences(0).edit()
