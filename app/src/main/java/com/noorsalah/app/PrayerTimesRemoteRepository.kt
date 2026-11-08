@@ -45,6 +45,8 @@ object PrayerTimesRemoteRepository {
     ) {
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
+        if (!selectedMethod.startsWith("الأردن") || !isJordan(latitude, longitude)) return
         val today = Calendar.getInstance()
         val tomorrow = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
         val todayKey = dateKey(today)
