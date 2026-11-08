@@ -162,7 +162,10 @@ class MainActivity : Activity(), SensorEventListener {
         navigationBar = nav
         shell.addView(nav, LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(10), dp(5), dp(10), dp(10)) })
         setContentView(shell)
-        showPage("home")
+        val restorePage = getPreferences(0).getString("page_after_theme", "home") ?: "home"
+        getPreferences(0).edit().remove("page_after_theme").apply()
+        if (restorePage == "calendar") calendarMonthMillis = selectedDateMillis
+        showPage(restorePage)
         requestLocation()
         PrayerAlarmScheduler.createChannel(this)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
@@ -1257,7 +1260,10 @@ class MainActivity : Activity(), SensorEventListener {
                         val selectedTheme = if (position == 1) "light" else "dark"
                         val currentTheme = getPreferences(0).getString("app_theme", "dark") ?: "dark"
                         if (selectedTheme != currentTheme) {
-                            getPreferences(0).edit().putString("app_theme", selectedTheme).apply()
+                            getPreferences(0).edit()
+                                .putString("app_theme", selectedTheme)
+                                .putString("page_after_theme", page)
+                                .apply()
                             recreate()
                         }
                     }
