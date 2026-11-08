@@ -675,11 +675,11 @@ class MainActivity : Activity(), SensorEventListener {
             }
             val compassRing = TextView(this@MainActivity).apply {
                 text = "N\n\nW                     E\n\nS"; textSize = 14f
-                gravity = Gravity.CENTER; setTextColor(muted); typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER; setTextColor(mutedOnDark); typeface = Typeface.DEFAULT_BOLD
             }
             dial.addView(compassRing, FrameLayout.LayoutParams(-1, -1))
             val arrowView = TextView(this@MainActivity).apply {
-                text = "➤"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(gold)
+                text = "➤"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(goldOnDark)
                 rotation = qibla().toFloat() - heading
                 setShadowLayer(dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
             }
