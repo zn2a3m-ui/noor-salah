@@ -69,7 +69,9 @@ object PrayerAlarmScheduler {
                 .getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
             if (customUri != null) {
                 try {
-                    context.contentResolver.openFileDescriptor(customUri, "r")?.use { }
+                    val descriptor = context.contentResolver.openFileDescriptor(customUri, "r")
+                        ?: throw IllegalStateException("Custom adhan file is unavailable")
+                    descriptor.use { }
                     val customChannel = NotificationChannel(
                         CHANNEL_CUSTOM_ID,
                         "أذان من ملفك",
@@ -187,10 +189,14 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             )
             val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
             val selectedAudio = preferences.getString("muezzin", "أذان كامل — تسجيل مرخّص") ?: "أذان كامل — تسجيل مرخّص"
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val customChannelAvailable = Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+                manager.getNotificationChannel(PrayerAlarmScheduler.CHANNEL_CUSTOM_ID) != null
             val channelId = when {
                 selectedAudio.startsWith("أذان قصير") -> PrayerAlarmScheduler.CHANNEL_SHORT_ID
                 selectedAudio.startsWith("تنبيه النظام") -> PrayerAlarmScheduler.CHANNEL_ALERT_ID
-                selectedAudio.startsWith("صوت مخصص") && preferences.getString("custom_adhan_uri", null) != null ->
+                selectedAudio.startsWith("صوت مخصص") &&
+                    preferences.getString("custom_adhan_uri", null) != null && customChannelAvailable ->
                     PrayerAlarmScheduler.CHANNEL_CUSTOM_ID
                 else -> PrayerAlarmScheduler.CHANNEL_ID
             }
@@ -216,7 +222,6 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 .setAutoCancel(true)
                 .setContentIntent(openApp)
                 .build()
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.notify(prayer.hashCode(), notification)
         }
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
