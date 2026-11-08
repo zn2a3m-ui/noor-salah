@@ -25,6 +25,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.media.MediaPlayer
+import android.net.Uri
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -160,8 +161,13 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "هذا الخيار يستخدم صوت إشعار الهاتف", Toast.LENGTH_SHORT).show()
             return
         }
-        val resource = if (selectedMuezzin.startsWith("أذان قصير")) R.raw.adhan_short else R.raw.adhan_full
-        val player = MediaPlayer.create(this, resource)
+        val customUri = getPreferences(0).getString("custom_adhan_uri", null)
+        val player = if (selectedMuezzin.startsWith("صوت مخصص") && customUri != null) {
+            MediaPlayer.create(this, Uri.parse(customUri))
+        } else {
+            val resource = if (selectedMuezzin.startsWith("أذان قصير")) R.raw.adhan_short else R.raw.adhan_full
+            MediaPlayer.create(this, resource)
+        }
         if (player == null) {
             Toast.makeText(this, "تعذّر تشغيل ملف الأذان", Toast.LENGTH_SHORT).show()
             return
@@ -180,6 +186,43 @@ class MainActivity : Activity(), SensorEventListener {
             it.release()
         }
         adhanPreviewPlayer = null
+    }
+
+    private fun openAdhanFilePicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "audio/*"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        }
+        try {
+            startActivityForResult(intent, 702)
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر فتح اختيار الملفات", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 702 || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        try {
+            val readPermission = data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
+            contentResolver.takePersistableUriPermission(uri, readPermission)
+            contentResolver.openFileDescriptor(uri, "r")?.use { }
+                ?: throw IllegalStateException("Audio file is unavailable")
+            getPreferences(0).edit()
+                .putString("custom_adhan_uri", uri.toString())
+                .putString("muezzin", "صوت مخصص من الجهاز")
+                .apply()
+            selectedMuezzin = "صوت مخصص من الجهاز"
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            manager.deleteNotificationChannel(PrayerAlarmScheduler.CHANNEL_CUSTOM_ID)
+            PrayerAlarmScheduler.createChannel(this)
+            Toast.makeText(this, "تم حفظ ملف الأذان المخصص", Toast.LENGTH_SHORT).show()
+            showPage("settings")
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun showPage(target: String) {
@@ -989,7 +1032,10 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         card {
             line("صوت الأذان", 18f, gold, true)
-            val choices = listOf("أذان كامل • 2:34", "أذان قصير • 0:42", "تنبيه النظام فقط")
+            val choices = mutableListOf("أذان كامل • 2:34", "أذان قصير • 0:42", "تنبيه النظام فقط")
+            if (getPreferences(0).getString("custom_adhan_uri", null) != null) {
+                choices.add("صوت مخصص من الجهاز")
+            }
             if (choices.none { selectedMuezzin.startsWith(it.substringBefore(" •")) }) {
                 selectedMuezzin = choices[0]
                 getPreferences(0).edit().putString("muezzin", selectedMuezzin).apply()
@@ -1008,7 +1054,8 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(picker, LinearLayout.LayoutParams(-1, -2))
             addView(button("معاينة الصوت المختار") { previewAdhan() }, LinearLayout.LayoutParams(-1, -2))
-            line("تسجيلان صوتيان مرخّصان CC0، مع خيار صوت إشعار الهاتف. لا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
+            addView(button("اختيار تسجيل أذان من الهاتف") { openAdhanFilePicker() }, LinearLayout.LayoutParams(-1, -2))
+            line("تسجيلان صوتيان مرخّصان CC0، ويمكنك استيراد تسجيلك الخاص من الهاتف. لا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
         }
         gap(10)
         card {
