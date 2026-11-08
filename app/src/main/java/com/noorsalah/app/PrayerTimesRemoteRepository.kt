@@ -224,5 +224,6 @@ object PrayerTimesRemoteRepository {
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(date.time)
 
     private fun isJordan(latitude: Double, longitude: Double): Boolean =
-        latitude in 29.0..33.5 && longitude in 34.8..39.4
+        (latitude in 30.0..33.5 && longitude in 35.35..39.4) ||
+            (latitude in 29.0..30.0 && longitude in 34.8..36.0)
 }
