@@ -123,8 +123,10 @@ object PrayerTimesRemoteRepository {
                     } finally {
                         fetchPool.shutdownNow()
                     }
-                } else {
-                    // Fallback for Jordan locations without a known city page.
+                }
+                if (placeSlug == null || updated == 0) {
+                    // Fall back to coordinate-based daily data if a city month page is unavailable.
+                    if (placeSlug != null) allSucceeded = true
                     val timezone = TimeZone.getDefault().id
                     val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
                     val requestLongitude = String.format(Locale.US, "%.2f", longitude).toDouble()
