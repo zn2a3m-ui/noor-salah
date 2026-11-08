@@ -37,6 +37,7 @@ class MainActivity : Activity(), SensorEventListener {
     private val cream = Color.rgb(247, 243, 229)
     private val muted = Color.rgb(184, 199, 184)
     private lateinit var content: LinearLayout
+    private lateinit var navigationBar: LinearLayout
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
     private var longitude = 35.9106
@@ -102,6 +103,7 @@ class MainActivity : Activity(), SensorEventListener {
             val cell = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
                 setPadding(dp(2), dp(5), dp(2), dp(5))
+                tag = item.third
                 setOnClickListener { showPage(item.third) }
             }
             val glyph = TextView(this@MainActivity).apply {
@@ -116,6 +118,7 @@ class MainActivity : Activity(), SensorEventListener {
             cell.addView(glyph); cell.addView(label)
             nav.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
         }
+        navigationBar = nav
         shell.addView(nav, LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(10), dp(5), dp(10), dp(10)) })
         setContentView(shell)
         showPage("home")
@@ -137,12 +140,27 @@ class MainActivity : Activity(), SensorEventListener {
     private fun showPage(target: String) {
         page = target
         content.removeAllViews()
+        updateNavigationSelection()
         when (target) {
             "home" -> home()
             "qibla" -> qiblaScreen()
             "azkar" -> azkar()
             "quran" -> quran()
             "settings" -> settings()
+        }
+    }
+
+    private fun updateNavigationSelection() {
+        if (!::navigationBar.isInitialized) return
+        for (i in 0 until navigationBar.childCount) {
+            val cell = navigationBar.getChildAt(i) as? LinearLayout ?: continue
+            val selected = cell.tag == page
+            val glyph = cell.getChildAt(0) as? TextView
+            val label = cell.getChildAt(1) as? TextView
+            glyph?.setTextColor(if (selected) gold else muted)
+            label?.setTextColor(if (selected) gold else muted)
+            label?.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            cell.background = if (selected) shape(Color.rgb(20, 67, 49), 15, Color.rgb(89, 127, 82)) else null
         }
     }
 
@@ -465,8 +483,15 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun settings() {
-        text("الإعدادات", 26f, gold, true, Gravity.CENTER)
+        text("مركز التخصيص", 27f, gold, true, Gravity.CENTER)
+        text("اضبط نور الصلاة بالطريقة التي تناسبك", 13f, muted, false, Gravity.CENTER)
         gap(12)
+        card {
+            line("☾  نور الصلاة", 20f, gold, true, Gravity.CENTER)
+            line("إعداداتك، موقعك، وتنبيهات عبادتك في مكان واحد", 12f, muted, false, Gravity.CENTER)
+        }
+        gap(6)
+        sectionHeading("المواقيت والموقع")
         card {
             line("التاريخ المعتمد للمواقيت", 18f, gold, true)
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 15f, cream)
@@ -555,6 +580,7 @@ class MainActivity : Activity(), SensorEventListener {
             line(if (locationMode == "manual") "الموقع مضبوط يدوياً" else "الموقع من الهاتف", 12f, muted)
         }
         gap(10)
+        sectionHeading("التنبيهات والصوت")
         card {
             line("تنسيق الوقت", 18f, gold, true)
             val formatSwitch = Switch(this@MainActivity).apply {
@@ -586,6 +612,21 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.2", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
+    }
+
+    private fun sectionHeading(title: String) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(3), dp(9), dp(3), dp(6))
+        }
+        val accent = View(this).apply { background = shape(gold, 3) }
+        row.addView(accent, LinearLayout.LayoutParams(dp(4), dp(20)).apply { marginEnd = dp(9) })
+        val label = TextView(this).apply {
+            text = title; textSize = 15f; setTextColor(cream); typeface = Typeface.DEFAULT_BOLD
+        }
+        row.addView(label)
+        content.addView(row, LinearLayout.LayoutParams(-1, -2))
     }
 
     private fun card(block: LinearLayout.() -> Unit) {
