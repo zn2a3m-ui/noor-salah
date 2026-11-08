@@ -721,6 +721,7 @@ class MainActivity : Activity(), SensorEventListener {
         )
         val categoryStrip = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
         val categoryContent = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
         fun renderCategory() {
