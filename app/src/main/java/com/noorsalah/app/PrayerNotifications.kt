@@ -69,9 +69,6 @@ object PrayerAlarmScheduler {
                 .getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
             if (customUri != null) {
                 try {
-                    val descriptor = context.contentResolver.openFileDescriptor(customUri, "r")
-                        ?: throw IllegalStateException("Custom adhan file is unavailable")
-                    descriptor.use { }
                     val customChannel = NotificationChannel(
                         CHANNEL_CUSTOM_ID,
                         "أذان من ملفك",
