@@ -39,11 +39,15 @@ object PrayerTimesCalculator {
             return Math.toDegrees(acos(value.coerceIn(-1.0, 1.0))) * 4.0
         }
 
-        val fajrAngle = if (calculationMethod.startsWith("أم القرى")) 18.5 else 18.0
-        val ishaAngle = when {
-            calculationMethod.startsWith("أم القرى") -> 0.0
-            calculationMethod.startsWith("الأردن") -> 18.0
-            else -> 17.0
+        val (fajrAngle, ishaAngle, ishaInterval, maghribAdjustment) = when {
+            calculationMethod.startsWith("الأردن") -> listOf(18.0, 18.0, 0.0, 5.0)
+            calculationMethod.startsWith("أم القرى") -> listOf(18.5, 0.0, 90.0, 0.0)
+            calculationMethod.startsWith("الهيئة المصرية") -> listOf(19.5, 17.5, 0.0, 0.0)
+            calculationMethod.startsWith("أمريكا الشمالية") -> listOf(15.0, 15.0, 0.0, 0.0)
+            calculationMethod.startsWith("جامعة كراتشي") -> listOf(18.0, 18.0, 0.0, 0.0)
+            calculationMethod.startsWith("ديانت تركيا") -> listOf(18.0, 17.0, 0.0, 0.0)
+            calculationMethod.startsWith("سنغافورة") -> listOf(20.0, 18.0, 0.0, 0.0)
+            else -> listOf(18.0, 17.0, 0.0, 0.0)
         }
         val fajr = noon - hourAngle(-fajrAngle)
         val sunrise = noon - hourAngle(-0.833)
@@ -51,8 +55,8 @@ object PrayerTimesCalculator {
         val asrAltitude = Math.toDegrees(atan(1.0 / (1.0 + tan(abs(lat - dec)))))
         val asr = noon + hourAngle(asrAltitude)
         val sunset = noon + hourAngle(-0.833)
-        val maghrib = sunset + if (calculationMethod.startsWith("الأردن")) 5.0 else 0.0
-        val isha = if (ishaAngle == 0.0) sunset + 90.0 else noon + hourAngle(-ishaAngle)
+        val maghrib = sunset + maghribAdjustment
+        val isha = if (ishaInterval > 0.0) sunset + ishaInterval else noon + hourAngle(-ishaAngle)
 
         return listOf(fajr, sunrise, dhuhr, asr, maghrib, isha)
             .map { ((it.roundToInt() % 1440) + 1440) % 1440 }
