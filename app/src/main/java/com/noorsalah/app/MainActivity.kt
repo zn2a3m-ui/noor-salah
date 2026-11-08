@@ -431,12 +431,17 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun changeCalendarMonth(offset: Int) {
+        val previousSelection = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
         val month = java.util.Calendar.getInstance().apply {
             timeInMillis = calendarMonthMillis
             set(java.util.Calendar.DAY_OF_MONTH, 1)
             add(java.util.Calendar.MONTH, offset)
+            set(java.util.Calendar.DAY_OF_MONTH,
+                previousSelection.get(java.util.Calendar.DAY_OF_MONTH).coerceAtMost(getActualMaximum(java.util.Calendar.DAY_OF_MONTH)))
         }
         calendarMonthMillis = month.timeInMillis
+        selectedDateMillis = month.timeInMillis
+        getPreferences(0).edit().putLong("selected_date", selectedDateMillis).apply()
         showPage("calendar")
     }
 
