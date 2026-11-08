@@ -548,8 +548,26 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
-    private fun hijriDateForCalendar(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? =
-        PrayerTimesRemoteRepository.getHijriDate(this, date) ?: localUmmAlQuraDate(date)
+    private fun hijriDateForCalendar(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? {
+        val offset = getPreferences(0).getInt("hijri_day_offset", 0).coerceIn(-2, 2)
+        val adjustedDate = (date.clone() as java.util.Calendar).apply {
+            add(java.util.Calendar.DAY_OF_YEAR, offset)
+        }
+        return PrayerTimesRemoteRepository.getHijriDate(this, adjustedDate)
+            ?: localUmmAlQuraDate(adjustedDate)
+    }
+
+    private fun adjustHijriOffset(delta: Int) {
+        val prefs = getPreferences(0)
+        val current = prefs.getInt("hijri_day_offset", 0).coerceIn(-2, 2)
+        val updated = (current + delta).coerceIn(-2, 2)
+        if (updated == current) {
+            Toast.makeText(this, "الحد الأقصى للتصحيح يومان", Toast.LENGTH_SHORT).show()
+            return
+        }
+        prefs.edit().putInt("hijri_day_offset", updated).apply()
+        showPage("settings")
+    }
 
     private fun changeCalendarMonth(offset: Int) {
         val previousSelection = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
@@ -1623,6 +1641,30 @@ class MainActivity : Activity(), SensorEventListener {
                 }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show()
             }, LinearLayout.LayoutParams(-1, -2))
             line("هذا يغيّر تاريخ الحساب داخل التطبيق فقط، ولا يغيّر تاريخ الهاتف.", 12f, muted)
+            gap(6)
+            val hijriOffset = getPreferences(0).getInt("hijri_day_offset", 0).coerceIn(-2, 2)
+            line("تصحيح اليوم الهجري", 15f, gold, true)
+            line(
+                when {
+                    hijriOffset == 0 -> "بدون تصحيح"
+                    hijriOffset > 0 -> "تقديم التاريخ الهجري $hijriOffset يوم"
+                    else -> "تأخير التاريخ الهجري ${-hijriOffset} يوم"
+                },
+                12f,
+                cream
+            )
+            val hijriOffsetControls = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            hijriOffsetControls.addView(button("− يوم") { adjustHijriOffset(-1) }, LinearLayout.LayoutParams(0, -2, 1f))
+            hijriOffsetControls.addView(button("إعادة الضبط") {
+                getPreferences(0).edit().putInt("hijri_day_offset", 0).apply()
+                showPage("settings")
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            hijriOffsetControls.addView(button("+ يوم") { adjustHijriOffset(1) }, LinearLayout.LayoutParams(0, -2, 1f))
+            addView(hijriOffsetControls, LinearLayout.LayoutParams(-1, -2))
+            line("هذا التصحيح يغيّر عرض التاريخ الهجري والمناسبات فقط، ولا يغيّر مواقيت الصلاة.", 11f, muted)
         }
         gap(10)
         card {
