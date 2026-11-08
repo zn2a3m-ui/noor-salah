@@ -1273,6 +1273,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(themePicker, LinearLayout.LayoutParams(-1, -2))
             line("يمكنك التبديل بين المظهرين في أي وقت.", 12f, muted)
+            line("ويدجت المواقيت: اضغط مطولاً على الشاشة الرئيسية للهاتف، ثم الأدوات، واختر «نور الصلاة».", 12f, muted)
         }
         gap(10)
         sectionHeading("المواقيت والموقع")
