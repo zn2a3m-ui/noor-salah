@@ -317,7 +317,10 @@ object PrayerTimesRemoteRepository {
         return try {
             val values = JSONArray(raw)
             if (values.length() != 6) return null
-            (0 until 6).map { values.getInt(it) }.takeIf { it.all { minute -> minute in 0..1439 } }
+            (0 until 6).map { values.getInt(it) }.takeIf { minutes ->
+                minutes.all { it in 0..1439 } &&
+                    minutes.zipWithNext().all { (first, second) -> first < second }
+            }
         } catch (_: Exception) {
             null
         }
@@ -435,21 +438,29 @@ object PrayerTimesRemoteRepository {
             val method = root.optJSONObject("method")
             val pageUrl = root.optString("page")
             val days = root.getJSONArray("days")
-            return (0 until days.length()).map { index ->
+            val parsedDays = (0 until days.length()).map { index ->
                 val entry = days.getJSONObject(index)
                 val date = entry.getString("date")
                 val times = entry.getJSONObject("times")
                 val minutes = listOf("fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha")
                     .map { parseTime(times.getString(it)) }
+                require(isValidPrayerDay(date, year, month, minutes)) {
+                    "Prayer timetable contains an invalid date or non-chronological times"
+                }
                 val hijri = entry.optJSONObject("hijri")
-                val hijriLabel = if (hijri != null) {
-                    "${hijri.optInt("day")} ${hijri.optString("month_ar")} ${hijri.optInt("year")} هـ"
-                } else ""
+                    ?: throw IllegalStateException("Hijri date is missing from monthly timetable")
+                require(hijri.optInt("day") in 1..30 &&
+                    hijri.optInt("month") in 1..12 &&
+                    hijri.optInt("year") in 1300..1600 &&
+                    hijri.optString("month_ar").isNotBlank()) {
+                    "Monthly timetable contains invalid Hijri metadata"
+                }
+                val hijriLabel = "${hijri.optInt("day")} ${hijri.optString("month_ar")} ${hijri.optInt("year")} هـ"
                 RemoteDay(
                     date = date,
                     minutes = minutes,
                     hijriLabel = hijriLabel,
-                    hijriJson = hijri?.toString().orEmpty(),
+                    hijriJson = hijri.toString(),
                     methodName = method?.optString("name_ar").orEmpty().ifBlank {
                         method?.optString("name_en").orEmpty().ifBlank { "طريقة البلد" }
                     },
@@ -458,6 +469,17 @@ object PrayerTimesRemoteRepository {
                     pageUrl = pageUrl
                 )
             }
+            val expectedDays = Calendar.getInstance().apply {
+                clear()
+                set(year, month - 1, 1)
+            }.getActualMaximum(Calendar.DAY_OF_MONTH)
+            require(parsedDays.size == expectedDays) {
+                "Monthly timetable must contain every day exactly once"
+            }
+            require(parsedDays.map { it.date }.distinct().size == expectedDays) {
+                "Monthly timetable contains duplicate dates"
+            }
+            return parsedDays.sortedBy { it.date }
         } finally {
             connection.disconnect()
         }
@@ -514,6 +536,29 @@ object PrayerTimesRemoteRepository {
         } finally {
             connection.disconnect()
         }
+    }
+
+    internal fun isValidPrayerDay(
+        date: String,
+        expectedYear: Int,
+        expectedMonth: Int,
+        minutes: List<Int>
+    ): Boolean {
+        if (!date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) return false
+        val parsed = try {
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+                isLenient = false
+                timeZone = TimeZone.getTimeZone("UTC")
+            }.parse(date) ?: return false
+        } catch (_: Exception) {
+            return false
+        }
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { time = parsed }
+        return calendar.get(Calendar.YEAR) == expectedYear &&
+            calendar.get(Calendar.MONTH) + 1 == expectedMonth &&
+            minutes.size == 6 &&
+            minutes.all { it in 0..1439 } &&
+            minutes.zipWithNext().all { (first, second) -> first < second }
     }
 
     internal fun parseTime(value: String): Int {
