@@ -1,0 +1,24 @@
+QURAN TEXT ATTRIBUTION
+
+Arabic Quran text
+Source: Tanzil Project
+Edition: Uthmani, Version 1.1
+Official source: https://tanzil.net/download/
+Text license and terms: https://tanzil.net/docs/Text_License
+License: Creative Commons Attribution 3.0 (CC BY 3.0)
+
+The Quran text is distributed verbatim. Its contents must not be changed.
+The original publisher notice is retained inside tanzil-uthmani-1.1.txt.
+This application links to https://tanzil.net so users can follow publisher updates.
+
+The build downloads the text from a pinned mirror commit and verifies the
+publisher-verified SHA-256 before packaging:
+ac0724796cbbda0f4801470fbbd11d0f3c5802067bae0493466d0128b0c667af
+
+Quran structure metadata
+Source: Tanzil Project, quran-data.xml, version 1.0
+Official source: https://tanzil.net/res/text/metadata/quran-data.xml
+License: Creative Commons Attribution 3.0 (CC BY 3.0)
+Copyright notice in source metadata: (C) 2008-2009 Tanzil.info
+
+No Quran translation or tafsir is included in this asset set.
