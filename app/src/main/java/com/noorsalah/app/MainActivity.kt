@@ -353,11 +353,16 @@ class MainActivity : Activity(), SensorEventListener {
             setTextColor(muted)
             gravity = Gravity.CENTER
             setPadding(dp(4), dp(4), dp(4), dp(8))
-            setOnClickListener {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity))))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح مصدر المواقيت", Toast.LENGTH_SHORT).show()
+            if (PrayerTimesRemoteRepository.getTimes(
+                    this@MainActivity,
+                    java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+                ) != null) {
+                setOnClickListener {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity))))
+                    } catch (_: Exception) {
+                        Toast.makeText(this@MainActivity, "تعذّر فتح مصدر المواقيت", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
