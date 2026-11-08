@@ -520,6 +520,34 @@ class MainActivity : Activity(), SensorEventListener {
         text("قد تختلف الحسابات الفلكية دقيقة أو دقيقتين عن أذان المسجد؛ ويُعتمد إعلان وزارة الأوقاف للمناسبات المرتبطة بالرؤية.", 11f, muted, false, Gravity.CENTER)
     }
 
+    private fun localUmmAlQuraDate(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) return null
+        return try {
+            val islamic = android.icu.util.IslamicCalendar(java.util.Date(date.timeInMillis)).apply {
+                setCalculationType(android.icu.util.IslamicCalendar.CalculationType.ISLAMIC_UMALQURA)
+                timeInMillis = date.timeInMillis
+            }
+            val month = islamic.get(android.icu.util.Calendar.MONTH) + 1
+            val monthNames = listOf(
+                "محرّم", "صفر", "ربيع الأول", "ربيع الآخر",
+                "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان",
+                "رمضان", "شوّال", "ذو القعدة", "ذو الحجة"
+            )
+            PrayerTimesRemoteRepository.HijriDate(
+                day = islamic.get(android.icu.util.Calendar.DAY_OF_MONTH),
+                month = month,
+                monthArabic = monthNames.getOrElse(month - 1) { "" },
+                year = islamic.get(android.icu.util.Calendar.YEAR),
+                basis = "local-umm-al-qura"
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun hijriDateForCalendar(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? =
+        PrayerTimesRemoteRepository.getHijriDate(this, date) ?: localUmmAlQuraDate(date)
+
     private fun changeCalendarMonth(offset: Int) {
         val previousSelection = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
         val month = java.util.Calendar.getInstance().apply {
@@ -563,12 +591,13 @@ class MainActivity : Activity(), SensorEventListener {
         val daysInMonth = month.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
         val firstOffset = (month.get(java.util.Calendar.DAY_OF_WEEK) - java.util.Calendar.SATURDAY + 7) % 7
         val title = SimpleDateFormat("MMMM yyyy", Locale("ar")).format(month.time)
-        val firstHijri = PrayerTimesRemoteRepository.getHijriDate(this, month)
-        if (firstHijri == null) {
+        val remoteFirstHijri = PrayerTimesRemoteRepository.getHijriDate(this, month)
+        if (remoteFirstHijri == null) {
             PrayerTimesRemoteRepository.refreshMonthIfNeeded(this, latitude, longitude, year, monthIndex + 1) {
                 if (!isFinishing && page == "calendar") showPage("calendar")
             }
         }
+        val firstHijri = remoteFirstHijri ?: localUmmAlQuraDate(month)
 
         card {
             line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
@@ -627,7 +656,7 @@ class MainActivity : Activity(), SensorEventListener {
             val date = (month.clone() as java.util.Calendar).apply {
                 set(java.util.Calendar.DAY_OF_MONTH, day)
             }
-            val hijri = PrayerTimesRemoteRepository.getHijriDate(this, date)
+            val hijri = hijriDateForCalendar(date)
             val isToday = today.get(java.util.Calendar.YEAR) == year &&
                 today.get(java.util.Calendar.MONTH) == monthIndex &&
                 today.get(java.util.Calendar.DAY_OF_MONTH) == day
@@ -663,7 +692,7 @@ class MainActivity : Activity(), SensorEventListener {
         gap(8)
 
         val selectedDate = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-        val selectedHijri = PrayerTimesRemoteRepository.getHijriDate(this, selectedDate)
+        val selectedHijri = hijriDateForCalendar(selectedDate)
         card {
             line("تفاصيل اليوم المحدد", 17f, gold, true)
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(selectedDate.time), 15f, cream, true)
@@ -671,6 +700,9 @@ class MainActivity : Activity(), SensorEventListener {
                 line("${selectedHijri.day} ${selectedHijri.monthArabic} ${selectedHijri.year} هـ", 16f, gold, true)
                 if (selectedHijri.basis == "umm-al-qura") {
                     line("بحسب تقويم أم القرى • قد يختلف عن إعلان الرؤية المحلية", 11f, muted)
+                }
+                if (selectedHijri.basis == "local-umm-al-qura") {
+                    line("تقويم أم القرى محسوب محلياً؛ قد يختلف عن إعلان رؤية الهلال في بلدك.", 11f, muted)
                 }
                 hijriEvent(selectedHijri)?.let { line(it, 14f, cream, true) }
             } else {
