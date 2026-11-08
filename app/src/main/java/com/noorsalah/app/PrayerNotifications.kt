@@ -19,15 +19,15 @@ import java.util.Locale
 import kotlin.math.*
 
 object PrayerAlarmScheduler {
-    const val CHANNEL_ID = "noor_prayer_adhan_full"
-    const val CHANNEL_SHORT_ID = "noor_prayer_adhan_short"
+    const val CHANNEL_ID = "noor_prayer_adhan_full_v2"
+    const val CHANNEL_SHORT_ID = "noor_prayer_adhan_short_v2"
     const val CHANNEL_ALERT_ID = "noor_prayer_alert_only"
     const val CHANNEL_CUSTOM_ID = "noor_prayer_adhan_custom"
     private const val ACTION_PRAYER = "com.noorsalah.app.PRAYER_REMINDER"
     private val prayerNames = listOf("الفجر", "الظهر", "العصر", "المغرب", "العشاء")
 
-    private fun audioUri(context: Context, resourceId: Int): Uri =
-        Uri.parse("android.resource://${context.packageName}/$resourceId")
+    private fun audioUri(context: Context, resourceName: String): Uri =
+        Uri.parse("android.resource://${context.packageName}/raw/$resourceName")
 
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -44,7 +44,7 @@ object PrayerAlarmScheduler {
             ).apply {
                 description = "تشغيل تسجيل الأذان الكامل عند دخول وقت الصلاة"
                 enableVibration(true)
-                setSound(audioUri(context, R.raw.adhan_full), audioAttributes)
+                setSound(audioUri(context, "adhan_full"), audioAttributes)
             }
             val shortChannel = NotificationChannel(
                 CHANNEL_SHORT_ID,
@@ -53,7 +53,7 @@ object PrayerAlarmScheduler {
             ).apply {
                 description = "تشغيل تسجيل الأذان القصير عند دخول وقت الصلاة"
                 enableVibration(true)
-                setSound(audioUri(context, R.raw.adhan_short), audioAttributes)
+                setSound(audioUri(context, "adhan_short"), audioAttributes)
             }
             val alertChannel = NotificationChannel(
                 CHANNEL_ALERT_ID,
@@ -207,10 +207,10 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 Notification.Builder(context, channelId)
             } else {
                 val sound = when {
-                    selectedAudio.startsWith("أذان قصير") -> Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_short}")
+                    selectedAudio.startsWith("أذان قصير") -> Uri.parse("android.resource://${context.packageName}/raw/adhan_short")
                     selectedAudio.startsWith("تنبيه النظام") -> Settings.System.DEFAULT_NOTIFICATION_URI
                     selectedAudio.startsWith("صوت مخصص") && customAudioAvailable && customUri != null -> customUri
-                    else -> Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_full}")
+                    else -> Uri.parse("android.resource://${context.packageName}/raw/adhan_full")
                 }
                 Notification.Builder(context)
                     .setPriority(Notification.PRIORITY_HIGH)
