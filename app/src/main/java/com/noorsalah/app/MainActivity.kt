@@ -1655,10 +1655,13 @@ class MainActivity : Activity(), SensorEventListener {
             val hijriOffset = getPreferences(0).getInt("hijri_day_offset", 0).coerceIn(-2, 2)
             line("تصحيح اليوم الهجري", 15f, gold, true)
             line(
-                when {
-                    hijriOffset == 0 -> "بدون تصحيح"
-                    hijriOffset > 0 -> "تقديم التاريخ الهجري $hijriOffset يوم"
-                    else -> "تأخير التاريخ الهجري ${-hijriOffset} يوم"
+                when (hijriOffset) {
+                    0 -> "بدون تصحيح"
+                    1 -> "تقديم التاريخ الهجري يوماً واحداً"
+                    2 -> "تقديم التاريخ الهجري يومين"
+                    -1 -> "تأخير التاريخ الهجري يوماً واحداً"
+                    -2 -> "تأخير التاريخ الهجري يومين"
+                    else -> "بدون تصحيح"
                 },
                 12f,
                 cream
