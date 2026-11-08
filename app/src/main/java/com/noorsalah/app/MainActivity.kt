@@ -1358,7 +1358,7 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         sectionHeading("مصدر مواقيت الصلاة والخصوصية")
         card {
-            line("المواقيت المطابقة لجدول وزارة الأوقاف", 16f, gold, true)
+            line("المواقيت بطريقة وزارة الأوقاف الموثّقة", 16f, gold, true)
             val onlineSwitch = Switch(this@MainActivity).apply {
                 text = "السماح بتحديث المواقيت عبر الإنترنت"
                 setTextColor(cream)
