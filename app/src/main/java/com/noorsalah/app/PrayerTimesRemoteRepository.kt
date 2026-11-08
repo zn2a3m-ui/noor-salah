@@ -215,10 +215,9 @@ object PrayerTimesRemoteRepository {
     }
 
     fun getHijriLabel(context: Context, date: Calendar): String? {
-        if (getTimes(context, date) == null) return null
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString("prayer_remote_hijri_${dateKey(date)}", null)
-            ?.takeIf { it.isNotBlank() }
+        val hijri = getHijriDate(context, date) ?: return null
+        val label = "${hijri.day} ${hijri.monthArabic} ${hijri.year} هـ"
+        return if (hijri.basis == "umm-al-qura") "$label • أم القرى" else label
     }
 
     fun getMethodLabel(context: Context): String {
