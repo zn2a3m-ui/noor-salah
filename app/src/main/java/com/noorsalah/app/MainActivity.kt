@@ -587,15 +587,17 @@ class MainActivity : Activity(), SensorEventListener {
                 addView(button("الذهاب لتفعيل مصدر المواقيت") { showPage("home") }, LinearLayout.LayoutParams(-1, -2))
             }
             line(PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity), 11f, muted)
-            addView(button("مصدر البيانات • prayertime.si") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(
-                        PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity)
-                    )))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح المصدر حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
+            if (PrayerTimesRemoteRepository.getTimes(this@MainActivity, selectedDate) != null) {
+                addView(button("مصدر البيانات • prayertime.si") {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(
+                            PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity)
+                        )))
+                    } catch (_: Exception) {
+                        Toast.makeText(this@MainActivity, "تعذّر فتح المصدر حالياً", Toast.LENGTH_SHORT).show()
+                    }
+                }, LinearLayout.LayoutParams(-1, -2))
+            }
             val names = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
             val times = prayerTimesMinutes()
             names.forEachIndexed { index, name ->
