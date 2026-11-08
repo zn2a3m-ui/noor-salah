@@ -20,7 +20,7 @@ class QuranRepositoryTest {
         )
         assertEquals(
             "بسم الله",
-            repository.normalizeForSearch("بِسْمِ اللَّـهِ")
+            normalizeQuranSearchText("بِسْمِ اللَّـهِ")
         )
     }
 }
