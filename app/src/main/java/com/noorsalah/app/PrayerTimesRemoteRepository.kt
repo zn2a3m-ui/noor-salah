@@ -29,7 +29,16 @@ object PrayerTimesRemoteRepository {
     private const val PREFS = "MainActivity"
     private const val REFRESH_INTERVAL_MS = 18L * 60L * 60L * 1000L
     private val executor = Executors.newSingleThreadExecutor()
+    private val refreshLock = Any()
     @Volatile private var refreshInFlight = false
+    private data class PendingRefresh(
+        val context: Context,
+        val latitude: Double,
+        val longitude: Double,
+        val force: Boolean,
+        val onUpdated: (() -> Unit)?
+    )
+    private var pendingRefresh: PendingRefresh? = null
 
     data class HijriDate(
         val day: Int,
@@ -80,8 +89,11 @@ object PrayerTimesRemoteRepository {
         val retryCooling = now - lastAttempt < 30L * 60L * 1000L
 
         if (!force && sameLocation && ((hasWeekCached && fresh) || (!hasWeekCached && retryCooling))) return
-        synchronized(this) {
-            if (refreshInFlight) return
+        synchronized(refreshLock) {
+            if (refreshInFlight) {
+                pendingRefresh = PendingRefresh(appContext, latitude, longitude, force, onUpdated)
+                return
+            }
             refreshInFlight = true
         }
         prefs.edit()
@@ -168,7 +180,21 @@ object PrayerTimesRemoteRepository {
                     }
                 }
             } finally {
-                refreshInFlight = false
+                val next = synchronized(refreshLock) {
+                    refreshInFlight = false
+                    val queued = pendingRefresh
+                    pendingRefresh = null
+                    queued
+                }
+                if (next != null) {
+                    refreshIfNeeded(
+                        next.context,
+                        next.latitude,
+                        next.longitude,
+                        next.force,
+                        next.onUpdated
+                    )
+                }
             }
         }
     }
