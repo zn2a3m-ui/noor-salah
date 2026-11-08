@@ -184,6 +184,7 @@ class MainActivity : Activity(), SensorEventListener {
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         PrayerWidgetProvider.updateAll(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
+            PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
     }
@@ -1645,6 +1646,7 @@ class MainActivity : Activity(), SensorEventListener {
             .apply()
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
+            PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
         if (page == "home" || page == "settings" || page == "calendar") showPage(page)
