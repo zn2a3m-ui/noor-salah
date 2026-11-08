@@ -59,6 +59,37 @@ object PrayerTimesRemoteRepository {
         val pageUrl: String
     )
 
+    private data class JordanCity(
+        val slug: String,
+        val nameArabic: String,
+        val latitude: Double,
+        val longitude: Double
+    )
+
+    private val jordanCities = listOf(
+        JordanCity("amman", "عمّان", 31.9552, 35.9450),
+        JordanCity("irbid", "إربد", 32.5568, 35.8469),
+        JordanCity("zarqa", "الزرقاء", 32.0728, 36.0880),
+        JordanCity("aqaba", "العقبة", 29.5267, 35.0078),
+        JordanCity("salt", "السلط", 32.0392, 35.7272),
+        JordanCity("madaba", "مادبا", 31.7167, 35.8000),
+        JordanCity("jerash", "جرش", 32.2808, 35.8993),
+        JordanCity("mafraq", "المفرق", 32.3429, 36.2080),
+        JordanCity("karak", "الكرك", 31.1800, 35.7048),
+        JordanCity("maan", "معان", 30.1920, 35.7340),
+        JordanCity("ajloun", "عجلون", 32.3333, 35.7520),
+        JordanCity("tafileh", "الطفيلة", 30.8333, 35.6044)
+    )
+
+    fun nearestJordanCityName(latitude: Double, longitude: Double): String? {
+        val nearest = jordanCities.minByOrNull {
+            distanceKm(latitude, longitude, it.latitude, it.longitude)
+        } ?: return null
+        return nearest.nameArabic.takeIf {
+            distanceKm(latitude, longitude, nearest.latitude, nearest.longitude) <= 95.0
+        }
+    }
+
     fun refreshIfNeeded(
         context: Context,
         latitude: Double,
@@ -366,29 +397,13 @@ object PrayerTimesRemoteRepository {
         longitude: Double
     ): String? {
         val cityName = prefs.getString("city_name", "") ?: ""
-        when {
-            cityName.contains("عمّان") -> return "amman"
-            cityName.contains("إربد") -> return "irbid"
-            cityName.contains("الزرقاء") -> return "zarqa"
-            cityName.contains("العقبة") -> return "aqaba"
+        jordanCities.firstOrNull { cityName.contains(it.nameArabic) }?.let { return it.slug }
+        val nearest = jordanCities.minByOrNull {
+            distanceKm(latitude, longitude, it.latitude, it.longitude)
+        } ?: return null
+        return nearest.slug.takeIf {
+            distanceKm(latitude, longitude, nearest.latitude, nearest.longitude) <= 95.0
         }
-        data class City(val slug: String, val lat: Double, val lon: Double)
-        val cities = listOf(
-            City("amman", 31.9552, 35.9450),
-            City("irbid", 32.5568, 35.8469),
-            City("zarqa", 32.0728, 36.0880),
-            City("aqaba", 29.5267, 35.0078),
-            City("salt", 32.0392, 35.7272),
-            City("madaba", 31.7167, 35.8000),
-            City("jerash", 32.2808, 35.8993),
-            City("mafraq", 32.3429, 36.2080),
-            City("karak", 31.1800, 35.7048),
-            City("maan", 30.1920, 35.7340),
-            City("ajloun", 32.3333, 35.7520),
-            City("tafileh", 30.8333, 35.6044)
-        )
-        val nearest = cities.minByOrNull { distanceKm(latitude, longitude, it.lat, it.lon) } ?: return null
-        return nearest.slug.takeIf { distanceKm(latitude, longitude, nearest.lat, nearest.lon) <= 95.0 }
     }
 
     private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
