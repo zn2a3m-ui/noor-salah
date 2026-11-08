@@ -1253,6 +1253,19 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(picker, LinearLayout.LayoutParams(-1, -2))
             addView(button("معاينة الصوت المختار") { previewAdhan() }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("اختبار تنبيه الأذان الآن") {
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPrayerNotificationPermission()
+                } else {
+                    val testIntent = Intent(this@MainActivity, PrayerAlarmReceiver::class.java).apply {
+                        putExtra("prayer_name", "تجربة")
+                        putExtra("test_only", true)
+                    }
+                    sendBroadcast(testIntent)
+                    Toast.makeText(this@MainActivity, "تم إرسال تنبيه تجريبي", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختيار تسجيل أذان من الهاتف") { openAdhanFilePicker() }, LinearLayout.LayoutParams(-1, -2))
             line("تسجيلان صوتيان مرخّصان CC0، ويمكنك استيراد تسجيلك الخاص من الهاتف. الملف المخصص يبقى على جهازك ولا يُرفع إلى أي خدمة، ولا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
         }
