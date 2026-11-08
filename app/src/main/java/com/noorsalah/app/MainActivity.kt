@@ -336,18 +336,69 @@ class MainActivity : Activity(), SensorEventListener {
         text("الأذكار والتسبيح", 27f, gold, true, Gravity.CENTER)
         text("لحظات ذكر تطمئن بها القلوب", 13f, muted, false, Gravity.CENTER)
         gap(12)
+        var selectedCategory = "الصباح"
+        val categoryItems = linkedMapOf(
+            "الصباح" to listOf("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "سُبْحَانَ اللهِ وَبِحَمْدِهِ"),
+            "المساء" to listOf("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ"),
+            "بعد الصلاة" to listOf("أَسْتَغْفِرُ اللهَ", "اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ", "سُبْحَانَ اللهِ", "الْحَمْدُ لِلَّهِ", "اللهُ أَكْبَرُ", "لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ")
+        )
         val categoryStrip = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
         }
+        val categoryContent = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
+        fun renderCategory() {
+            categoryContent.removeAllViews()
+            categoryItems[selectedCategory]?.forEach { phrase ->
+                val item = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(13), dp(12), dp(13), dp(12))
+                    background = shape(panel, 15, Color.rgb(42, 91, 72))
+                    setOnClickListener {
+                        selectedDhikr = phrase
+                        val prefs = getPreferences(0)
+                        prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).putString("selected_dhikr", phrase).apply()
+                        count = prefs.getInt("tasbeeh_count_$phrase", 0)
+                        prefs.edit().putInt("tasbeeh", count).apply()
+                        showPage("azkar")
+                    }
+                }
+                val phraseView = TextView(this@MainActivity).apply {
+                    text = phrase; textSize = 17f; setTextColor(cream); gravity = Gravity.CENTER
+                }
+                val hintView = TextView(this@MainActivity).apply {
+                    text = if (phrase == selectedDhikr) "الذكر المحدد للمسبحة" else "اضغط لاستخدامه في المسبحة"
+                    textSize = 11f; setTextColor(if (phrase == selectedDhikr) gold else muted); gravity = Gravity.CENTER
+                    setPadding(0, dp(5), 0, 0)
+                }
+                item.addView(phraseView); item.addView(hintView)
+                categoryContent.addView(item, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+            }
+        }
+        val categoryButtons = linkedMapOf<String, TextView>()
         listOf("الصباح", "المساء", "بعد الصلاة").forEach { label ->
             val chip = TextView(this@MainActivity).apply {
                 text = label; textSize = 11f; gravity = Gravity.CENTER
-                setTextColor(cream); setPadding(dp(12), dp(8), dp(12), dp(8))
-                background = shape(panelAlt, 18, Color.rgb(48, 99, 75))
+                setTextColor(cream); setPadding(dp(8), dp(10), dp(8), dp(10))
+                setOnClickListener {
+                    selectedCategory = label
+                    categoryButtons.forEach { (name, view) ->
+                        val active = name == selectedCategory
+                        view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
+                            if (active) gold else Color.rgb(48, 99, 75))
+                        view.setTextColor(if (active) gold else cream)
+                    }
+                    renderCategory()
+                }
             }
+            categoryButtons[label] = chip
             categoryStrip.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
         }
+        categoryButtons["الصباح"]?.background = shape(Color.rgb(25, 91, 64), 18, gold)
+        categoryButtons["الصباح"]?.setTextColor(gold)
         content.addView(categoryStrip); gap(10)
+        renderCategory()
+        content.addView(categoryContent)
+        gap(8)
         card {
             line("الذكر الحالي", 15f, muted, false, Gravity.CENTER)
             val dhikrText = TextView(this@MainActivity).apply {
