@@ -90,39 +90,66 @@ object PrayerTimesRemoteRepository {
             .putLong("prayer_remote_last_attempt", now)
             .apply()
 
+        val placeSlug = placeSlugFor(prefs, latitude, longitude)
         executor.execute {
             var updated = 0
+            var allSucceeded = true
             try {
-                val timezone = if (isJordan(latitude, longitude)) {
-                    "Asia/Amman"
+                if (placeSlug != null) {
+                    // A city month endpoint returns the full Gregorian month and its Hijri dates.
+                    val currentMonth = Calendar.getInstance()
+                    val nextMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
+                    val months = listOf(currentMonth, nextMonth)
+                    val fetchPool = Executors.newFixedThreadPool(months.size)
+                    try {
+                        val requests = months.map { monthDate ->
+                            val year = monthDate.get(Calendar.YEAR)
+                            val month = monthDate.get(Calendar.MONTH) + 1
+                            fetchPool.submit<List<RemoteDay>> {
+                                fetchMonth("jordan", placeSlug, year, month)
+                            }
+                        }
+                        requests.forEach { request ->
+                            try {
+                                val monthDays = request.get(20, TimeUnit.SECONDS)
+                                monthDays.forEach { storeRemoteDay(prefs, it) }
+                                updated += monthDays.size
+                            } catch (_: Exception) {
+                                allSucceeded = false
+                                request.cancel(true)
+                            }
+                        }
+                    } finally {
+                        fetchPool.shutdownNow()
+                    }
                 } else {
-                    TimeZone.getDefault().id
-                }
-                // Send only city-level approximate coordinates to the provider.
-                val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
-                val requestLongitude = String.format(Locale.US, "%.2f", longitude).toDouble()
-                val fetchPool = Executors.newFixedThreadPool(dates.size)
-                try {
-                    val requests = dates.map { date ->
-                        fetchPool.submit<RemoteDay> {
-                            fetchDay(requestLatitude, requestLongitude, timezone, date)
+                    // Fallback for Jordan locations without a known city page.
+                    val timezone = TimeZone.getDefault().id
+                    val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
+                    val requestLongitude = String.format(Locale.US, "%.2f", longitude).toDouble()
+                    val fetchPool = Executors.newFixedThreadPool(dates.size)
+                    try {
+                        val requests = dates.map { date ->
+                            fetchPool.submit<RemoteDay> {
+                                fetchDay(requestLatitude, requestLongitude, timezone, date)
+                            }
                         }
-                    }
-                    requests.forEach { request ->
-                        try {
-                            val remote = request.get(20, TimeUnit.SECONDS)
-                            storeRemoteDay(prefs, remote)
-                            updated++
-                        } catch (_: Exception) {
-                            request.cancel(true)
-                            // Keep the previous cached day and let the calculator be the fallback.
+                        requests.forEach { request ->
+                            try {
+                                val remote = request.get(20, TimeUnit.SECONDS)
+                                storeRemoteDay(prefs, remote)
+                                updated++
+                            } catch (_: Exception) {
+                                allSucceeded = false
+                                request.cancel(true)
+                            }
                         }
+                    } finally {
+                        fetchPool.shutdownNow()
                     }
-                } finally {
-                    fetchPool.shutdownNow()
                 }
                 if (updated > 0) {
-                    val fetchTime = if (updated == dates.size) System.currentTimeMillis()
+                    val fetchTime = if (allSucceeded) System.currentTimeMillis()
                     else System.currentTimeMillis() - (REFRESH_INTERVAL_MS / 2)
                     prefs.edit()
                         .putString("prayer_remote_lat", latitude.toString())
