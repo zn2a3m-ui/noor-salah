@@ -474,6 +474,11 @@ class MainActivity : Activity(), SensorEventListener {
         val firstOffset = (month.get(java.util.Calendar.DAY_OF_WEEK) - java.util.Calendar.SATURDAY + 7) % 7
         val title = SimpleDateFormat("MMMM yyyy", Locale("ar")).format(month.time)
         val firstHijri = PrayerTimesRemoteRepository.getHijriDate(this, month)
+        if (firstHijri == null) {
+            PrayerTimesRemoteRepository.refreshMonthIfNeeded(this, latitude, longitude, year, monthIndex + 1) {
+                if (!isFinishing && page == "calendar") showPage("calendar")
+            }
+        }
 
         card {
             line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
@@ -559,6 +564,9 @@ class MainActivity : Activity(), SensorEventListener {
             grid.addView(dayCell, cellParams(60))
         }
         content.addView(grid, LinearLayout.LayoutParams(-1, -2))
+        if (firstHijri == null) {
+            text("إذا كان مصدر المواقيت مفعّلاً، يجري تحميل بيانات الشهر الهجري عند توفر الاتصال.", 11f, muted, false, Gravity.CENTER)
+        }
         gap(8)
 
         val selectedDate = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
