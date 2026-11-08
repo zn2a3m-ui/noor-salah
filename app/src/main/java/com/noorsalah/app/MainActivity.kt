@@ -264,7 +264,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(2)
         val prayerSource = TextView(this@MainActivity).apply {
-            text = PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity) + "\\n" +
+            text = PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity) + "\n" +
                 PrayerTimesRemoteRepository.getProviderLabel(this@MainActivity)
             textSize = 10f
             setTextColor(muted)
