@@ -134,7 +134,7 @@ class MainActivity : Activity(), SensorEventListener {
         PrayerAlarmScheduler.createChannel(this)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
-            if (!isFinishing && page == "home") showPage("home")
+            if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
     }
 
@@ -146,7 +146,7 @@ class MainActivity : Activity(), SensorEventListener {
         clockHandler.post(clockTick)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
-            if (!isFinishing && page == "home") showPage("home")
+            if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
     }
     override fun onPause() {
@@ -374,7 +374,7 @@ class MainActivity : Activity(), SensorEventListener {
                     remotePrefs.edit().putBoolean("prayer_remote_consent", true)
                         .putBoolean("prayer_remote_prompt_dismissed", true).apply()
                     PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true) {
-                        if (!isFinishing && page == "home") showPage("home")
+                        if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
                     }
                     Toast.makeText(this@MainActivity, "بدأ تحديث المواقيت", Toast.LENGTH_SHORT).show()
                     showPage("home")
@@ -1449,9 +1449,9 @@ class MainActivity : Activity(), SensorEventListener {
                 getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "gps").apply()
                 PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
                 PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
-                    if (!isFinishing && page == "home") showPage("home")
+                    if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
                 }
-                if (page == "home" || page == "settings") showPage(page)
+                if (page == "home" || page == "settings" || page == "calendar") showPage(page)
             }
             else Toast.makeText(this, "لم يتوفر موقع حديث؛ نستخدم الموقع الافتراضي", Toast.LENGTH_LONG).show()
         } catch (_: Exception) { Toast.makeText(this, "تعذر قراءة الموقع حالياً", Toast.LENGTH_SHORT).show() }
