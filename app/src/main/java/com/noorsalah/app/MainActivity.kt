@@ -649,7 +649,7 @@ class MainActivity : Activity(), SensorEventListener {
 
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
-        addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
+        content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         text("سورة ${surah.name}", 24f, cream, true, Gravity.CENTER)
         text("${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}", 12f, muted, false, Gravity.CENTER)
         gap(8)
