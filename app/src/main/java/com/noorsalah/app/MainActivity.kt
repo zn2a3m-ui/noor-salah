@@ -350,8 +350,8 @@ class MainActivity : Activity(), SensorEventListener {
             line("⌖  $cityName", 13f, muted, false, Gravity.CENTER)
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 15f, cream, true, Gravity.CENTER)
             val selectedCalendar = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-            PrayerTimesRemoteRepository.getHijriLabel(this@MainActivity, selectedCalendar)?.let {
-                line(it, 13f, gold, true, Gravity.CENTER)
+            hijriDateForCalendar(selectedCalendar)?.let { hijri ->
+                line("${hijri.day} ${hijri.monthArabic} ${hijri.year} هـ", 13f, gold, true, Gravity.CENTER)
             }
             line("تقبّل الله طاعتكم", 11f, gold, false, Gravity.CENTER)
         }
