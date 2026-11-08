@@ -10,11 +10,12 @@ Jordan method:
 Authority named by the provider: Ministry of Awqaf, Islamic Affairs and Holy Places.
 Fajr angle: 18 degrees.
 Isha angle: 18 degrees.
-Provider verification status: matched against the authority's published timetable.
+Provider verification status: the calculation method is marked as verified against the authority's published timetable. Individual astronomical times may differ from mosque announcements by one or two minutes.
 Method/source details: https://prayertime.si/methods/
 Official Jordan timetable: https://www.awqaf.gov.jo/ar/Pages/PrayerTime
 
 The provider is an independent service, not a government agency. Its Jordan method
-is identified as matched against the Ministry's published timetable. The app keeps
+is identified as verified against the Ministry's published timetable; individual
+calculated times may differ by one or two minutes. The app keeps
 the provider attribution visible and falls back to its clearly labeled local estimate
 when verified online data is unavailable or another calculation method is selected.
