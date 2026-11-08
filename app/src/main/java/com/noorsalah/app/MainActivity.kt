@@ -563,6 +563,9 @@ class MainActivity : Activity(), SensorEventListener {
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(selectedDate.time), 15f, cream, true)
             if (selectedHijri != null) {
                 line("${selectedHijri.day} ${selectedHijri.monthArabic} ${selectedHijri.year} هـ", 16f, gold, true)
+                if (selectedHijri.basis == "umm-al-qura") {
+                    line("بحسب تقويم أم القرى • قد يختلف عن إعلان الرؤية المحلية", 11f, muted)
+                }
                 hijriEvent(selectedHijri)?.let { line(it, 14f, cream, true) }
             } else {
                 line("التاريخ الهجري لهذا اليوم غير محفوظ. فعّل مصدر المواقيت عبر الإنترنت من الصفحة الرئيسية للحصول على بيانات الشهر.", 12f, muted)
