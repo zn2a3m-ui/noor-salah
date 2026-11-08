@@ -2058,9 +2058,16 @@ class MainActivity : Activity(), SensorEventListener {
         if (event.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
         val matrix = FloatArray(9); SensorManager.getRotationMatrixFromVector(matrix, event.values)
         val orientation = FloatArray(3); SensorManager.getOrientation(matrix, orientation)
-        heading = (Math.toDegrees(orientation[0].toDouble()).toFloat() + 360f) % 360f
+        val magneticHeading = (Math.toDegrees(orientation[0].toDouble()).toFloat() + 360f) % 360f
+        val declination = android.hardware.GeomagneticField(
+            latitude.toFloat(),
+            longitude.toFloat(),
+            0f,
+            System.currentTimeMillis()
+        ).declination
+        heading = (magneticHeading + declination + 360f) % 360f
         arrow?.rotation = qibla().toFloat() - heading
-        compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الهاتف ${"%.0f".format(heading)}°"
+        compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°"
     }
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
