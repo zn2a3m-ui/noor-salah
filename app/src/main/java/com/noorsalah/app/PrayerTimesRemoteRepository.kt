@@ -399,7 +399,7 @@ object PrayerTimesRemoteRepository {
             .getString("prayer_remote_authority_url", null)
             ?.takeIf { it.startsWith("https://") }
 
-    private fun methodIdFor(label: String): String = when {
+    internal fun methodIdFor(label: String): String = when {
         label.startsWith("الأردن") -> "JORDAN"
         label.startsWith("رابطة") -> "MWL"
         label.startsWith("أم القرى") -> "UMM_AL_QURA"
