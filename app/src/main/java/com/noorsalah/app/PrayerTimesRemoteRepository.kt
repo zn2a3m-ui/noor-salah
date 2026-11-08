@@ -49,23 +49,23 @@ object PrayerTimesRemoteRepository {
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         if (!selectedMethod.startsWith("الأردن") || !isJordan(latitude, longitude)) return
         val today = Calendar.getInstance()
-        val tomorrow = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
-        val todayKey = dateKey(today)
-        val tomorrowKey = dateKey(tomorrow)
+        val dates = (0..6).map { offset ->
+            (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
+        }
         val oldLat = (prefs.getString("prayer_remote_attempt_lat", null)
             ?: prefs.getString("prayer_remote_lat", null))?.toDoubleOrNull()
         val oldLon = (prefs.getString("prayer_remote_attempt_lon", null)
             ?: prefs.getString("prayer_remote_lon", null))?.toDoubleOrNull()
         val sameLocation = oldLat != null && oldLon != null &&
             abs(oldLat - latitude) < 0.015 && abs(oldLon - longitude) < 0.015
-        val hasBothDays = getTimes(appContext, today) != null && getTimes(appContext, tomorrow) != null
+        val hasWeekCached = dates.all { getTimes(appContext, it) != null }
         val now = System.currentTimeMillis()
         val lastFetch = prefs.getLong("prayer_remote_fetch_time", 0L)
         val fresh = now - lastFetch < REFRESH_INTERVAL_MS
         val lastAttempt = prefs.getLong("prayer_remote_last_attempt", 0L)
         val retryCooling = now - lastAttempt < 30L * 60L * 1000L
 
-        if (!force && sameLocation && ((hasBothDays && fresh) || (!hasBothDays && retryCooling))) return
+        if (!force && sameLocation && ((hasWeekCached && fresh) || (!hasWeekCached && retryCooling))) return
         synchronized(this) {
             if (refreshInFlight) return
             refreshInFlight = true
@@ -84,7 +84,7 @@ object PrayerTimesRemoteRepository {
                 } else {
                     TimeZone.getDefault().id
                 }
-                listOf(today, tomorrow).forEach { date ->
+                dates.forEach { date ->
                     try {
                         // Send only city-level approximate coordinates to the provider.
                         val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
@@ -105,7 +105,7 @@ object PrayerTimesRemoteRepository {
                     }
                 }
                 if (updated > 0) {
-                    val fetchTime = if (updated == 2) System.currentTimeMillis()
+                    val fetchTime = if (updated == dates.size) System.currentTimeMillis()
                     else System.currentTimeMillis() - (REFRESH_INTERVAL_MS / 2)
                     prefs.edit()
                         .putString("prayer_remote_lat", latitude.toString())
