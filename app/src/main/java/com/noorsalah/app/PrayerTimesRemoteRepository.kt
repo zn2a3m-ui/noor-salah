@@ -111,6 +111,11 @@ object PrayerTimesRemoteRepository {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         if (!selectedMethod.startsWith("الأردن")) return null
+        val currentLat = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
+        val currentLon = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+        val cachedLat = prefs.getString("prayer_remote_lat", null)?.toDoubleOrNull() ?: return null
+        val cachedLon = prefs.getString("prayer_remote_lon", null)?.toDoubleOrNull() ?: return null
+        if (abs(currentLat - cachedLat) >= 0.015 || abs(currentLon - cachedLon) >= 0.015) return null
         val raw = prefs.getString("prayer_remote_times_${dateKey(date)}", null) ?: return null
         return try {
             val values = JSONArray(raw)
