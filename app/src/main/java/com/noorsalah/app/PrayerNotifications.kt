@@ -209,30 +209,53 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                     PrayerAlarmScheduler.CHANNEL_CUSTOM_ID
                 else -> PrayerAlarmScheduler.CHANNEL_ID
             }
-            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Notification.Builder(context, channelId)
-            } else {
-                val sound = when {
-                    selectedAudio.startsWith("أذان قصير") -> Uri.parse("android.resource://${context.packageName}/raw/adhan_short")
-                    selectedAudio.startsWith("تنبيه النظام") -> Settings.System.DEFAULT_NOTIFICATION_URI
-                    selectedAudio.startsWith("صوت مخصص") && customAudioAvailable && customUri != null -> customUri
-                    else -> Uri.parse("android.resource://${context.packageName}/raw/adhan_full")
+            val shouldPlayFullAdhan = !selectedAudio.startsWith("تنبيه النظام")
+            val playbackStarted = if (shouldPlayFullAdhan) {
+                try {
+                    val playbackIntent = Intent(context, AdhanPlaybackService::class.java).apply {
+                        putExtra(AdhanPlaybackService.EXTRA_PRAYER, prayer)
+                        putExtra(AdhanPlaybackService.EXTRA_AUDIO, selectedAudio)
+                        customUri?.let {
+                            putExtra(AdhanPlaybackService.EXTRA_CUSTOM_URI, it.toString())
+                        }
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(playbackIntent)
+                    } else {
+                        context.startService(playbackIntent)
+                    }
+                    true
+                } catch (_: Exception) {
+                    false
                 }
-                Notification.Builder(context)
-                    .setPriority(Notification.PRIORITY_HIGH)
-                    .setSound(sound)
+            } else false
+
+            if (!playbackStarted) {
+                val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    Notification.Builder(context, channelId)
+                } else {
+                    val sound = when {
+                        selectedAudio.startsWith("أذان قصير") -> Uri.parse("android.resource://${context.packageName}/raw/adhan_short")
+                        selectedAudio.startsWith("تنبيه النظام") -> Settings.System.DEFAULT_NOTIFICATION_URI
+                        selectedAudio.startsWith("صوت مخصص") && customAudioAvailable && customUri != null -> customUri
+                        else -> Uri.parse("android.resource://${context.packageName}/raw/adhan_full")
+                    }
+                    Notification.Builder(context)
+                        .setPriority(Notification.PRIORITY_HIGH)
+                        .setSound(sound)
+                }
+                val notification = builder
+                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setContentTitle("حان وقت صلاة $prayer")
+                    .setContentText("نور الصلاة يذكّرك بالمحافظة على الصلاة")
+                    .setAutoCancel(true)
+                    .setContentIntent(openApp)
+                    .build()
+                val notificationId = if (isTest) {
+                    (System.currentTimeMillis() and 0x7fffffffL).toInt()
+                } else prayer.hashCode()
+                manager.notify(notificationId, notification)
             }
-            val notification = builder
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle("حان وقت صلاة $prayer")
-                .setContentText("نور الصلاة يذكّرك بالمحافظة على الصلاة")
-                .setAutoCancel(true)
-                .setContentIntent(openApp)
-                .build()
-            val notificationId = if (isTest) {
-                (System.currentTimeMillis() and 0x7fffffffL).toInt()
-            } else prayer.hashCode()
-            manager.notify(notificationId, notification)
         }
         if (!isTest) {
             PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
