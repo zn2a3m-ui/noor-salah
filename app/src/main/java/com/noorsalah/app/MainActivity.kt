@@ -88,6 +88,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var locationRequestInFlight = false
     private var locationAccuracyMeters: Float? = null
     private var heading = 0f
+    private var magneticDeclination = 0f
     private var hasCompassReading = false
     private var page = "home"
     private var count = 0
@@ -124,6 +125,7 @@ class MainActivity : Activity(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         latitude = getPreferences(0).getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         longitude = getPreferences(0).getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+        updateMagneticDeclination()
         locationAccuracyMeters = getPreferences(0).getFloat("location_accuracy_m", 0f).takeIf { it > 0f }
         cityName = getPreferences(0).getString("city_name", cityName) ?: cityName
         locationMode = getPreferences(0).getString("location_mode", "gps") ?: "gps"
@@ -1718,6 +1720,7 @@ class MainActivity : Activity(), SensorEventListener {
                 )
                 AlertDialog.Builder(this@MainActivity).setTitle("اختر المدينة").setItems(names) { _, i ->
                     cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
+                    updateMagneticDeclination()
                     locationAccuracyMeters = null
                     getPreferences(0).edit()
                         .putString("city_name", cityName)
@@ -1935,6 +1938,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (isFinishing) return
         latitude = loc.latitude
         longitude = loc.longitude
+        updateMagneticDeclination()
         locationAccuracyMeters = if (loc.hasAccuracy()) loc.accuracy else null
         cityName = PrayerTimesRemoteRepository.nearestJordanCityName(latitude, longitude)
             ?.plus("، الأردن") ?: "موقعي الحالي"
@@ -2060,6 +2064,15 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+    private fun updateMagneticDeclination() {
+        magneticDeclination = android.hardware.GeomagneticField(
+            latitude.toFloat(),
+            longitude.toFloat(),
+            0f,
+            System.currentTimeMillis()
+        ).declination
+    }
+
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_ROTATION_VECTOR) return
         val matrix = FloatArray(9)
@@ -2079,13 +2092,7 @@ class MainActivity : Activity(), SensorEventListener {
         val orientation = FloatArray(3)
         SensorManager.getOrientation(remapped, orientation)
         val magneticHeading = (Math.toDegrees(orientation[0].toDouble()).toFloat() + 360f) % 360f
-        val declination = android.hardware.GeomagneticField(
-            latitude.toFloat(),
-            longitude.toFloat(),
-            0f,
-            System.currentTimeMillis()
-        ).declination
-        heading = QiblaCalculator.trueHeading(magneticHeading, declination)
+        heading = QiblaCalculator.trueHeading(magneticHeading, magneticDeclination)
         hasCompassReading = true
         arrow?.rotation = qibla().toFloat() - heading
         val accuracyHint = if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) " • حرّك الهاتف للمعايرة" else ""
