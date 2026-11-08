@@ -1870,12 +1870,7 @@ class MainActivity : Activity(), SensorEventListener {
     }
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
-    private fun qibla(): Double {
-        val kLat = Math.toRadians(21.4225); val kLon = Math.toRadians(39.8262)
-        val lat = Math.toRadians(latitude); val dLon = kLon - Math.toRadians(longitude)
-        val y = sin(dLon); val x = cos(lat) * tan(kLat) - sin(lat) * cos(dLon)
-        return (Math.toDegrees(atan2(y, x)) + 360) % 360
-    }
+    private fun qibla(): Double = QiblaCalculator.bearing(latitude, longitude)
 
     private fun prayerTimesMinutes(): List<Int> {
         val date = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
@@ -2066,7 +2061,7 @@ class MainActivity : Activity(), SensorEventListener {
             0f,
             System.currentTimeMillis()
         ).declination
-        heading = (magneticHeading + declination + 360f) % 360f
+        heading = QiblaCalculator.trueHeading(magneticHeading, declination)
         arrow?.rotation = qibla().toFloat() - heading
         compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°"
     }
