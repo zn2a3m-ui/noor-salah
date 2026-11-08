@@ -53,7 +53,10 @@ object PrayerAlarmScheduler {
             times.forEachIndexed { index, minuteOfDay ->
                 val preferenceKeys = listOf("prayer_enabled_fajr", "prayer_enabled_dhuhr", "prayer_enabled_asr", "prayer_enabled_maghrib", "prayer_enabled_isha")
                 val prefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
-                if (!prefs.getBoolean(preferenceKeys[index], true)) return@forEachIndexed
+                if (!prefs.getBoolean(preferenceKeys[index], true)) {
+                    cancelOne(context, dayKey + index, prayerNames[index])
+                    return@forEachIndexed
+                }
                 val trigger = (date.clone() as Calendar).apply {
                     set(Calendar.HOUR_OF_DAY, minuteOfDay / 60)
                     set(Calendar.MINUTE, minuteOfDay % 60)
@@ -65,6 +68,20 @@ object PrayerAlarmScheduler {
                 }
             }
         }
+    }
+
+    private fun cancelOne(context: Context, requestCode: Int, prayer: String) {
+        val intent = Intent(context, PrayerAlarmReceiver::class.java).apply {
+            action = ACTION_PRAYER
+            putExtra("prayer_name", prayer)
+        }
+        val pending = PendingIntent.getBroadcast(
+            context, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarm.cancel(pending)
+        pending.cancel()
     }
 
     private fun scheduleOne(context: Context, triggerAt: Long, requestCode: Int, prayer: String) {
