@@ -1086,6 +1086,14 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
             }, LinearLayout.LayoutParams(-1, -2))
+            line("التلاوات الصوتية تُبث من Islamic Network بإذن أصحاب الحقوق، ولا تُخزّن ضمن التطبيق.", 12f, muted)
+            addView(button("شروط استخدام التلاوات الصوتية") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://alquran.cloud/terms-and-conditions")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
         }
     }
 
