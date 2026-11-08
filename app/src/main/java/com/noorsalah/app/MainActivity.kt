@@ -581,6 +581,16 @@ class MainActivity : Activity(), SensorEventListener {
             }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
+        card {
+            line("انتقال سريع داخل المصحف", 17f, gold, true)
+            addView(button("اختيار الجزء • 30 جزءاً") {
+                chooseQuranJuz()
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("اختيار صفحة المصحف • 604 صفحات") {
+                chooseQuranPage()
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
         text("فهرس السور • 114 سورة", 18f, gold, true)
         surahs.forEach { surah ->
             val row = LinearLayout(this).apply {
@@ -725,6 +735,49 @@ class MainActivity : Activity(), SensorEventListener {
         mainScroll?.post {
             focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
         }
+    }
+
+    private fun chooseQuranJuz() {
+        val choices = Array(30) { index -> "الجزء ${index + 1}" }
+        AlertDialog.Builder(this)
+            .setTitle("اختر الجزء")
+            .setItems(choices) { _, index ->
+                try {
+                    val location = quranRepository.juzStart(index + 1)
+                    quranSurah(location.first, location.second)
+                } catch (_: Exception) {
+                    Toast.makeText(this, "تعذّر الانتقال إلى هذا الجزء", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
+    }
+
+    private fun chooseQuranPage() {
+        val input = EditText(this).apply {
+            hint = "رقم الصفحة من 1 إلى 604"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            textSize = 17f
+            setTextColor(cream)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("الانتقال إلى صفحة")
+            .setView(input)
+            .setPositiveButton("انتقال") { _, _ ->
+                val pageNumber = input.text.toString().toIntOrNull()
+                if (pageNumber == null || pageNumber !in 1..604) {
+                    Toast.makeText(this, "أدخل رقم صفحة صحيحاً من 1 إلى 604", Toast.LENGTH_SHORT).show()
+                } else {
+                    try {
+                        val location = quranRepository.pageStart(pageNumber)
+                        quranSurah(location.first, location.second)
+                    } catch (_: Exception) {
+                        Toast.makeText(this, "تعذّر الانتقال إلى الصفحة", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("إلغاء", null)
+            .show()
     }
 
     private fun quranSearchResults(query: String) {
