@@ -1382,7 +1382,8 @@ class MainActivity : Activity(), SensorEventListener {
                 val names = arrayOf(
                     "عمّان، الأردن", "إربد، الأردن", "الزرقاء، الأردن", "العقبة، الأردن",
                     "السلط، الأردن", "مادبا، الأردن", "جرش، الأردن", "المفرق، الأردن",
-                    "الكرك، الأردن", "معان، الأردن", "القدس، فلسطين", "مكة المكرمة، السعودية",
+                    "الكرك، الأردن", "معان، الأردن", "عجلون، الأردن", "الطفيلة، الأردن",
+                    "القدس، فلسطين", "مكة المكرمة، السعودية",
                     "المدينة المنورة، السعودية"
                 )
                 val coords = arrayOf(
@@ -1391,6 +1392,7 @@ class MainActivity : Activity(), SensorEventListener {
                     doubleArrayOf(32.0392,35.7272), doubleArrayOf(31.7167,35.8000),
                     doubleArrayOf(32.2808,35.8993), doubleArrayOf(32.3429,36.2080),
                     doubleArrayOf(31.1800,35.7048), doubleArrayOf(30.1920,35.7340),
+                    doubleArrayOf(32.3333,35.7520), doubleArrayOf(30.8333,35.6044),
                     doubleArrayOf(31.7683,35.2137), doubleArrayOf(21.4225,39.8262),
                     doubleArrayOf(24.4672,39.6111)
                 )
