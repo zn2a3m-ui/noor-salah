@@ -73,6 +73,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var latitude = 31.9539
     private var longitude = 35.9106
     private var locationRequestInFlight = false
+    private var locationAccuracyMeters: Float? = null
     private var heading = 0f
     private var page = "home"
     private var count = 0
@@ -109,6 +110,7 @@ class MainActivity : Activity(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         latitude = getPreferences(0).getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         longitude = getPreferences(0).getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+        locationAccuracyMeters = getPreferences(0).getFloat("location_accuracy_m", 0f).takeIf { it > 0f }
         cityName = getPreferences(0).getString("city_name", cityName) ?: cityName
         locationMode = getPreferences(0).getString("location_mode", "gps") ?: "gps"
         calculationMethod = getPreferences(0).getString("calculation_method", calculationMethod) ?: calculationMethod
@@ -1410,6 +1412,7 @@ class MainActivity : Activity(), SensorEventListener {
             line("الموقع", 18f, gold, true)
             line("خط العرض: ${"%.4f".format(Locale.US, latitude)}", 14f, cream)
             line("خط الطول: ${"%.4f".format(Locale.US, longitude)}", 14f, cream)
+            locationAccuracyMeters?.let { line("دقة آخر قراءة: ±${"%.0f".format(Locale.US, it)} متر", 12f, muted) }
             addView(button("تحديث الموقع") { requestLocation(true) }, LinearLayout.LayoutParams(-1, -2))
             line(if (locationMode == "manual") "الموقع مضبوط يدوياً" else "الموقع من الهاتف", 12f, muted)
         }
@@ -1612,6 +1615,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (isFinishing) return
         latitude = loc.latitude
         longitude = loc.longitude
+        locationAccuracyMeters = if (loc.hasAccuracy()) loc.accuracy else null
         cityName = PrayerTimesRemoteRepository.nearestJordanCityName(latitude, longitude)
             ?.plus("، الأردن") ?: "موقعي الحالي"
         locationMode = "gps"
@@ -1620,6 +1624,7 @@ class MainActivity : Activity(), SensorEventListener {
             .putString("city_lat", latitude.toString())
             .putString("city_lon", longitude.toString())
             .putString("location_mode", "gps")
+            .putFloat("location_accuracy_m", locationAccuracyMeters ?: 0f)
             .apply()
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
