@@ -430,6 +430,153 @@ class MainActivity : Activity(), SensorEventListener {
         text("قد تختلف الحسابات الفلكية دقيقة أو دقيقتين عن أذان المسجد؛ ويُعتمد إعلان وزارة الأوقاف للمناسبات المرتبطة بالرؤية.", 11f, muted, false, Gravity.CENTER)
     }
 
+    private fun changeCalendarMonth(offset: Int) {
+        val month = java.util.Calendar.getInstance().apply {
+            timeInMillis = calendarMonthMillis
+            set(java.util.Calendar.DAY_OF_MONTH, 1)
+            add(java.util.Calendar.MONTH, offset)
+        }
+        calendarMonthMillis = month.timeInMillis
+        showPage("calendar")
+    }
+
+    private fun hijriEvent(date: PrayerTimesRemoteRepository.HijriDate): String? = when {
+        date.month == 1 && date.day == 1 -> "رأس السنة الهجرية"
+        date.month == 1 && date.day == 10 -> "يوم عاشوراء"
+        date.month == 3 && date.day == 12 -> "ذكرى المولد النبوي • تاريخ تقريبي"
+        date.month == 7 && date.day == 27 -> "ذكرى الإسراء والمعراج • تاريخ تقريبي"
+        date.month == 8 && date.day == 15 -> "النصف من شعبان • تاريخ تقريبي"
+        date.month == 9 && date.day == 1 -> "بداية رمضان • يتأكد بثبوت الهلال"
+        date.month == 9 && date.day == 27 -> "ليلة 27 رمضان • ليلة مرجوة"
+        date.month == 10 && date.day == 1 -> "عيد الفطر • يتأكد بثبوت الهلال"
+        date.month == 12 && date.day == 9 -> "يوم عرفة"
+        date.month == 12 && date.day == 10 -> "عيد الأضحى • يتأكد بثبوت الهلال"
+        else -> null
+    }
+
+    private fun hijriCalendar() {
+        val month = java.util.Calendar.getInstance().apply {
+            timeInMillis = calendarMonthMillis
+            set(java.util.Calendar.DAY_OF_MONTH, 1)
+            set(java.util.Calendar.HOUR_OF_DAY, 12)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val year = month.get(java.util.Calendar.YEAR)
+        val monthIndex = month.get(java.util.Calendar.MONTH)
+        val daysInMonth = month.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        val firstOffset = (month.get(java.util.Calendar.DAY_OF_WEEK) - java.util.Calendar.SATURDAY + 7) % 7
+        val title = SimpleDateFormat("MMMM yyyy", Locale("ar")).format(month.time)
+        val firstHijri = PrayerTimesRemoteRepository.getHijriDate(this, month)
+
+        card {
+            line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
+            line(if (firstHijri != null) "${firstHijri.monthArabic} ${firstHijri.year} هـ" else "بيانات الشهر الهجري عند توفر المصدر", 14f, muted, false, Gravity.CENTER)
+            val header = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            header.addView(button("السابق") { changeCalendarMonth(-1) }, LinearLayout.LayoutParams(0, -2, 1f))
+            val monthTitle = TextView(this@MainActivity).apply {
+                text = title
+                textSize = 17f
+                setTextColor(cream)
+                gravity = Gravity.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            header.addView(monthTitle, LinearLayout.LayoutParams(0, -2, 2f))
+            header.addView(button("التالي") { changeCalendarMonth(1) }, LinearLayout.LayoutParams(0, -2, 1f))
+            addView(header, LinearLayout.LayoutParams(-1, -2))
+            addView(button("العودة إلى شهر اليوم") {
+                calendarMonthMillis = System.currentTimeMillis()
+                selectedDateMillis = System.currentTimeMillis()
+                showPage("calendar")
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
+
+        val grid = GridLayout(this).apply {
+            columnCount = 7
+            useDefaultMargins = false
+            alignmentMode = GridLayout.ALIGN_BOUNDS
+        }
+        fun cellParams(height: Int) = GridLayout.LayoutParams().apply {
+            width = 0
+            this.height = dp(height)
+            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+            setMargins(dp(2), dp(2), dp(2), dp(2))
+        }
+        val weekdays = listOf("السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة")
+        weekdays.forEach { weekday ->
+            val label = TextView(this).apply {
+                text = weekday
+                textSize = 10f
+                setTextColor(gold)
+                gravity = Gravity.CENTER
+                setPadding(dp(1), dp(6), dp(1), dp(6))
+            }
+            grid.addView(label, cellParams(34))
+        }
+        repeat(firstOffset) {
+            grid.addView(TextView(this), cellParams(60))
+        }
+        val today = java.util.Calendar.getInstance()
+        val selected = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        for (day in 1..daysInMonth) {
+            val date = (month.clone() as java.util.Calendar).apply {
+                set(java.util.Calendar.DAY_OF_MONTH, day)
+            }
+            val hijri = PrayerTimesRemoteRepository.getHijriDate(this, date)
+            val isToday = today.get(java.util.Calendar.YEAR) == year &&
+                today.get(java.util.Calendar.MONTH) == monthIndex &&
+                today.get(java.util.Calendar.DAY_OF_MONTH) == day
+            val isSelected = selected.get(java.util.Calendar.YEAR) == year &&
+                selected.get(java.util.Calendar.MONTH) == monthIndex &&
+                selected.get(java.util.Calendar.DAY_OF_MONTH) == day
+            val dayCell = TextView(this).apply {
+                text = if (hijri != null) "$day\n${hijri.day}" else day.toString()
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setTextColor(if (isSelected || isToday) gold else cream)
+                typeface = if (isSelected || isToday) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                background = when {
+                    isSelected -> shape(Color.rgb(31, 79, 57), 12, gold)
+                    isToday -> shape(Color.rgb(23, 62, 47), 12, Color.rgb(107, 143, 93))
+                    else -> shape(panel, 12, Color.rgb(39, 78, 62))
+                }
+                setOnClickListener {
+                    selectedDateMillis = date.timeInMillis
+                    calendarMonthMillis = month.timeInMillis
+                    getPreferences(0).edit().putLong("selected_date", selectedDateMillis).apply()
+                    showPage("calendar")
+                }
+            }
+            grid.addView(dayCell, cellParams(60))
+        }
+        content.addView(grid, LinearLayout.LayoutParams(-1, -2))
+        gap(8)
+
+        val selectedDate = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        val selectedHijri = PrayerTimesRemoteRepository.getHijriDate(this, selectedDate)
+        card {
+            line("تفاصيل اليوم المحدد", 17f, gold, true)
+            line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(selectedDate.time), 15f, cream, true)
+            if (selectedHijri != null) {
+                line("${selectedHijri.day} ${selectedHijri.monthArabic} ${selectedHijri.year} هـ", 16f, gold, true)
+                hijriEvent(selectedHijri)?.let { line(it, 14f, cream, true) }
+            } else {
+                line("التاريخ الهجري لهذا اليوم غير محفوظ. فعّل مصدر المواقيت عبر الإنترنت من الصفحة الرئيسية للحصول على بيانات الشهر.", 12f, muted)
+            }
+            val names = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
+            val times = prayerTimesMinutes()
+            names.forEachIndexed { index, name ->
+                line("$name  •  ${formatPrayerTime(times[index])}", 13f, cream)
+            }
+        }
+        text("قد يختلف التقويم الهجري المحسوب يوماً عن الرؤية المحلية. إعلان وزارة الأوقاف الأردنية هو المرجع لبداية الأشهر والمناسبات المرتبطة بثبوت الهلال.", 11f, muted, false, Gravity.CENTER)
+        content.addView(button("العودة إلى الرئيسية") { showPage("home") }, LinearLayout.LayoutParams(-1, -2))
+    }
+
     private fun qiblaScreen() {
         text("القبلة", 27f, gold, true, Gravity.CENTER)
         text("اعرف اتجاه بيت الله الحرام أينما كنت", 13f, muted, false, Gravity.CENTER)
