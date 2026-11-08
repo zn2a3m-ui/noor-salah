@@ -20,6 +20,50 @@ class PrayerTimesRemoteRepositoryTest {
     }
 
     @Test
+    fun acceptsCompleteChronologicalPrayerDayForRequestedMonth() {
+        assertTrue(
+            PrayerTimesRemoteRepository.isValidPrayerDay(
+                "2026-11-08",
+                2026,
+                11,
+                listOf(300, 390, 690, 900, 1020, 1110)
+            )
+        )
+    }
+
+    @Test
+    fun rejectsPrayerDayOutsideRequestedMonth() {
+        assertFalse(
+            PrayerTimesRemoteRepository.isValidPrayerDay(
+                "2026-12-01",
+                2026,
+                11,
+                listOf(300, 390, 690, 900, 1020, 1110)
+            )
+        )
+    }
+
+    @Test
+    fun rejectsNonChronologicalOrMalformedPrayerTimes() {
+        assertFalse(
+            PrayerTimesRemoteRepository.isValidPrayerDay(
+                "2026-11-08",
+                2026,
+                11,
+                listOf(300, 390, 690, 850, 820, 1110)
+            )
+        )
+        assertFalse(
+            PrayerTimesRemoteRepository.isValidPrayerDay(
+                "2026-02-30",
+                2026,
+                2,
+                listOf(300, 390, 690, 900, 1020, 1110)
+            )
+        )
+    }
+
+    @Test
     fun recognizesJordanCoordinatesWithoutIncludingJerusalem() {
         assertTrue(PrayerTimesRemoteRepository.isJordan(31.9539, 35.9106))
         assertTrue(PrayerTimesRemoteRepository.isJordan(29.5267, 35.0078))
