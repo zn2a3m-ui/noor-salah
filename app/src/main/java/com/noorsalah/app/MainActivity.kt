@@ -1054,6 +1054,9 @@ class MainActivity : Activity(), SensorEventListener {
                     calculationMethod = methods[i]
                     getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                    if (calculationMethod.startsWith("الأردن")) {
+                        PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
+                    }
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
