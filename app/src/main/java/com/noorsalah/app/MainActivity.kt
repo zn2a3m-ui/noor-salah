@@ -71,8 +71,10 @@ class MainActivity : Activity(), SensorEventListener {
     private var adhanPreviewPlayer: MediaPlayer? = null
     private var quranAudioPlayer: MediaPlayer? = null
     private var quranAudioSurahNumber = -1
+    private var quranAudioLastSurahNumber = -1
     private var quranAudioPreparing = false
     private var quranAudioStatusView: TextView? = null
+    private var quranAudioStatusText = "جاهز للتلاوة"
     private var quranRepeat = false
     private data class QuranReciter(val name: String, val edition: String, val bitrate: Int)
     private val quranReciters = listOf(
@@ -1188,6 +1190,10 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun quranSurah(surahNumber: Int, focusAyah: Int = 1) {
         if (quranAudioSurahNumber != -1 && quranAudioSurahNumber != surahNumber) stopQuranAudio()
+        if (quranAudioLastSurahNumber != -1 && quranAudioLastSurahNumber != surahNumber) {
+            quranAudioLastSurahNumber = -1
+            quranAudioStatusText = "جاهز للتلاوة"
+        }
         val surah = try {
             quranRepository.loadSurahs().first { it.number == surahNumber }
         } catch (_: Exception) {
@@ -1251,7 +1257,7 @@ class MainActivity : Activity(), SensorEventListener {
                 Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
             }, LinearLayout.LayoutParams(-1, -2))
             quranAudioStatusView = TextView(this@MainActivity).apply {
-                text = "جاهز للتلاوة"
+                text = if (quranAudioLastSurahNumber == surahNumber) quranAudioStatusText else "جاهز للتلاوة"
                 textSize = 12f
                 setTextColor(muted)
                 gravity = Gravity.CENTER
@@ -1352,11 +1358,11 @@ class MainActivity : Activity(), SensorEventListener {
             try {
                 if (current.isPlaying) {
                     current.pause()
-                    quranAudioStatusView?.text = "التلاوة متوقفة مؤقتاً"
+                    setQuranAudioStatus("التلاوة متوقفة مؤقتاً")
                     Toast.makeText(this, "تم إيقاف التلاوة مؤقتاً", Toast.LENGTH_SHORT).show()
                 } else {
                     current.start()
-                    quranAudioStatusView?.text = "التلاوة تعمل الآن"
+                    setQuranAudioStatus("التلاوة تعمل الآن")
                     Toast.makeText(this, "متابعة التلاوة", Toast.LENGTH_SHORT).show()
                 }
             } catch (_: Exception) {
@@ -1375,8 +1381,9 @@ class MainActivity : Activity(), SensorEventListener {
         val media = MediaPlayer()
         quranAudioPlayer = media
         quranAudioSurahNumber = surahNumber
+        quranAudioLastSurahNumber = surahNumber
         quranAudioPreparing = true
-        quranAudioStatusView?.text = "جارٍ الاتصال بمصدر التلاوة…"
+        setQuranAudioStatus("جارٍ الاتصال بمصدر التلاوة…")
         try {
             media.setAudioAttributes(
                 AudioAttributes.Builder()
@@ -1390,7 +1397,7 @@ class MainActivity : Activity(), SensorEventListener {
                 if (quranAudioPlayer === prepared) {
                     quranAudioPreparing = false
                     prepared.start()
-                    quranAudioStatusView?.text = "تُتلى السورة بصوت ${reciter.name}"
+                    setQuranAudioStatus("تُتلى السورة بصوت ${reciter.name}")
                     Toast.makeText(this, "بدأت تلاوة سورة ${quranRepository.loadSurahs().getOrNull(surahNumber - 1)?.name ?: surahNumber} بصوت ${reciter.name}", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -1398,7 +1405,7 @@ class MainActivity : Activity(), SensorEventListener {
                 if (quranAudioPlayer !== completed) return@setOnCompletionListener
                 if (quranRepeat) {
                     try {
-                        quranAudioStatusView?.text = "إعادة التلاوة"
+                        setQuranAudioStatus("إعادة التلاوة")
                         completed.seekTo(0)
                         completed.start()
                     } catch (_: Exception) {
@@ -1406,24 +1413,29 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 } else {
                     stopQuranAudio()
-                    quranAudioStatusView?.text = "انتهت التلاوة"
+                    setQuranAudioStatus("انتهت التلاوة")
                 }
             }
             media.setOnErrorListener { failed, _, _ ->
                 if (quranAudioPlayer === failed) {
                     stopQuranAudio()
-                    quranAudioStatusView?.text = "تعذّر تحميل التلاوة"
+                    setQuranAudioStatus("تعذّر تحميل التلاوة")
                     Toast.makeText(this, "تعذّر تحميل التلاوة. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
                 }
                 true
             }
             media.prepareAsync()
-            quranAudioStatusView?.text = "جارٍ تحميل التلاوة الصوتية…"
+            setQuranAudioStatus("جارٍ تحميل التلاوة الصوتية…")
             Toast.makeText(this, "جارٍ تحميل التلاوة الصوتية…", Toast.LENGTH_SHORT).show()
         } catch (_: Exception) {
             stopQuranAudio()
             Toast.makeText(this, "تعذّر بدء التلاوة حالياً", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun setQuranAudioStatus(status: String) {
+        quranAudioStatusText = status
+        quranAudioStatusView?.text = status
     }
 
     private fun stopQuranAudio() {
@@ -1434,7 +1446,7 @@ class MainActivity : Activity(), SensorEventListener {
         quranAudioPlayer = null
         quranAudioSurahNumber = -1
         quranAudioPreparing = false
-        quranAudioStatusView?.text = "التلاوة متوقفة"
+        setQuranAudioStatus("التلاوة متوقفة")
     }
 
     private fun chooseQuranJuz() {
