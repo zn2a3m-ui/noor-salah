@@ -180,6 +180,7 @@ object PrayerAlarmScheduler {
 class PrayerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val prayer = intent.getStringExtra("prayer_name") ?: "الصلاة"
+        val isTest = intent.getBooleanExtra("test_only", false)
         if (Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             PrayerAlarmScheduler.createChannel(context)
@@ -233,7 +234,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 .build()
             manager.notify(prayer.hashCode(), notification)
         }
-        PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
+        if (!isTest) PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
     }
 }
 
