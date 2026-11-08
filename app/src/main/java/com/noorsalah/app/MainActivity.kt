@@ -992,6 +992,41 @@ class MainActivity : Activity(), SensorEventListener {
             line(if (locationMode == "manual") "الموقع مضبوط يدوياً" else "الموقع من الهاتف", 12f, muted)
         }
         gap(10)
+        sectionHeading("مصدر مواقيت الصلاة والخصوصية")
+        card {
+            line("المواقيت المطابقة لجدول وزارة الأوقاف", 16f, gold, true)
+            val onlineSwitch = Switch(this@MainActivity).apply {
+                text = "السماح بتحديث المواقيت عبر الإنترنت"
+                setTextColor(cream)
+                isChecked = getPreferences(0).getBoolean("prayer_remote_consent", false)
+                setOnCheckedChangeListener { _, enabled ->
+                    getPreferences(0).edit()
+                        .putBoolean("prayer_remote_consent", enabled)
+                        .putBoolean("prayer_remote_prompt_dismissed", true)
+                        .apply()
+                    if (enabled) {
+                        PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true) {
+                            if (!isFinishing && page == "settings") showPage("settings")
+                        }
+                        Toast.makeText(this@MainActivity, "بدأ تحديث المواقيت", Toast.LENGTH_SHORT).show()
+                    } else {
+                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                        Toast.makeText(this@MainActivity, "تم إيقاف التحديث عبر الإنترنت", Toast.LENGTH_SHORT).show()
+                    }
+                    showPage("settings")
+                }
+            }
+            addView(onlineSwitch, LinearLayout.LayoutParams(-1, -2))
+            line("عند التفعيل تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين إلى prayertime.si لجلب مواقيت الأردن. لا تُرسل الإحداثيات الدقيقة. يمكنك إيقاف هذا الخيار في أي وقت؛ وعند الإيقاف يعمل الحساب المحلي التقديري.", 12f, muted)
+            addView(button("شروط مصدر المواقيت") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://prayertime.si/terms/")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الشروط حالياً", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
         sectionHeading("التنبيهات والصوت")
         card {
             line("تنسيق الوقت", 18f, gold, true)
