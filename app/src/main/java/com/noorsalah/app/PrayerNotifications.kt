@@ -232,7 +232,10 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 .setAutoCancel(true)
                 .setContentIntent(openApp)
                 .build()
-            manager.notify(prayer.hashCode(), notification)
+            val notificationId = if (isTest) {
+                (System.currentTimeMillis() and 0x7fffffffL).toInt()
+            } else prayer.hashCode()
+            manager.notify(notificationId, notification)
         }
         if (!isTest) PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
     }
