@@ -403,6 +403,11 @@ object PrayerTimesRemoteRepository {
         label.startsWith("الأردن") -> "JORDAN"
         label.startsWith("رابطة") -> "MWL"
         label.startsWith("أم القرى") -> "UMM_AL_QURA"
+        label.startsWith("الهيئة المصرية") -> "EGYPT"
+        label.startsWith("أمريكا الشمالية") -> "ISNA"
+        label.startsWith("جامعة كراتشي") -> "KARACHI"
+        label.startsWith("ديانت تركيا") -> "DIYANET"
+        label.startsWith("سنغافورة") -> "SINGAPORE"
         else -> "MWL"
     }
 
