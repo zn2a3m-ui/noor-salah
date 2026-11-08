@@ -773,7 +773,7 @@ class MainActivity : Activity(), SensorEventListener {
                     categoryButtons.forEach { (name, view) ->
                         val active = name == selectedCategory
                         view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
-                            if (active) gold else Color.rgb(48, 99, 75))
+                            if (active) goldOnDark else Color.rgb(48, 99, 75))
                         view.setTextColor(if (active) goldOnDark else cream)
                     }
                     renderCategory()
@@ -786,7 +786,7 @@ class MainActivity : Activity(), SensorEventListener {
             val active = name == selectedCategory
             view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
                 if (active) gold else Color.rgb(48, 99, 75))
-            view.setTextColor(if (active) gold else cream)
+            view.setTextColor(if (active) goldOnDark else cream)
         }
         val categoryScroll = HorizontalScrollView(this@MainActivity).apply {
             isHorizontalScrollBarEnabled = false
