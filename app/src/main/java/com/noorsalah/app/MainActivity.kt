@@ -1916,13 +1916,15 @@ class MainActivity : Activity(), SensorEventListener {
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
             line("اختر طريقة الحساب المناسبة لموقعك. عند تفعيل المصدر المتصل تُرسل الطريقة المختارة للخدمة؛ وفي الأردن عند اختيار طريقة الوزارة تُستخدم بيانات جدول المدينة. قد تختلف المواقيت دقيقة أو دقيقتين عن أذان المسجد، وعند انقطاع الإنترنت يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
-            addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
+            if (PrayerTimesRemoteRepository.isJordan(latitude, longitude)) {
+                addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
+                    } catch (_: Exception) {
+                        Toast.makeText(this@MainActivity, "تعذر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                    }
+                }, LinearLayout.LayoutParams(-1, -2))
+            }
         }
         gap(10)
         card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.2", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
