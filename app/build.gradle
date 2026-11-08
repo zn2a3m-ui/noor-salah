@@ -12,6 +12,41 @@ def tanzilQuranAsset = file("$projectDir/src/main/assets/tanzil-uthmani-1.1.txt"
 def tanzilQuranUrl = "https://raw.githubusercontent.com/iptvchecker/content-tanzil/1f7f2e368983e33208f16bbb7fbf826fc0a56619/tanzil-uthmani-1.1.txt"
 def tanzilQuranSha256 = "ac0724796cbbda0f4801470fbbd11d0f3c5802067bae0493466d0128b0c667af"
 
+def adhanFullAsset = file("$projectDir/src/main/res/raw/adhan_full.ogg")
+def adhanShortAsset = file("$projectDir/src/main/res/raw/adhan_short.ogg")
+def adhanAudioSources = [
+    [file: adhanFullAsset, url: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Beautiful_adhan.ogg",
+     sha1: "a1fa4fd942401922c5c3301816384aae86956522", size: 1229032],
+    [file: adhanShortAsset, url: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Adhan.ogg",
+     sha1: "b86432f1581e11f898de1dc3402af0d541af110e", size: 338741]
+]
+
+tasks.register("downloadVerifiedAdhanAudio") {
+    outputs.files(adhanFullAsset, adhanShortAsset)
+    outputs.upToDateWhen { false }
+    doLast {
+        adhanAudioSources.each { source ->
+            source.file.parentFile.mkdirs()
+            if (!source.file.exists()) {
+                def connection = new URL(source.url).openConnection()
+                connection.connectTimeout = 20000
+                connection.readTimeout = 60000
+                connection.setRequestProperty("User-Agent", "NoorSalah-Android-Build")
+                connection.inputStream.withCloseable { input ->
+                    source.file.withOutputStream { output -> output << input }
+                }
+            }
+            def digest = java.security.MessageDigest.getInstance("SHA-1").digest(source.file.bytes)
+            def actualSha1 = new BigInteger(1, digest).toString(16).padLeft(40, "0")
+            if (source.file.length() != source.size || actualSha1 != source.sha1) {
+                source.file.delete()
+                throw new GradleException("Adhan audio verification failed for ${source.file.name}.")
+            }
+        }
+    }
+}
+
+
 tasks.register("downloadVerifiedTanzilQuran") {
     outputs.file(tanzilQuranAsset)
     outputs.upToDateWhen { false }
@@ -106,4 +141,5 @@ dependencies {
 
 tasks.named("preBuild").configure {
     dependsOn(tasks.named("downloadVerifiedTanzilQuran"))
+    dependsOn(tasks.named("downloadVerifiedAdhanAudio"))
 }
