@@ -54,6 +54,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var tasbeehTarget = 100
     private var vibrationEnabled = true
     private var selectedDateMillis = 0L
+    private var calendarMonthMillis = System.currentTimeMillis()
     private var timeOffsetMinutes = 0
     private var selectedMuezzin = "المؤذن الافتراضي"
     private var calculationMethod = "الأردن (18° / 18°)"
@@ -237,6 +238,7 @@ class MainActivity : Activity(), SensorEventListener {
             "qibla" -> qiblaScreen()
             "azkar" -> azkar()
             "quran" -> quran()
+            "calendar" -> hijriCalendar()
             "settings" -> settings()
         }
     }
@@ -245,7 +247,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (!::navigationBar.isInitialized) return
         for (i in 0 until navigationBar.childCount) {
             val cell = navigationBar.getChildAt(i) as? LinearLayout ?: continue
-            val selected = cell.tag == page
+            val selected = cell.tag == if (page == "calendar") "home" else page
             val glyph = cell.getChildAt(0) as? TextView
             val label = cell.getChildAt(1) as? TextView
             glyph?.setTextColor(if (selected) gold else muted)
@@ -392,7 +394,7 @@ class MainActivity : Activity(), SensorEventListener {
         val quickGrid = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
         val quickRows = listOf(
             listOf(Triple("◉", "اتجاه القبلة", "qibla"), Triple("▤", "القرآن الكريم", "quran")),
-            listOf(Triple("✧", "الأذكار", "azkar"), Triple("⚙", "الإعدادات", "settings"))
+            listOf(Triple("✧", "الأذكار", "azkar"), Triple("▦", "التقويم الهجري", "calendar"))
         )
         quickRows.forEach { items ->
             val r = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL }
@@ -401,7 +403,10 @@ class MainActivity : Activity(), SensorEventListener {
                     orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
                     setPadding(dp(8), dp(15), dp(8), dp(15))
                     background = shape(panel, 17, Color.rgb(42, 91, 72))
-                    setOnClickListener { showPage(item.third) }
+                    setOnClickListener {
+                        if (item.third == "calendar") calendarMonthMillis = selectedDateMillis
+                        showPage(item.third)
+                    }
                 }
                 val symbol = TextView(this@MainActivity).apply {
                     text = item.first; textSize = 26f; setTextColor(gold); gravity = Gravity.CENTER
@@ -422,7 +427,7 @@ class MainActivity : Activity(), SensorEventListener {
             line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 21f, cream, true, Gravity.CENTER)
             line("سبحان الله العظيم", 12f, muted, false, Gravity.CENTER)
         }
-        text("المواقيت الحالية حسابية تقديرية، وليست جدولاً رسمياً معتمداً. سنثبت المصدر المعتمد قبل إعلان اكتمال المواقيت.", 11f, muted, false, Gravity.CENTER)
+        text("قد تختلف الحسابات الفلكية دقيقة أو دقيقتين عن أذان المسجد؛ ويُعتمد إعلان وزارة الأوقاف للمناسبات المرتبطة بالرؤية.", 11f, muted, false, Gravity.CENTER)
     }
 
     private fun qiblaScreen() {
