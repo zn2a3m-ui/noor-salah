@@ -714,7 +714,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             dial.addView(compassRing, FrameLayout.LayoutParams(-1, -1))
             val arrowView = TextView(this@MainActivity).apply {
-                text = "➤"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(goldOnDark)
+                text = "↑"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(goldOnDark)
                 rotation = qibla().toFloat() - heading
                 setShadowLayer(dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
             }
