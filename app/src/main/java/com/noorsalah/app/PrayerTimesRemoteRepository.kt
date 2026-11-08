@@ -173,6 +173,65 @@ object PrayerTimesRemoteRepository {
         }
     }
 
+    private val monthFetchesInFlight = mutableSetOf<String>()
+
+    fun refreshMonthIfNeeded(
+        context: Context,
+        latitude: Double,
+        longitude: Double,
+        year: Int,
+        month: Int,
+        onUpdated: (() -> Unit)? = null
+    ) {
+        val appContext = context.applicationContext
+        val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("prayer_remote_consent", false)) return
+        val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
+        if (!selectedMethod.startsWith("الأردن") || !isJordan(latitude, longitude)) return
+        val placeSlug = placeSlugFor(prefs, latitude, longitude) ?: return
+        val firstDay = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month - 1)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 12)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val lastDay = (firstDay.clone() as Calendar).apply {
+            set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
+        }
+        if (getTimes(appContext, firstDay) != null && getTimes(appContext, lastDay) != null) return
+        val requestKey = "$placeSlug-$year-$month"
+        synchronized(monthFetchesInFlight) {
+            if (!monthFetchesInFlight.add(requestKey)) return
+        }
+        executor.execute {
+            try {
+                val monthDays = fetchMonth("jordan", placeSlug, year, month)
+                monthDays.forEach { storeRemoteDay(prefs, it) }
+                if (monthDays.isNotEmpty()) {
+                    prefs.edit()
+                        .putString("prayer_remote_lat", latitude.toString())
+                        .putString("prayer_remote_lon", longitude.toString())
+                        .putString("prayer_remote_place_slug", placeSlug)
+                        .putLong("prayer_remote_fetch_time", System.currentTimeMillis())
+                        .apply()
+                    Handler(Looper.getMainLooper()).post {
+                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(appContext)
+                        onUpdated?.invoke()
+                    }
+                }
+            } catch (_: Exception) {
+                // The calendar keeps its Gregorian view and local prayer-time fallback.
+            } finally {
+                synchronized(monthFetchesInFlight) {
+                    monthFetchesInFlight.remove(requestKey)
+                }
+            }
+        }
+    }
+
     fun getTimes(context: Context, date: Calendar): List<Int>? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("prayer_remote_consent", false)) return null
