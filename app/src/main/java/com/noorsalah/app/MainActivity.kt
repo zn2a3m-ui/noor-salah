@@ -69,6 +69,18 @@ class MainActivity : Activity(), SensorEventListener {
     private val quranRepository by lazy(LazyThreadSafetyMode.NONE) { QuranRepository(this) }
     private var quranFontSize = 25f
     private var adhanPreviewPlayer: MediaPlayer? = null
+    private var quranAudioPlayer: MediaPlayer? = null
+    private var quranAudioSurahNumber = -1
+    private var quranAudioPreparing = false
+    private var quranRepeat = false
+    private data class QuranReciter(val name: String, val edition: String, val bitrate: Int)
+    private val quranReciters = listOf(
+        QuranReciter("مشاري راشد العفاسي", "ar.alafasy", 128),
+        QuranReciter("محمود خليل الحصري", "ar.husary", 128),
+        QuranReciter("محمد صديق المنشاوي", "ar.minshawi", 128),
+        QuranReciter("عبدالرحمن السديس", "ar.sudais", 192),
+        QuranReciter("عبدالباسط عبدالصمد", "ar.abdulbasit", 192)
+    )
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
     private var longitude = 35.9106
@@ -202,6 +214,7 @@ class MainActivity : Activity(), SensorEventListener {
         sensorManager.unregisterListener(this)
         clockHandler.removeCallbacks(clockTick)
         stopAdhanPreview()
+        stopQuranAudio()
     }
 
     private fun previewAdhan() {
@@ -294,6 +307,7 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun showPage(target: String) {
+        if (target != "quran") stopQuranAudio()
         page = target
         content.removeAllViews()
         updateNavigationSelection()
@@ -1171,6 +1185,52 @@ class MainActivity : Activity(), SensorEventListener {
         text("${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}", 12f, muted, false, Gravity.CENTER)
         gap(8)
 
+        card {
+            line("التلاوة الصوتية للسورة", 17f, gold, true)
+            val prefs = getPreferences(0)
+            val savedEdition = prefs.getString("quran_reciter", "ar.alafasy") ?: "ar.alafasy"
+            val selectedReciterIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
+            val reciterPicker = Spinner(this@MainActivity).apply {
+                adapter = ArrayAdapter(
+                    this@MainActivity,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    quranReciters.map { it.name }
+                )
+                setSelection(selectedReciterIndex)
+                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        val chosen = quranReciters[position]
+                        if (prefs.getString("quran_reciter", "ar.alafasy") != chosen.edition) {
+                            prefs.edit().putString("quran_reciter", chosen.edition).apply()
+                            if (quranAudioSurahNumber == surahNumber) playQuranSurah(surahNumber)
+                        }
+                    }
+                }
+            }
+            addView(reciterPicker, LinearLayout.LayoutParams(-1, -2))
+            val repeatSwitch = Switch(this@MainActivity).apply {
+                text = "تكرار السورة بعد انتهائها"
+                setTextColor(cream)
+                isChecked = prefs.getBoolean("quran_repeat", false)
+                quranRepeat = isChecked
+                setOnCheckedChangeListener { _, checked ->
+                    quranRepeat = checked
+                    prefs.edit().putBoolean("quran_repeat", checked).apply()
+                }
+            }
+            addView(repeatSwitch, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تشغيل / متابعة التلاوة") {
+                toggleQuranAudio(surahNumber)
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("إيقاف التلاوة") {
+                stopQuranAudio()
+                Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            line("تُبث التلاوة عبر الإنترنت من شبكة Islamic Network؛ يلزم اتصال بالإنترنت. حقوق التسجيل محفوظة للقارئ أو أصحاب الحقوق.", 11f, muted)
+        }
+        gap(8)
+
         val controls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -1253,6 +1313,88 @@ class MainActivity : Activity(), SensorEventListener {
         mainScroll?.post {
             focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
         }
+    }
+
+    private fun toggleQuranAudio(surahNumber: Int) {
+        val current = quranAudioPlayer
+        if (current != null && quranAudioSurahNumber == surahNumber && !quranAudioPreparing) {
+            try {
+                if (current.isPlaying) {
+                    current.pause()
+                    Toast.makeText(this, "تم إيقاف التلاوة مؤقتاً", Toast.LENGTH_SHORT).show()
+                } else {
+                    current.start()
+                    Toast.makeText(this, "متابعة التلاوة", Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Exception) {
+                playQuranSurah(surahNumber)
+            }
+        } else {
+            playQuranSurah(surahNumber)
+        }
+    }
+
+    private fun playQuranSurah(surahNumber: Int) {
+        val reciterId = getPreferences(0).getString("quran_reciter", "ar.alafasy") ?: "ar.alafasy"
+        val reciter = quranReciters.firstOrNull { it.edition == reciterId } ?: quranReciters.first()
+        quranRepeat = getPreferences(0).getBoolean("quran_repeat", false)
+        stopQuranAudio()
+        val media = MediaPlayer()
+        quranAudioPlayer = media
+        quranAudioSurahNumber = surahNumber
+        quranAudioPreparing = true
+        try {
+            media.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+            )
+            val url = "https://cdn.islamic.network/quran/audio-surah/${reciter.bitrate}/${reciter.edition}/$surahNumber.mp3"
+            media.setDataSource(url)
+            media.setOnPreparedListener { prepared ->
+                if (quranAudioPlayer === prepared) {
+                    quranAudioPreparing = false
+                    prepared.start()
+                    Toast.makeText(this, "بدأت تلاوة سورة $surahNumber بصوت ${reciter.name}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            media.setOnCompletionListener { completed ->
+                if (quranAudioPlayer !== completed) return@setOnCompletionListener
+                if (quranRepeat) {
+                    try {
+                        completed.seekTo(0)
+                        completed.start()
+                    } catch (_: Exception) {
+                        stopQuranAudio()
+                    }
+                } else {
+                    stopQuranAudio()
+                }
+            }
+            media.setOnErrorListener { failed, _, _ ->
+                if (quranAudioPlayer === failed) {
+                    stopQuranAudio()
+                    Toast.makeText(this, "تعذّر تحميل التلاوة. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
+                }
+                true
+            }
+            media.prepareAsync()
+            Toast.makeText(this, "جارٍ تحميل التلاوة الصوتية…", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            stopQuranAudio()
+            Toast.makeText(this, "تعذّر بدء التلاوة حالياً", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun stopQuranAudio() {
+        quranAudioPlayer?.let {
+            try { if (it.isPlaying) it.stop() } catch (_: Exception) {}
+            try { it.release() } catch (_: Exception) {}
+        }
+        quranAudioPlayer = null
+        quranAudioSurahNumber = -1
+        quranAudioPreparing = false
     }
 
     private fun chooseQuranJuz() {
