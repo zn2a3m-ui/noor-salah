@@ -30,6 +30,7 @@ import android.net.Uri
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.Executor
 import kotlin.math.*
 
 class MainActivity : Activity(), SensorEventListener {
@@ -48,6 +49,7 @@ class MainActivity : Activity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
     private var longitude = 35.9106
+    private var locationRequestInFlight = false
     private var heading = 0f
     private var page = "home"
     private var count = 0
@@ -1498,28 +1500,88 @@ class MainActivity : Activity(), SensorEventListener {
         countdownView?.text = countdownLabel(n.second)
     }
 
+    private fun applyLocation(loc: Location) {
+        if (isFinishing) return
+        latitude = loc.latitude
+        longitude = loc.longitude
+        cityName = "موقعي الحالي"
+        locationMode = "gps"
+        getPreferences(0).edit()
+            .putString("city_name", cityName)
+            .putString("city_lat", latitude.toString())
+            .putString("city_lon", longitude.toString())
+            .putString("location_mode", "gps")
+            .apply()
+        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
+            if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
+        }
+        if (page == "home" || page == "settings" || page == "calendar") showPage(page)
+    }
+
     private fun requestLocation(forceGps: Boolean = false) {
         if (locationMode == "manual" && !forceGps) return
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 100); return
+        if (locationRequestInFlight) {
+            Toast.makeText(this, "جارٍ تحديد موقعك الحالي…", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val hasFine = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasFine && !hasCoarse) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 100)
+            return
         }
         try {
             val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val loc: Location? = try { lm.getLastKnownLocation(LocationManager.GPS_PROVIDER) } catch (_: SecurityException) { null }
-                ?: try { lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) } catch (_: SecurityException) { null }
-            if (loc != null) {
-                latitude = loc.latitude; longitude = loc.longitude
-                cityName = "موقعي الحالي"; locationMode = "gps"
-                getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "gps").apply()
-                PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
-                PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
-                    if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
-                }
-                if (page == "home" || page == "settings" || page == "calendar") showPage(page)
+            val enabledProviders = lm.getProviders(true)
+            val lastKnown = enabledProviders.mapNotNull { provider ->
+                try { lm.getLastKnownLocation(provider) } catch (_: SecurityException) { null }
+            }.maxByOrNull { it.time }
+
+            val lastAge = lastKnown?.let { System.currentTimeMillis() - it.time } ?: Long.MAX_VALUE
+            if (!forceGps && lastKnown != null && lastAge in 0..(10 * 60 * 1000L)) {
+                applyLocation(lastKnown)
+                return
             }
-            else Toast.makeText(this, "لم يتوفر موقع حديث؛ نستخدم الموقع الافتراضي", Toast.LENGTH_LONG).show()
-        } catch (_: Exception) { Toast.makeText(this, "تعذر قراءة الموقع حالياً", Toast.LENGTH_SHORT).show() }
+
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                val provider = when {
+                    hasFine && enabledProviders.contains(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+                    enabledProviders.contains(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+                    enabledProviders.isNotEmpty() -> enabledProviders.first()
+                    else -> null
+                }
+                if (provider == null) {
+                    if (lastKnown != null) applyLocation(lastKnown)
+                    else Toast.makeText(this, "فعّل خدمات الموقع في الهاتف ثم أعد المحاولة", Toast.LENGTH_LONG).show()
+                    return
+                }
+                locationRequestInFlight = true
+                val mainExecutor = Executor { command -> runOnUiThread(command) }
+                lm.getCurrentLocation(provider, null, mainExecutor) { current ->
+                    locationRequestInFlight = false
+                    if (current != null) {
+                        applyLocation(current)
+                    } else if (lastKnown != null) {
+                        applyLocation(lastKnown)
+                        Toast.makeText(this, "استخدمنا آخر موقع محفوظ لعدم توفر قراءة جديدة", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this, "لم نستطع تحديد الموقع. تحقق من GPS والإنترنت ثم أعد المحاولة.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else if (lastKnown != null) {
+                applyLocation(lastKnown)
+                Toast.makeText(this, "هذا الإصدار من Android يعتمد على آخر موقع محفوظ", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "لم يتوفر موقع حديث على هذا الجهاز", Toast.LENGTH_LONG).show()
+            }
+        } catch (_: SecurityException) {
+            locationRequestInFlight = false
+            Toast.makeText(this, "تحقق من صلاحية الموقع في إعدادات الهاتف", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            locationRequestInFlight = false
+            Toast.makeText(this, "تعذر قراءة الموقع حالياً", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
