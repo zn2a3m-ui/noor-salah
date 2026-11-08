@@ -149,6 +149,14 @@ class MainActivity : Activity(), SensorEventListener {
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
     }
+    override fun onBackPressed() {
+        if (page != "home") {
+            showPage("home")
+        } else {
+            super.onBackPressed()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
