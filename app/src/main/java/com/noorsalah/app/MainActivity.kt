@@ -1113,6 +1113,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(onlineSwitch, LinearLayout.LayoutParams(-1, -2))
             line("عند التفعيل تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين إلى prayertime.si لجلب مواقيت الأردن. لا تُرسل الإحداثيات الدقيقة. يمكنك إيقاف هذا الخيار في أي وقت؛ وعند الإيقاف يعمل الحساب المحلي التقديري.", 12f, muted)
+            line("يُحفظ جدول الأيام السبعة القادمة على الهاتف لتستمر التنبيهات عند انقطاع الإنترنت.", 12f, muted)
             addView(button("شروط مصدر المواقيت") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://prayertime.si/terms/")))
