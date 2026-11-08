@@ -64,6 +64,13 @@ class PrayerTimesRemoteRepositoryTest {
     }
 
     @Test
+    fun mapsVisibleCalculationChoicesToProviderMethodIds() {
+        assertEquals("JORDAN", PrayerTimesRemoteRepository.methodIdFor("الأردن (18° / 18°)"))
+        assertEquals("MWL", PrayerTimesRemoteRepository.methodIdFor("رابطة العالم الإسلامي (18° / 17°)"))
+        assertEquals("UMM_AL_QURA", PrayerTimesRemoteRepository.methodIdFor("أم القرى (18.5° / 90 دقيقة)"))
+    }
+
+    @Test
     fun recognizesJordanCoordinatesWithoutIncludingJerusalem() {
         assertTrue(PrayerTimesRemoteRepository.isJordan(31.9539, 35.9106))
         assertTrue(PrayerTimesRemoteRepository.isJordan(29.5267, 35.0078))
