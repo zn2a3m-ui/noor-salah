@@ -127,9 +127,13 @@ class QuranRepository(private val context: Context) {
         return results
     }
 
-    private fun normalizeForSearch(value: String): String =
+    internal fun normalizeForSearch(value: String): String =
         Normalizer.normalize(value, Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"), "")
-            .replace('ٱ', 'ا')
+            .replace(Regex("[أإآٱ]"), "ا")
+            .replace('ى', 'ي')
+            .replace('ؤ', 'و')
+            .replace('ئ', 'ي')
+            .replace("ـ", "")
             .trim()
 }
