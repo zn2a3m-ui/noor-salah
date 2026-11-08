@@ -98,8 +98,9 @@ object PrayerTimesRemoteRepository {
                 if (placeSlug != null) {
                     // A city month endpoint returns the full Gregorian month and its Hijri dates.
                     val currentMonth = Calendar.getInstance()
+                    val previousMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) }
                     val nextMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) }
-                    val months = listOf(currentMonth, nextMonth)
+                    val months = listOf(previousMonth, currentMonth, nextMonth)
                     val fetchPool = Executors.newFixedThreadPool(months.size)
                     try {
                         val requests = months.map { monthDate ->
