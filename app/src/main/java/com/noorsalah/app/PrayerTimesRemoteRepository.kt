@@ -291,6 +291,7 @@ object PrayerTimesRemoteRepository {
         }
         executor.execute {
             try {
+                if (!isCurrentMethod(prefs, methodId)) return@execute
                 val alreadyCached = getTimes(appContext, firstDay) != null &&
                     getTimes(appContext, lastDay) != null
                 if (!alreadyCached) {
