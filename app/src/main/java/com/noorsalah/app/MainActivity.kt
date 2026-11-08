@@ -1906,7 +1906,16 @@ class MainActivity : Activity(), SensorEventListener {
             line("طريقة الحساب", 18f, gold, true)
             line(calculationMethod, 13f, cream)
             addView(button("اختيار طريقة الحساب") {
-                val methods = arrayOf("الأردن (18° / 18°)", "رابطة العالم الإسلامي (18° / 17°)", "أم القرى (18.5° / 90 دقيقة)")
+                val methods = arrayOf(
+                    "الأردن (18° / 18°)",
+                    "رابطة العالم الإسلامي (18° / 17°)",
+                    "أم القرى (18.5° / 90 دقيقة)",
+                    "الهيئة المصرية (19.5° / 17.5°)",
+                    "أمريكا الشمالية ISNA (15° / 15°)",
+                    "جامعة كراتشي (18° / 18°)",
+                    "ديانت تركيا (18° / 17°)",
+                    "سنغافورة (20° / 18°)"
+                )
                 AlertDialog.Builder(this@MainActivity).setTitle("طريقة الحساب").setItems(methods) { _, i ->
                     calculationMethod = methods[i]
                     getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
