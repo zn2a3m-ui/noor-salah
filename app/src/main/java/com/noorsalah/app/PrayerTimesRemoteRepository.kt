@@ -383,7 +383,9 @@ object PrayerTimesRemoteRepository {
             City("jerash", 32.2808, 35.8993),
             City("mafraq", 32.3429, 36.2080),
             City("karak", 31.1800, 35.7048),
-            City("maan", 30.1920, 35.7340)
+            City("maan", 30.1920, 35.7340),
+            City("ajloun", 32.3333, 35.7520),
+            City("tafileh", 30.8333, 35.6044)
         )
         val nearest = cities.minByOrNull { distanceKm(latitude, longitude, it.lat, it.lon) } ?: return null
         return nearest.slug.takeIf { distanceKm(latitude, longitude, nearest.lat, nearest.lon) <= 95.0 }
