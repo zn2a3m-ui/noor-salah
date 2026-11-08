@@ -78,8 +78,8 @@ class MainActivity : Activity(), SensorEventListener {
             getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
         }
         use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
-        count = getPreferences(0).getInt("tasbeeh_count_$selectedDhikr", getPreferences(0).getInt("tasbeeh", 0))
         selectedDhikr = getPreferences(0).getString("selected_dhikr", "سُبْحَانَ اللهِ وَبِحَمْدِهِ") ?: "سُبْحَانَ اللهِ وَبِحَمْدِهِ"
+        count = getPreferences(0).getInt("tasbeeh_count_$selectedDhikr", getPreferences(0).getInt("tasbeeh", 0))
         tasbeehTarget = getPreferences(0).getInt("tasbeeh_target", 100)
         vibrationEnabled = getPreferences(0).getBoolean("tasbeeh_vibration", true)
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
