@@ -37,6 +37,10 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             val city = prefs.getString("city_name", "عمّان، الأردن") ?: "عمّان، الأردن"
             val use24Hour = prefs.getBoolean("use_24_hour", true)
 
+            PrayerTimesRemoteRepository.refreshIfNeeded(context, latitude, longitude) {
+                updateAll(context)
+            }
+
             val now = Calendar.getInstance()
             val today = (now.clone() as Calendar)
             val currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
