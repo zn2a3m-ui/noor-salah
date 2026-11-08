@@ -373,14 +373,27 @@ class MainActivity : Activity(), SensorEventListener {
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
             gap(8)
+            val counterShell = FrameLayout(this@MainActivity).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(Color.rgb(14, 82, 58), Color.rgb(5, 39, 32))
+                ).apply {
+                    shape = GradientDrawable.OVAL
+                    setStroke(dp(2), Color.rgb(177, 143, 77))
+                }
+                elevation = dp(5).toFloat()
+            }
             val counter = TextView(this@MainActivity).apply {
-                text = count.toString(); textSize = 48f; gravity = Gravity.CENTER
-                setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
+                text = count.toString(); textSize = 45f; gravity = Gravity.CENTER
+                setTextColor(gold); typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
             }
             countView = counter
-            addView(counter, LinearLayout.LayoutParams(-1, -2))
+            counterShell.addView(counter, FrameLayout.LayoutParams(-1, -1))
+            addView(counterShell, LinearLayout.LayoutParams(dp(154), dp(154)).apply {
+                gravity = Gravity.CENTER; topMargin = dp(10); bottomMargin = dp(10)
+            })
             val progress = TextView(this@MainActivity).apply {
-                text = "الهدف: $tasbeehTarget • المتبقي: ${(tasbeehTarget - (count % tasbeehTarget)) % tasbeehTarget}"
+                text = "الهدف: $tasbeehTarget  •  المتبقي: ${(tasbeehTarget - (count % tasbeehTarget)) % tasbeehTarget}"
                 textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted)
             }
             addView(progress, LinearLayout.LayoutParams(-1, -2))
