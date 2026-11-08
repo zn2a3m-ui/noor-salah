@@ -57,6 +57,9 @@ object PrayerAlarmScheduler {
                     cancelOne(context, dayKey + index, prayerNames[index])
                     return@forEachIndexed
                 }
+                // Remove the previous alarm first. This prevents an outdated alarm
+                // from firing after a timezone, clock, or location change.
+                cancelOne(context, dayKey + index, prayerNames[index])
                 val trigger = (date.clone() as Calendar).apply {
                     set(Calendar.HOUR_OF_DAY, minuteOfDay / 60)
                     set(Calendar.MINUTE, minuteOfDay % 60)
