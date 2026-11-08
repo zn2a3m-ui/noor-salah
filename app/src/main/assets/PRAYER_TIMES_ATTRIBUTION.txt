@@ -16,6 +16,8 @@ Official Jordan timetable: https://www.awqaf.gov.jo/ar/Pages/PrayerTime
 
 The provider is an independent service, not a government agency. Its Jordan method
 is identified as fitted to the Ministry's published timetable; individual
-calculated times may differ by one or two minutes. The app keeps
-the provider attribution visible and falls back to its clearly labeled local estimate
-when verified online data is unavailable or another calculation method is selected.
+calculated times may differ by one or two minutes. For supported Jordanian cities,
+the app uses the provider's monthly city timetable. For other locations or selected
+calculation methods, it uses the coordinate endpoint with the selected method ID.
+The app keeps provider attribution visible and falls back to its clearly labeled local
+estimate when online data is unavailable or the user disables the connected source.
