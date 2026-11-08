@@ -148,6 +148,7 @@ object PrayerTimesRemoteRepository {
         if (getTimes(context, date) == null) return null
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("prayer_remote_hijri_${dateKey(date)}", null)
+            ?.takeIf { it.isNotBlank() }
     }
 
     fun getMethodLabel(context: Context): String {
