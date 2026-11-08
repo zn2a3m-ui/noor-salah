@@ -51,19 +51,29 @@ object PrayerTimesRemoteRepository {
         val tomorrow = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
         val todayKey = dateKey(today)
         val tomorrowKey = dateKey(tomorrow)
-        val oldLat = prefs.getString("prayer_remote_lat", null)?.toDoubleOrNull()
-        val oldLon = prefs.getString("prayer_remote_lon", null)?.toDoubleOrNull()
+        val oldLat = (prefs.getString("prayer_remote_lat", null)
+            ?: prefs.getString("prayer_remote_attempt_lat", null))?.toDoubleOrNull()
+        val oldLon = (prefs.getString("prayer_remote_lon", null)
+            ?: prefs.getString("prayer_remote_attempt_lon", null))?.toDoubleOrNull()
         val sameLocation = oldLat != null && oldLon != null &&
             abs(oldLat - latitude) < 0.015 && abs(oldLon - longitude) < 0.015
         val hasBothDays = getTimes(appContext, today) != null && getTimes(appContext, tomorrow) != null
+        val now = System.currentTimeMillis()
         val lastFetch = prefs.getLong("prayer_remote_fetch_time", 0L)
-        val fresh = System.currentTimeMillis() - lastFetch < REFRESH_INTERVAL_MS
+        val fresh = now - lastFetch < REFRESH_INTERVAL_MS
+        val lastAttempt = prefs.getLong("prayer_remote_last_attempt", 0L)
+        val retryCooling = now - lastAttempt < 30L * 60L * 1000L
 
-        if (!force && sameLocation && hasBothDays && fresh) return
+        if (!force && sameLocation && ((hasBothDays && fresh) || (!hasBothDays && retryCooling))) return
         synchronized(this) {
             if (refreshInFlight) return
             refreshInFlight = true
         }
+        prefs.edit()
+            .putString("prayer_remote_attempt_lat", latitude.toString())
+            .putString("prayer_remote_attempt_lon", longitude.toString())
+            .putLong("prayer_remote_last_attempt", now)
+            .apply()
 
         executor.execute {
             var updated = 0
@@ -102,12 +112,6 @@ object PrayerTimesRemoteRepository {
                         PrayerAlarmScheduler.scheduleTodayAndTomorrow(appContext)
                         onUpdated?.invoke()
                     }
-                }
-                else {
-                    // Avoid retrying on every Activity resume when the device is offline.
-                    prefs.edit()
-                        .putLong("prayer_remote_fetch_time", System.currentTimeMillis() - REFRESH_INTERVAL_MS + 30L * 60L * 1000L)
-                        .apply()
                 }
             } finally {
                 refreshInFlight = false
