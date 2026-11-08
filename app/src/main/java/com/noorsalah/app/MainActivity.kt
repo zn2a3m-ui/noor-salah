@@ -230,6 +230,8 @@ class MainActivity : Activity(), SensorEventListener {
             return
         }
         adhanPreviewPlayer = player
+        val previewVolume = getPreferences(0).getInt("adhan_volume", 100).coerceIn(0, 100) / 100f
+        player.setVolume(previewVolume, previewVolume)
         player.setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
@@ -1465,6 +1467,30 @@ class MainActivity : Activity(), SensorEventListener {
             addView(picker, LinearLayout.LayoutParams(-1, -2))
             addView(button("معاينة الصوت المختار") { previewAdhan() }, LinearLayout.LayoutParams(-1, -2))
             addView(button("إيقاف المعاينة") { stopAdhanPreview() }, LinearLayout.LayoutParams(-1, -2))
+            val savedVolume = getPreferences(0).getInt("adhan_volume", 100).coerceIn(0, 100)
+            val volumeLabel = TextView(this@MainActivity).apply {
+                text = "مستوى صوت الأذان: $savedVolume%"
+                textSize = 12f
+                setTextColor(muted)
+                gravity = Gravity.CENTER
+            }
+            addView(volumeLabel, LinearLayout.LayoutParams(-1, -2))
+            val volumeSlider = android.widget.SeekBar(this@MainActivity).apply {
+                max = 100
+                progress = savedVolume
+                setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                    override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                    override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                        volumeLabel.text = "مستوى صوت الأذان: $progress%"
+                        val level = progress / 100f
+                        adhanPreviewPlayer?.setVolume(level, level)
+                    }
+                    override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                        getPreferences(0).edit().putInt("adhan_volume", progress).apply()
+                    }
+                })
+            }
+            addView(volumeSlider, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختبار تنبيه الأذان الآن") {
                 if (android.os.Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -1481,7 +1507,7 @@ class MainActivity : Activity(), SensorEventListener {
             addView(button("اختيار تسجيل أذان من الهاتف") { openAdhanFilePicker() }, LinearLayout.LayoutParams(-1, -2))
             line("تسجيلان صوتيان مرخّصان CC0، ويمكنك استيراد تسجيلك الخاص من الهاتف. الملف المخصص يبقى على جهازك ولا يُرفع إلى أي خدمة، ولا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
             line("يعمل تسجيل الأذان كاملاً في الخلفية عند تفعيل التنبيهات والسماح بصلاحيات الإشعارات والمنبهات. ويمكن إيقافه من إشعار الأذان.", 12f, muted)
-            line("مستوى صوت تنبيه الأذان يتبع مستوى الإشعارات في الهاتف، ويمكنك اختباره من الزر أعلاه.", 11f, muted)
+            line("يمكنك ضبط مستوى تسجيل الأذان من هنا. ويظل مستوى صوت المنبه العام في الهاتف مؤثراً أيضاً.", 11f, muted)
         }
         gap(10)
         card {
