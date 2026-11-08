@@ -231,7 +231,7 @@ object PrayerTimesRemoteRepository {
         }
     }
 
-    private fun parseTime(value: String): Int {
+    internal fun parseTime(value: String): Int {
         val parts = value.trim().take(5).split(":")
         require(parts.size == 2)
         val hour = parts[0].toInt()
@@ -243,7 +243,7 @@ object PrayerTimesRemoteRepository {
     private fun dateKey(date: Calendar): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(date.time)
 
-    private fun isJordan(latitude: Double, longitude: Double): Boolean =
+    internal fun isJordan(latitude: Double, longitude: Double): Boolean =
         (latitude in 30.0..33.5 && longitude in 35.35..39.4) ||
             (latitude in 29.0..30.0 && longitude in 34.8..36.0)
 }
