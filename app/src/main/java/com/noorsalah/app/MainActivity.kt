@@ -1486,7 +1486,9 @@ class MainActivity : Activity(), SensorEventListener {
                         adhanPreviewPlayer?.setVolume(level, level)
                     }
                     override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
-                        getPreferences(0).edit().putInt("adhan_volume", progress).apply()
+                        getPreferences(0).edit()
+                            .putInt("adhan_volume", (seekBar?.progress ?: savedVolume).coerceIn(0, 100))
+                            .apply()
                     }
                 })
             }
