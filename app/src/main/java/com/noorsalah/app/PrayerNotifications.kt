@@ -22,6 +22,7 @@ object PrayerAlarmScheduler {
     const val CHANNEL_ID = "noor_prayer_adhan_full"
     const val CHANNEL_SHORT_ID = "noor_prayer_adhan_short"
     const val CHANNEL_ALERT_ID = "noor_prayer_alert_only"
+    const val CHANNEL_CUSTOM_ID = "noor_prayer_adhan_custom"
     private const val ACTION_PRAYER = "com.noorsalah.app.PRAYER_REMINDER"
     private val prayerNames = listOf("الفجر", "الظهر", "العصر", "المغرب", "العشاء")
 
@@ -64,6 +65,25 @@ object PrayerAlarmScheduler {
                 setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes)
             }
             manager.createNotificationChannels(listOf(fullChannel, shortChannel, alertChannel))
+            val customUri = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+                .getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
+            if (customUri != null) {
+                try {
+                    context.contentResolver.openFileDescriptor(customUri, "r")?.use { }
+                    val customChannel = NotificationChannel(
+                        CHANNEL_CUSTOM_ID,
+                        "أذان من ملفك",
+                        NotificationManager.IMPORTANCE_HIGH
+                    ).apply {
+                        description = "تشغيل ملف الأذان الذي اخترته من الهاتف"
+                        enableVibration(true)
+                        setSound(customUri, audioAttributes)
+                    }
+                    manager.createNotificationChannel(customChannel)
+                } catch (_: Exception) {
+                    manager.deleteNotificationChannel(CHANNEL_CUSTOM_ID)
+                }
+            }
         }
     }
 
@@ -170,6 +190,8 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             val channelId = when {
                 selectedAudio.startsWith("أذان قصير") -> PrayerAlarmScheduler.CHANNEL_SHORT_ID
                 selectedAudio.startsWith("تنبيه النظام") -> PrayerAlarmScheduler.CHANNEL_ALERT_ID
+                selectedAudio.startsWith("صوت مخصص") && preferences.getString("custom_adhan_uri", null) != null ->
+                    PrayerAlarmScheduler.CHANNEL_CUSTOM_ID
                 else -> PrayerAlarmScheduler.CHANNEL_ID
             }
             val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -178,6 +200,9 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 val sound = when {
                     selectedAudio.startsWith("أذان قصير") -> Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_short}")
                     selectedAudio.startsWith("تنبيه النظام") -> Settings.System.DEFAULT_NOTIFICATION_URI
+                    selectedAudio.startsWith("صوت مخصص") ->
+                        preferences.getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
+                            ?: Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_full}")
                     else -> Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_full}")
                 }
                 Notification.Builder(context)
