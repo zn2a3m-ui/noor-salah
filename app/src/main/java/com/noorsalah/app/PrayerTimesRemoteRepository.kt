@@ -150,6 +150,7 @@ object PrayerTimesRemoteRepository {
             var allSucceeded = true
             var cachePlaceSlug: String? = null
             try {
+                if (!isCurrentMethod(prefs, methodId)) return@execute
                 if (placeSlug != null) {
                     // A city month endpoint returns the full Gregorian month and its Hijri dates.
                     val currentMonth = Calendar.getInstance()
@@ -185,7 +186,8 @@ object PrayerTimesRemoteRepository {
                         fetchPool.shutdownNow()
                     }
                 }
-                if (placeSlug == null || !allSucceeded || updated == 0) {
+                if (isCurrentMethod(prefs, methodId) &&
+                    (placeSlug == null || !allSucceeded || updated == 0)) {
                     // Fall back to coordinate-based daily data if a city month page is unavailable.
                     if (placeSlug != null) cachePlaceSlug = null
                     val timezone = TimeZone.getDefault().id
