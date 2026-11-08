@@ -204,9 +204,10 @@ class MainActivity : Activity(), SensorEventListener {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != 702 || resultCode != RESULT_OK) return
-        val uri = data?.data ?: return
+        val resultData = data ?: return
+        val uri = resultData.data ?: return
         try {
-            val readPermission = data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
+            val readPermission = resultData.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
             contentResolver.takePersistableUriPermission(uri, readPermission)
             contentResolver.openFileDescriptor(uri, "r")?.use { }
                 ?: throw IllegalStateException("Audio file is unavailable")
@@ -215,8 +216,10 @@ class MainActivity : Activity(), SensorEventListener {
                 .putString("muezzin", "صوت مخصص من الجهاز")
                 .apply()
             selectedMuezzin = "صوت مخصص من الجهاز"
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
-            manager.deleteNotificationChannel(PrayerAlarmScheduler.CHANNEL_CUSTOM_ID)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val manager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                manager.deleteNotificationChannel(PrayerAlarmScheduler.CHANNEL_CUSTOM_ID)
+            }
             PrayerAlarmScheduler.createChannel(this)
             Toast.makeText(this, "تم حفظ ملف الأذان المخصص", Toast.LENGTH_SHORT).show()
             showPage("settings")
