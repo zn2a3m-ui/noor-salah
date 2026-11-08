@@ -724,11 +724,12 @@ class MainActivity : Activity(), SensorEventListener {
                 gravity = Gravity.CENTER; topMargin = dp(12); bottomMargin = dp(14)
             })
             val infoView = TextView(this@MainActivity).apply {
-                text = "اتجاه الهاتف: ${"%.0f".format(heading)}°"
+                text = "اتجاه الهاتف عن الشمال الحقيقي: ${"%.0f".format(heading)}°"
                 textSize = 14f; gravity = Gravity.CENTER; setTextColor(cream)
             }
             compassInfo = infoView
             addView(infoView)
+            line("تُصحّح البوصلة الانحراف المغناطيسي تلقائياً وفق موقعك، وقد تتأثر بالدقة والمعادن حول الهاتف.", 11f, muted, false, Gravity.CENTER)
         }
         gap(10)
         card {
