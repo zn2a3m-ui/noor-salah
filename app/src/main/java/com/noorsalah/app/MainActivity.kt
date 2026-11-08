@@ -170,6 +170,7 @@ class MainActivity : Activity(), SensorEventListener {
         PrayerAlarmScheduler.createChannel(this)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
+            PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
     }
