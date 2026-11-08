@@ -272,32 +272,64 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun qiblaScreen() {
-        text("اتجاه القبلة", 26f, gold, true, Gravity.CENTER)
-        text("أمسك الهاتف أفقياً وبعيداً عن المعادن", 13f, muted, false, Gravity.CENTER)
-        gap(22)
+        text("القبلة", 27f, gold, true, Gravity.CENTER)
+        text("اعرف اتجاه بيت الله الحرام أينما كنت", 13f, muted, false, Gravity.CENTER)
+        gap(14)
         card {
-            line("الكعبة المشرفة", 18f, gold, true, Gravity.CENTER)
+            line("اتجاه مكة المكرمة", 15f, muted, false, Gravity.CENTER)
+            line("${"%.1f".format(Locale.US, qibla())}°", 31f, gold, true, Gravity.CENTER)
+            val dial = FrameLayout(this@MainActivity).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(Color.rgb(9, 65, 49), Color.rgb(3, 31, 27))
+                ).apply { shape = GradientDrawable.OVAL; setStroke(dp(2), Color.rgb(164, 132, 67)) }
+                elevation = dp(4).toFloat()
+            }
+            val compassRing = TextView(this@MainActivity).apply {
+                text = "N\n\nW                     E\n\nS"; textSize = 14f
+                gravity = Gravity.CENTER; setTextColor(muted); typeface = Typeface.DEFAULT_BOLD
+            }
+            dial.addView(compassRing, FrameLayout.LayoutParams(-1, -1))
             val arrowView = TextView(this@MainActivity).apply {
-                text = "➤"; textSize = 86f; gravity = Gravity.CENTER; setTextColor(gold)
+                text = "➤"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(gold)
                 rotation = qibla().toFloat() - heading
+                shadowLayer = dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK
             }
             arrow = arrowView
-            addView(arrowView, LinearLayout.LayoutParams(-1, dp(155)))
+            dial.addView(arrowView, FrameLayout.LayoutParams(-1, -1))
+            addView(dial, LinearLayout.LayoutParams(dp(250), dp(250)).apply {
+                gravity = Gravity.CENTER; topMargin = dp(12); bottomMargin = dp(14)
+            })
             val infoView = TextView(this@MainActivity).apply {
-                text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الهاتف ${"%.0f".format(heading)}°"
-                textSize = 18f; gravity = Gravity.CENTER; setTextColor(cream)
+                text = "اتجاه الهاتف: ${"%.0f".format(heading)}°"
+                textSize = 14f; gravity = Gravity.CENTER; setTextColor(cream)
             }
             compassInfo = infoView
             addView(infoView)
         }
-        gap(12)
-        card { line("معايرة البوصلة", 16f, gold, true); line("حرّك الهاتف على شكل رقم 8 عند عدم استقرار القراءة. قد تتأثر البوصلة بالمغناطيس والمعادن.", 13f, muted) }
+        gap(10)
+        card {
+            line("معايرة البوصلة", 16f, gold, true)
+            line("أمسك الهاتف أفقياً وحرّكه على شكل رقم 8 إذا لم يستقر المؤشر. أبعده عن المعادن والمغناطيس.", 13f, muted)
+        }
     }
 
     private fun azkar() {
-        text("الأذكار والمسبحة", 25f, gold, true, Gravity.CENTER)
-        text("اختر الذكر والهدف، وسيُحفظ تقدمك تلقائياً", 13f, muted, false, Gravity.CENTER)
+        text("الأذكار والتسبيح", 27f, gold, true, Gravity.CENTER)
+        text("لحظات ذكر تطمئن بها القلوب", 13f, muted, false, Gravity.CENTER)
         gap(12)
+        val categoryStrip = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
+        }
+        listOf("الصباح", "المساء", "بعد الصلاة").forEach { label ->
+            val chip = TextView(this@MainActivity).apply {
+                text = label; textSize = 11f; gravity = Gravity.CENTER
+                setTextColor(cream); setPadding(dp(12), dp(8), dp(12), dp(8))
+                background = shape(panelAlt, 18, Color.rgb(48, 99, 75))
+            }
+            categoryStrip.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
+        }
+        content.addView(categoryStrip); gap(10)
         card {
             line("الذكر الحالي", 15f, muted, false, Gravity.CENTER)
             val dhikrText = TextView(this@MainActivity).apply {
@@ -410,17 +442,26 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun quran() {
-        text("القرآن الكريم", 26f, gold, true, Gravity.CENTER)
+        text("القرآن الكريم", 27f, gold, true, Gravity.CENTER)
+        text("نورٌ للقلوب وهدايةٌ للطريق", 13f, muted, false, Gravity.CENTER)
         gap(14)
         card {
-            line("كتاب الله العزيز", 20f, cream, true, Gravity.CENTER)
-            line("سيُضاف نص المصحف بالرسم العثماني من مصدر موثوق، مع فهرس السور والتلاوات والحفظ.", 14f, muted, false, Gravity.CENTER)
+            line("۞", 38f, gold, true, Gravity.CENTER)
+            line("المصحف الشريف", 23f, cream, true, Gravity.CENTER)
+            line("قراءة • تدبّر • استماع", 12f, muted, false, Gravity.CENTER)
+            gap(8)
+            line("سيُربط المصحف بالرسم العثماني من مصدر موثوق، مع فهرس السور والأجزاء وحفظ موضع القراءة.", 13f, muted, false, Gravity.CENTER)
         }
-        gap(12)
+        gap(10)
         card {
-            line("قيد التجهيز", 18f, gold, true, Gravity.CENTER)
-            line("لم نضع نصاً تجريبياً على أنه قرآن. لن تُعتبر هذه الميزة مكتملة قبل ربط النص الصحيح ومراجعته.", 13f, muted, false, Gravity.CENTER)
+            line("متابعة القراءة", 17f, gold, true)
+            line("سيظهر هنا آخر موضع قراءة بعد ربط نص المصحف الموثوق.", 13f, muted)
         }
+        card {
+            line("فهرس السور", 17f, gold, true)
+            line("قائمة السور والبحث والانتقال إلى الآيات ستتاح بعد إضافة بيانات المصحف ومراجعتها.", 13f, muted)
+        }
+        text("لم نعرض آيات تجريبية أو نصوصاً غير موثقة على أنها من القرآن الكريم.", 11f, muted, false, Gravity.CENTER)
     }
 
     private fun settings() {
