@@ -32,6 +32,12 @@ tasks.register("downloadVerifiedTanzilQuran") {
             tanzilQuranAsset.delete()
             throw new GradleException("Tanzil Quran asset checksum mismatch; refusing to package unverified text.")
         }
+        def ayahLineCount = tanzilQuranAsset.readLines("UTF-8").count { line ->
+            !line.trim().isEmpty() && !line.startsWith("#")
+        }
+        if (ayahLineCount != 6236) {
+            throw new GradleException("Tanzil Quran text must contain 6,236 verse lines; found ${ayahLineCount}.")
+        }
     }
 }
 
