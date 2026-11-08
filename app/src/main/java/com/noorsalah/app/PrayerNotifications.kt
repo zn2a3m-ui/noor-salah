@@ -228,12 +228,16 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             } else prayer.hashCode()
             manager.notify(notificationId, notification)
         }
-        if (!isTest) PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
+        if (!isTest) {
+            PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
+            PrayerWidgetProvider.updateAll(context)
+        }
     }
 }
 
 class PrayerRescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(context)
+        PrayerWidgetProvider.updateAll(context)
     }
 }
