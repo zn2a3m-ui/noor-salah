@@ -336,7 +336,7 @@ class MainActivity : Activity(), SensorEventListener {
         text("الأذكار والتسبيح", 27f, gold, true, Gravity.CENTER)
         text("لحظات ذكر تطمئن بها القلوب", 13f, muted, false, Gravity.CENTER)
         gap(12)
-        var selectedCategory = "الصباح"
+        var selectedCategory = getPreferences(0).getString("azkar_category", "الصباح") ?: "الصباح"
         val categoryItems = linkedMapOf(
             "الصباح" to listOf("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "سُبْحَانَ اللهِ وَبِحَمْدِهِ"),
             "المساء" to listOf("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ"),
@@ -381,6 +381,7 @@ class MainActivity : Activity(), SensorEventListener {
                 setTextColor(cream); setPadding(dp(8), dp(10), dp(8), dp(10))
                 setOnClickListener {
                     selectedCategory = label
+                    getPreferences(0).edit().putString("azkar_category", label).apply()
                     categoryButtons.forEach { (name, view) ->
                         val active = name == selectedCategory
                         view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
@@ -393,8 +394,12 @@ class MainActivity : Activity(), SensorEventListener {
             categoryButtons[label] = chip
             categoryStrip.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
         }
-        categoryButtons["الصباح"]?.background = shape(Color.rgb(25, 91, 64), 18, gold)
-        categoryButtons["الصباح"]?.setTextColor(gold)
+        categoryButtons.forEach { (name, view) ->
+            val active = name == selectedCategory
+            view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
+                if (active) gold else Color.rgb(48, 99, 75))
+            view.setTextColor(if (active) gold else cream)
+        }
         content.addView(categoryStrip); gap(10)
         renderCategory()
         content.addView(categoryContent)
