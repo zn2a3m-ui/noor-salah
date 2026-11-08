@@ -89,15 +89,32 @@ class MainActivity : Activity(), SensorEventListener {
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
         shell.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        val nav = LinearLayout(this).apply { gravity = Gravity.CENTER; setPadding(dp(4), dp(5), dp(4), dp(5)); background = shape(panel, 18) }
-        listOf("الرئيسية" to "home", "القبلة" to "qibla", "الأذكار" to "azkar", "القرآن" to "quran", "الإعدادات" to "settings").forEach { item ->
-            val b = TextView(this@MainActivity).apply {
-                text = item.first; gravity = Gravity.CENTER; textSize = 11f
-                setTextColor(if (item.second == page) gold else cream)
-                setPadding(dp(4), dp(12), dp(4), dp(12))
-                setOnClickListener { showPage(item.second) }
+        val nav = LinearLayout(this).apply {
+            gravity = Gravity.CENTER; orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(7), dp(7), dp(7), dp(7))
+            background = shape(Color.rgb(7, 39, 32), 22, Color.rgb(42, 91, 72))
+            elevation = dp(10).toFloat()
+        }
+        listOf(Triple("⌂", "الرئيسية", "home"), Triple("◉", "القبلة", "qibla"),
+            Triple("▤", "القرآن", "quran"), Triple("✧", "الأذكار", "azkar"),
+            Triple("⋯", "المزيد", "settings")).forEach { item ->
+            val selected = item.third == page
+            val cell = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+                setPadding(dp(2), dp(5), dp(2), dp(5))
+                setOnClickListener { showPage(item.third) }
             }
-            nav.addView(b, LinearLayout.LayoutParams(0, -2, 1f))
+            val glyph = TextView(this@MainActivity).apply {
+                text = item.first; textSize = 22f; gravity = Gravity.CENTER
+                setTextColor(if (selected) gold else muted)
+            }
+            val label = TextView(this@MainActivity).apply {
+                text = item.second; textSize = 10f; gravity = Gravity.CENTER
+                setTextColor(if (selected) gold else muted)
+                typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            }
+            cell.addView(glyph); cell.addView(label)
+            nav.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
         }
         shell.addView(nav, LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(10), dp(5), dp(10), dp(10)) })
         setContentView(shell)
@@ -130,50 +147,128 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun home() {
-        text("☾  نور الصلاة", 29f, gold, true, Gravity.CENTER)
-        text("رفيقك إلى الصلاة والذكر", 14f, muted, false, Gravity.CENTER)
-        gap(18)
+        text("☾  نور الصلاة", 28f, gold, true, Gravity.CENTER)
+        text("رفيقك إلى الصلاة والذكر", 13f, muted, false, Gravity.CENTER)
+        gap(16)
         card {
-            line(cityName, 14f, muted, false, Gravity.CENTER)
-            line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 16f, cream, true, Gravity.CENTER)
+            line("⌖  $cityName", 13f, muted, false, Gravity.CENTER)
+            line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 15f, cream, true, Gravity.CENTER)
+            line("تقبّل الله طاعتكم", 11f, gold, false, Gravity.CENTER)
         }
-        gap(12)
-        card {
-            line("الصلاة القادمة", 14f, muted, false, Gravity.CENTER)
-            val next = nextPrayerInfo()
-            val name = TextView(this@MainActivity).apply { text = next.first; textSize = 24f; gravity = Gravity.CENTER; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
-            nextPrayerView = name; addView(name)
-            val timer = TextView(this@MainActivity).apply { text = countdownLabel(next.second); textSize = 25f; gravity = Gravity.CENTER; setTextColor(cream); typeface = Typeface.MONOSPACE }
-            countdownView = timer; addView(timer)
-            line("الوقت المتبقي", 11f, muted, false, Gravity.CENTER)
+        gap(10)
+        val next = nextPrayerInfo()
+        val hero = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(20), dp(22), dp(20), dp(22))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(8, 92, 65), Color.rgb(4, 48, 39), Color.rgb(3, 31, 27))
+            ).apply { cornerRadius = dp(25).toFloat(); setStroke(dp(1), gold) }
+            elevation = dp(5).toFloat()
         }
-        gap(12)
-        text("مواقيت الصلاة", 21f, gold, true)
+        val eyebrow = TextView(this@MainActivity).apply {
+            text = "الصلاة القادمة"; textSize = 13f; setTextColor(Color.rgb(222, 220, 190)); gravity = Gravity.CENTER
+        }
+        val prayerName = TextView(this@MainActivity).apply {
+            text = next.first; textSize = 31f; setTextColor(gold); gravity = Gravity.CENTER
+            typeface = Typeface.create("serif", Typeface.BOLD); setPadding(0, dp(5), 0, dp(2))
+        }
+        nextPrayerView = prayerName
+        val timer = TextView(this@MainActivity).apply {
+            text = countdownLabel(next.second); textSize = 32f; setTextColor(cream)
+            gravity = Gravity.CENTER; typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        countdownView = timer
+        hero.addView(eyebrow); hero.addView(prayerName); hero.addView(timer)
+        val sub = TextView(this@MainActivity).apply {
+            text = "الوقت المتبقي لدخول الصلاة"; textSize = 11f; setTextColor(muted); gravity = Gravity.CENTER
+        }
+        hero.addView(sub)
+        content.addView(hero, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
+
+        val heading = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this@MainActivity).apply {
+            text = "مواقيت الصلاة"; textSize = 20f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
+        }
+        heading.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
+        val badge = TextView(this@MainActivity).apply {
+            text = "اليوم"; textSize = 11f; setTextColor(cream); setPadding(dp(10), dp(5), dp(10), dp(5))
+            background = shape(panelAlt, 20)
+        }
+        heading.addView(badge)
+        content.addView(heading); gap(8)
+
         val names = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
+        val symbols = listOf("☼", "◌", "☀", "◐", "☾", "☽")
         val times = prayerTimes()
+        val nextName = next.first
         names.forEachIndexed { i, name ->
-            val row = LinearLayout(this).apply {
+            val active = name == nextName
+            val row = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(16), dp(13), dp(16), dp(13))
-                background = shape(if (i % 2 == 0) panel else panelAlt, 13)
+                setPadding(dp(15), dp(12), dp(15), dp(12))
+                background = shape(if (active) Color.rgb(15, 76, 55) else if (i % 2 == 0) panel else panelAlt,
+                    15, if (active) gold else null)
             }
-            val n = TextView(this@MainActivity).apply { text = name; textSize = 16f; setTextColor(cream); typeface = Typeface.DEFAULT_BOLD }
-            val t = TextView(this@MainActivity).apply { text = times[i]; textSize = 17f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD }
-            row.addView(n, LinearLayout.LayoutParams(0, -2, 1f)); row.addView(t)
-            content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+            val icon = TextView(this@MainActivity).apply {
+                text = symbols[i]; textSize = 20f; setTextColor(gold); gravity = Gravity.CENTER
+            }
+            val n = TextView(this@MainActivity).apply {
+                text = name; textSize = 15f; setTextColor(cream)
+                typeface = if (active) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            }
+            val t = TextView(this@MainActivity).apply {
+                text = times[i]; textSize = 16f; setTextColor(if (active) gold else cream)
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            row.addView(icon, LinearLayout.LayoutParams(dp(34), -2))
+            row.addView(n, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(t)
+            content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
         }
+        gap(5)
+        val quickTitle = TextView(this@MainActivity).apply {
+            text = "مساحتك الإيمانية"; textSize = 19f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
+        }
+        content.addView(quickTitle); gap(8)
+        val quickGrid = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
+        val quickRows = listOf(
+            listOf(Triple("◉", "اتجاه القبلة", "qibla"), Triple("▤", "القرآن الكريم", "quran")),
+            listOf(Triple("✧", "الأذكار", "azkar"), Triple("⚙", "الإعدادات", "settings"))
+        )
+        quickRows.forEach { items ->
+            val r = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL }
+            items.forEach { item ->
+                val tile = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+                    setPadding(dp(8), dp(15), dp(8), dp(15))
+                    background = shape(panel, 17, Color.rgb(42, 91, 72))
+                    setOnClickListener { showPage(item.third) }
+                }
+                val symbol = TextView(this@MainActivity).apply {
+                    text = item.first; textSize = 26f; setTextColor(gold); gravity = Gravity.CENTER
+                }
+                val caption = TextView(this@MainActivity).apply {
+                    text = item.second; textSize = 12f; setTextColor(cream); gravity = Gravity.CENTER
+                }
+                tile.addView(symbol); tile.addView(caption)
+                r.addView(tile, LinearLayout.LayoutParams(0, -2, 1f).apply {
+                    if (item != items.first()) marginStart = dp(7)
+                })
+            }
+            quickGrid.addView(r, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+        }
+        content.addView(quickGrid)
         card {
-            line("تنبيه مهم", 15f, gold, true)
-            line("المواقيت الحالية حسابية تقديرية وليست جدولاً رسمياً معتمداً من وزارة الأوقاف الأردنية. لن نعتمدها نهائياً قبل ضبط طريقة الحساب.", 13f, muted)
+            line("ذِكر اليوم", 14f, gold, true, Gravity.CENTER)
+            line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 21f, cream, true, Gravity.CENTER)
+            line("سبحان الله العظيم", 12f, muted, false, Gravity.CENTER)
         }
-        gap(10)
-        card {
-            line("اتجاه القبلة", 17f, gold, true, Gravity.CENTER)
-            line("${"%.1f".format(Locale.US, qibla())}° من الشمال", 24f, cream, true, Gravity.CENTER)
-            line("افتح صفحة القبلة لاستخدام حساس الهاتف", 12f, muted, false, Gravity.CENTER)
-        }
-        gap(10)
-        card { line("ذكر اليوم", 16f, gold, true, Gravity.CENTER); line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 21f, cream, true, Gravity.CENTER) }
+        text("المواقيت الحالية حسابية تقديرية، وليست جدولاً رسمياً معتمداً. سنثبت المصدر المعتمد قبل إعلان اكتمال المواقيت.", 11f, muted, false, Gravity.CENTER)
     }
 
     private fun qiblaScreen() {
@@ -454,10 +549,13 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun card(block: LinearLayout.() -> Unit) {
         val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setPadding(dp(15), dp(15), dp(15), dp(15))
-            background = shape(panel, 17, Color.rgb(38, 91, 69)); block()
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(17), dp(16), dp(17), dp(16))
+            background = shape(Color.rgb(10, 48, 39), 20, Color.rgb(39, 87, 67))
+            elevation = dp(2).toFloat()
+            block()
         }
-        content.addView(box, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        content.addView(box, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
     }
 
     private fun LinearLayout.line(value: String, size: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START) {
@@ -473,7 +571,16 @@ class MainActivity : Activity(), SensorEventListener {
     }
     private fun gap(h: Int) { content.addView(View(this), LinearLayout.LayoutParams(1, dp(h))) }
     private fun button(label: String, action: () -> Unit) = Button(this@MainActivity).apply {
-        text = label; textSize = 14f; setTextColor(bg); background = shape(gold, 13); setOnClickListener { action() }
+        text = label; textSize = 14f; isAllCaps = false
+        setTextColor(Color.rgb(4, 35, 29))
+        typeface = Typeface.DEFAULT_BOLD
+        background = GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT,
+            intArrayOf(Color.rgb(236, 207, 139), Color.rgb(207, 164, 83))
+        ).apply { cornerRadius = dp(15).toFloat() }
+        elevation = dp(2).toFloat()
+        setPadding(dp(14), dp(5), dp(14), dp(5))
+        setOnClickListener { action() }
     }
     private fun shape(color: Int, radius: Int, stroke: Int? = null) = GradientDrawable().apply {
         setColor(color); cornerRadius = dp(radius).toFloat(); if (stroke != null) setStroke(dp(1), stroke)
