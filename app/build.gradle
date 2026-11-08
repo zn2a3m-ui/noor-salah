@@ -38,6 +38,22 @@ tasks.register("downloadVerifiedTanzilQuran") {
         if (ayahLineCount != 6236) {
             throw new GradleException("Tanzil Quran text must contain 6,236 verse lines; found ${ayahLineCount}.")
         }
+        def quranMetadataFile = file("$projectDir/src/main/assets/quran-surah-index.json")
+        def quranMetadata = new groovy.json.JsonSlurper().parse(quranMetadataFile)
+        def totalAyahs = quranMetadata.suras.collect { it.ayahs }.sum()
+        if (quranMetadata.suras.size() != 114 || totalAyahs != 6236 ||
+            quranMetadata.juz.size() != 30 || quranMetadata.hizbQuarters.size() != 240 ||
+            quranMetadata.manzils.size() != 7 || quranMetadata.rukus.size() != 556 ||
+            quranMetadata.pages.size() != 604 || quranMetadata.sajdas.size() != 15) {
+            throw new GradleException("Tanzil Quran metadata failed structural validation.")
+        }
+        def expectedStartLine = 0
+        quranMetadata.suras.eachWithIndex { surah, index ->
+            if (surah.number != index + 1 || surah.start != expectedStartLine) {
+                throw new GradleException("Tanzil surah boundaries are not contiguous.")
+            }
+            expectedStartLine += surah.ayahs
+        }
     }
 }
 
