@@ -116,7 +116,9 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             val openApp = PendingIntent.getActivity(
                 context,
                 widgetId,
-                Intent(context, MainActivity::class.java),
+                Intent(context, MainActivity::class.java).addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                ),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_root, openApp)
