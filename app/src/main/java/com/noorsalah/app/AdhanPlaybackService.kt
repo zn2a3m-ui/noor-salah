@@ -118,6 +118,9 @@ class AdhanPlaybackService : Service() {
         try {
             media.setAudioAttributes(audioAttributes)
             media.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK)
+            val volume = getSharedPreferences("MainActivity", MODE_PRIVATE)
+                .getInt("adhan_volume", 100).coerceIn(0, 100) / 100f
+            media.setVolume(volume, volume)
             if (selectedAudio.startsWith("صوت مخصص") && customUri != null) {
                 media.setDataSource(this, customUri)
             } else {
