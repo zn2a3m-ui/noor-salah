@@ -15,6 +15,10 @@ import java.util.TimeZone
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Online prayer-time source with a local cache. The provider identifies the
@@ -27,10 +31,19 @@ object PrayerTimesRemoteRepository {
     private val executor = Executors.newSingleThreadExecutor()
     @Volatile private var refreshInFlight = false
 
+    data class HijriDate(
+        val day: Int,
+        val month: Int,
+        val monthArabic: String,
+        val year: Int,
+        val basis: String
+    )
+
     private data class RemoteDay(
         val date: String,
         val minutes: List<Int>,
         val hijriLabel: String,
+        val hijriJson: String,
         val methodName: String,
         val methodStatus: String,
         val authorityUrl: String,
@@ -98,15 +111,7 @@ object PrayerTimesRemoteRepository {
                     requests.forEach { request ->
                         try {
                             val remote = request.get(20, TimeUnit.SECONDS)
-                            prefs.edit()
-                                .putString("prayer_remote_times_${remote.date}", JSONArray(remote.minutes).toString())
-                                .putString("prayer_remote_hijri_${remote.date}", remote.hijriLabel)
-                                .putString("prayer_remote_method", remote.methodName)
-                                .putString("prayer_remote_method_status", remote.methodStatus)
-                                .putString("prayer_remote_authority_url", remote.authorityUrl)
-                                .putString("prayer_remote_page_url", remote.pageUrl)
-                                .putString("prayer_remote_license", "CC BY 4.0")
-                                .apply()
+                            storeRemoteDay(prefs, remote)
                             updated++
                         } catch (_: Exception) {
                             request.cancel(true)
@@ -156,6 +161,24 @@ object PrayerTimesRemoteRepository {
         }
     }
 
+    fun getHijriDate(context: Context, date: Calendar): HijriDate? {
+        if (getTimes(context, date) == null) return null
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("prayer_remote_hijri_data_${dateKey(date)}", null) ?: return null
+        return try {
+            val json = JSONObject(raw)
+            HijriDate(
+                day = json.getInt("day"),
+                month = json.getInt("month"),
+                monthArabic = json.optString("month_ar"),
+                year = json.getInt("year"),
+                basis = json.optString("basis")
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun getHijriLabel(context: Context, date: Calendar): String? {
         if (getTimes(context, date) == null) return null
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -197,6 +220,102 @@ object PrayerTimesRemoteRepository {
             .getString("prayer_remote_authority_url", null)
             ?.takeIf { it.startsWith("https://") }
 
+    private fun storeRemoteDay(prefs: android.content.SharedPreferences, remote: RemoteDay) {
+        prefs.edit()
+            .putString("prayer_remote_times_${remote.date}", JSONArray(remote.minutes).toString())
+            .putString("prayer_remote_hijri_${remote.date}", remote.hijriLabel)
+            .putString("prayer_remote_hijri_data_${remote.date}", remote.hijriJson)
+            .putString("prayer_remote_method", remote.methodName)
+            .putString("prayer_remote_method_status", remote.methodStatus)
+            .putString("prayer_remote_authority_url", remote.authorityUrl)
+            .putString("prayer_remote_page_url", remote.pageUrl)
+            .putString("prayer_remote_license", "CC BY 4.0")
+            .apply()
+    }
+
+    private fun placeSlugFor(
+        prefs: android.content.SharedPreferences,
+        latitude: Double,
+        longitude: Double
+    ): String? {
+        val cityName = prefs.getString("city_name", "") ?: ""
+        when {
+            cityName.contains("عمّان") -> return "amman"
+            cityName.contains("إربد") -> return "irbid"
+            cityName.contains("الزرقاء") -> return "zarqa"
+            cityName.contains("العقبة") -> return "aqaba"
+        }
+        data class City(val slug: String, val lat: Double, val lon: Double)
+        val cities = listOf(
+            City("amman", 31.9552, 35.9450),
+            City("irbid", 32.5568, 35.8469),
+            City("zarqa", 32.0728, 36.0880),
+            City("aqaba", 29.5267, 35.0078),
+            City("salt", 32.0392, 35.7272),
+            City("madaba", 31.7167, 35.8000),
+            City("jerash", 32.2808, 35.8993),
+            City("mafraq", 32.3429, 36.2080),
+            City("karak", 31.1800, 35.7048),
+            City("maan", 30.1920, 35.7340)
+        )
+        val nearest = cities.minByOrNull { distanceKm(latitude, longitude, it.lat, it.lon) } ?: return null
+        return nearest.slug.takeIf { distanceKm(latitude, longitude, nearest.lat, nearest.lon) <= 95.0 }
+    }
+
+    private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+            sin(dLon / 2) * sin(dLon / 2)
+        return 6371.0 * 2.0 * atan2(sqrt(a), sqrt(1.0 - a))
+    }
+
+    private fun fetchMonth(country: String, place: String, year: Int, month: Int): List<RemoteDay> {
+        val url = URL("https://prayertime.si/api/v1/month/$country/$place?year=$year&month=$month")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 8000
+            readTimeout = 12000
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("User-Agent", "NoorSalah-Android")
+        }
+        try {
+            if (connection.responseCode !in 200..299) {
+                throw IllegalStateException("Prayer month service returned HTTP ${connection.responseCode}")
+            }
+            val root = JSONObject(connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            val method = root.optJSONObject("method")
+            val pageUrl = root.optString("page")
+            val days = root.getJSONArray("days")
+            return (0 until days.length()).map { index ->
+                val entry = days.getJSONObject(index)
+                val date = entry.getString("date")
+                val times = entry.getJSONObject("times")
+                val minutes = listOf("fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha")
+                    .map { parseTime(times.getString(it)) }
+                val hijri = entry.optJSONObject("hijri")
+                val hijriLabel = if (hijri != null) {
+                    "${hijri.optInt("day")} ${hijri.optString("month_ar")} ${hijri.optInt("year")} هـ"
+                } else ""
+                RemoteDay(
+                    date = date,
+                    minutes = minutes,
+                    hijriLabel = hijriLabel,
+                    hijriJson = hijri?.toString().orEmpty(),
+                    methodName = method?.optString("name_ar").orEmpty().ifBlank {
+                        method?.optString("name_en").orEmpty().ifBlank { "طريقة البلد" }
+                    },
+                    methodStatus = method?.optString("status").orEmpty(),
+                    authorityUrl = method?.optString("source_url").orEmpty(),
+                    pageUrl = pageUrl
+                )
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun fetchDay(
         latitude: Double,
         longitude: Double,
@@ -237,6 +356,7 @@ object PrayerTimesRemoteRepository {
                 date = day,
                 minutes = minutes,
                 hijriLabel = hijriLabel,
+                hijriJson = hijri?.toString().orEmpty(),
                 methodName = method?.optString("name_ar").orEmpty().ifBlank {
                     method?.optString("name_en").orEmpty().ifBlank { "طريقة البلد" }
                 },
