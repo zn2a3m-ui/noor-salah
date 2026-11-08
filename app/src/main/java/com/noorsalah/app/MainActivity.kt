@@ -1379,8 +1379,21 @@ class MainActivity : Activity(), SensorEventListener {
             line("المدينة", 18f, gold, true)
             line(cityName, 14f, cream)
             addView(button("اختيار مدينة") {
-                val names = arrayOf("عمّان، الأردن", "إربد، الأردن", "الزرقاء، الأردن", "العقبة، الأردن", "القدس، فلسطين", "مكة المكرمة، السعودية", "المدينة المنورة، السعودية")
-                val coords = arrayOf(doubleArrayOf(31.9539,35.9106), doubleArrayOf(32.5556,35.8500), doubleArrayOf(32.0728,36.0880), doubleArrayOf(29.5267,35.0078), doubleArrayOf(31.7683,35.2137), doubleArrayOf(21.4225,39.8262), doubleArrayOf(24.4672,39.6111))
+                val names = arrayOf(
+                    "عمّان، الأردن", "إربد، الأردن", "الزرقاء، الأردن", "العقبة، الأردن",
+                    "السلط، الأردن", "مادبا، الأردن", "جرش، الأردن", "المفرق، الأردن",
+                    "الكرك، الأردن", "معان، الأردن", "القدس، فلسطين", "مكة المكرمة، السعودية",
+                    "المدينة المنورة، السعودية"
+                )
+                val coords = arrayOf(
+                    doubleArrayOf(31.9539,35.9106), doubleArrayOf(32.5556,35.8500),
+                    doubleArrayOf(32.0728,36.0880), doubleArrayOf(29.5267,35.0078),
+                    doubleArrayOf(32.0392,35.7272), doubleArrayOf(31.7167,35.8000),
+                    doubleArrayOf(32.2808,35.8993), doubleArrayOf(32.3429,36.2080),
+                    doubleArrayOf(31.1800,35.7048), doubleArrayOf(30.1920,35.7340),
+                    doubleArrayOf(31.7683,35.2137), doubleArrayOf(21.4225,39.8262),
+                    doubleArrayOf(24.4672,39.6111)
+                )
                 AlertDialog.Builder(this@MainActivity).setTitle("اختر المدينة").setItems(names) { _, i ->
                     cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
                     getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "manual").apply()
