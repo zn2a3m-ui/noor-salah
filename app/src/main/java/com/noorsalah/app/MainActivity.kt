@@ -1612,7 +1612,8 @@ class MainActivity : Activity(), SensorEventListener {
         if (isFinishing) return
         latitude = loc.latitude
         longitude = loc.longitude
-        cityName = "موقعي الحالي"
+        cityName = PrayerTimesRemoteRepository.nearestJordanCityName(latitude, longitude)
+            ?.plus("، الأردن") ?: "موقعي الحالي"
         locationMode = "gps"
         getPreferences(0).edit()
             .putString("city_name", cityName)
