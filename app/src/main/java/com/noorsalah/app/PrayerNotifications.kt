@@ -189,7 +189,13 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             val selectedAudio = preferences.getString("muezzin", "أذان كامل — تسجيل مرخّص") ?: "أذان كامل — تسجيل مرخّص"
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val customUri = preferences.getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
-            val customAudioAvailable = selectedAudio.startsWith("صوت مخصص") && customUri != null
+            val customAudioAvailable = if (selectedAudio.startsWith("صوت مخصص") && customUri != null) {
+                try {
+                    context.contentResolver.openFileDescriptor(customUri, "r")?.use { true } ?: false
+                } catch (_: Exception) {
+                    false
+                }
+            } else false
             val customChannelAvailable = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                 customAudioAvailable
             } else {
