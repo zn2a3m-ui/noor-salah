@@ -31,16 +31,36 @@ data class QuranSearchResult(
  * in-memory verse index; the packaged source asset remains byte-for-byte intact.
  */
 class QuranRepository(private val context: Context) {
+    @Volatile private var cachedMetadata: JSONObject? = null
     @Volatile private var cachedSurahs: List<QuranSurah>? = null
     @Volatile private var cachedAyahs: List<String>? = null
+
+    private fun metadata(): JSONObject {
+        cachedMetadata?.let { return it }
+        synchronized(this) {
+            cachedMetadata?.let { return it }
+            val json = context.assets.open("quran-surah-index.json")
+                .bufferedReader(Charsets.UTF_8).use { it.readText() }
+            return JSONObject(json).also { cachedMetadata = it }
+        }
+    }
+
+    fun juzStart(juzNumber: Int): Pair<Int, Int> = metadataLocation("juz", juzNumber)
+    fun pageStart(pageNumber: Int): Pair<Int, Int> = metadataLocation("pages", pageNumber)
+    fun hizbQuarterStart(quarterNumber: Int): Pair<Int, Int> = metadataLocation("hizbQuarters", quarterNumber)
+
+    private fun metadataLocation(collection: String, index: Int): Pair<Int, Int> {
+        val entries = metadata().getJSONArray(collection)
+        require(index in 1..entries.length()) { "Invalid $collection index: $index" }
+        val entry = entries.getJSONObject(index - 1)
+        return entry.getInt("surah") to entry.getInt("ayah")
+    }
 
     fun loadSurahs(): List<QuranSurah> {
         cachedSurahs?.let { return it }
         synchronized(this) {
             cachedSurahs?.let { return it }
-            val json = context.assets.open("quran-surah-index.json")
-                .bufferedReader(Charsets.UTF_8).use { it.readText() }
-            val array = JSONObject(json).getJSONArray("suras")
+            val array = metadata().getJSONArray("suras")
             val parsed = (0 until array.length()).map { index ->
                 val item = array.getJSONObject(index)
                 QuranSurah(
