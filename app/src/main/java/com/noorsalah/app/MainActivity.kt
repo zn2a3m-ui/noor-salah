@@ -280,7 +280,9 @@ class MainActivity : Activity(), SensorEventListener {
         }
         content.addView(prayerSource, LinearLayout.LayoutParams(-1, -2))
         val remotePrefs = getPreferences(0)
-        if (!remotePrefs.getBoolean("prayer_remote_consent", false) &&
+        if (calculationMethod.startsWith("الأردن") &&
+            PrayerTimesRemoteRepository.isJordan(latitude, longitude) &&
+            !remotePrefs.getBoolean("prayer_remote_consent", false) &&
             !remotePrefs.getBoolean("prayer_remote_prompt_dismissed", false)) {
             card {
                 line("تحسين دقة مواقيت الصلاة", 16f, gold, true)
