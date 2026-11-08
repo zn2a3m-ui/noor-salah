@@ -111,14 +111,14 @@ class QuranRepository(private val context: Context) {
     }
 
     fun search(query: String, maxResults: Int = 50): List<QuranSearchResult> {
-        val needle = normalizeForSearch(query)
+        val needle = normalizeQuranSearchText(query)
         if (needle.length < 2) return emptyList()
         val lines = loadAyahLines()
         val results = ArrayList<QuranSearchResult>()
         for (surah in loadSurahs()) {
             for (offset in 0 until surah.ayahCount) {
                 val verse = lines[surah.startLine + offset]
-                if (normalizeForSearch(verse).contains(needle)) {
+                if (normalizeQuranSearchText(verse).contains(needle)) {
                     results.add(QuranSearchResult(surah.number, surah.name, offset + 1, verse))
                     if (results.size >= maxResults) return results
                 }
@@ -127,13 +127,14 @@ class QuranRepository(private val context: Context) {
         return results
     }
 
-    internal fun normalizeForSearch(value: String): String =
-        Normalizer.normalize(value, Normalizer.Form.NFD)
-            .replace(Regex("\\p{M}+"), "")
-            .replace(Regex("[أإآٱ]"), "ا")
-            .replace('ى', 'ي')
-            .replace('ؤ', 'و')
-            .replace('ئ', 'ي')
-            .replace("ـ", "")
-            .trim()
 }
+
+internal fun normalizeQuranSearchText(value: String): String =
+    Normalizer.normalize(value, Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "")
+        .replace(Regex("[أإآٱ]"), "ا")
+        .replace('ى', 'ي')
+        .replace('ؤ', 'و')
+        .replace('ئ', 'ي')
+        .replace("ـ", "")
+        .trim()
