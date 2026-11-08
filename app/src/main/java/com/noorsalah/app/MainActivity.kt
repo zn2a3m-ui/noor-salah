@@ -612,13 +612,23 @@ class MainActivity : Activity(), SensorEventListener {
         val daysInMonth = month.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
         val firstOffset = (month.get(java.util.Calendar.DAY_OF_WEEK) - java.util.Calendar.SATURDAY + 7) % 7
         val title = SimpleDateFormat("MMMM yyyy", Locale("ar")).format(month.time)
-        val remoteFirstHijri = PrayerTimesRemoteRepository.getHijriDate(this, month)
+        val hijriOffset = getPreferences(0).getInt("hijri_day_offset", 0).coerceIn(-2, 2)
+        val adjustedHeaderDate = (month.clone() as java.util.Calendar).apply {
+            add(java.util.Calendar.DAY_OF_YEAR, hijriOffset)
+        }
+        val remoteFirstHijri = PrayerTimesRemoteRepository.getHijriDate(this, adjustedHeaderDate)
         if (remoteFirstHijri == null) {
-            PrayerTimesRemoteRepository.refreshMonthIfNeeded(this, latitude, longitude, year, monthIndex + 1) {
+            PrayerTimesRemoteRepository.refreshMonthIfNeeded(
+                this,
+                latitude,
+                longitude,
+                adjustedHeaderDate.get(java.util.Calendar.YEAR),
+                adjustedHeaderDate.get(java.util.Calendar.MONTH) + 1
+            ) {
                 if (!isFinishing && page == "calendar") showPage("calendar")
             }
         }
-        val firstHijri = remoteFirstHijri ?: localUmmAlQuraDate(month)
+        val firstHijri = hijriDateForCalendar(month)
 
         card {
             line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
