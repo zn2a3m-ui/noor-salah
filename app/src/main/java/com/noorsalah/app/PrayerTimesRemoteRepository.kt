@@ -51,10 +51,10 @@ object PrayerTimesRemoteRepository {
         val tomorrow = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
         val todayKey = dateKey(today)
         val tomorrowKey = dateKey(tomorrow)
-        val oldLat = (prefs.getString("prayer_remote_lat", null)
-            ?: prefs.getString("prayer_remote_attempt_lat", null))?.toDoubleOrNull()
-        val oldLon = (prefs.getString("prayer_remote_lon", null)
-            ?: prefs.getString("prayer_remote_attempt_lon", null))?.toDoubleOrNull()
+        val oldLat = (prefs.getString("prayer_remote_attempt_lat", null)
+            ?: prefs.getString("prayer_remote_lat", null))?.toDoubleOrNull()
+        val oldLon = (prefs.getString("prayer_remote_attempt_lon", null)
+            ?: prefs.getString("prayer_remote_lon", null))?.toDoubleOrNull()
         val sameLocation = oldLat != null && oldLon != null &&
             abs(oldLat - latitude) < 0.015 && abs(oldLon - longitude) < 0.015
         val hasBothDays = getTimes(appContext, today) != null && getTimes(appContext, tomorrow) != null
