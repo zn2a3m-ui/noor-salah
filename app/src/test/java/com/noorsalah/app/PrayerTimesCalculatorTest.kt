@@ -44,6 +44,6 @@ class PrayerTimesCalculatorTest {
             ammanDate(), 31.9539, 35.9106, "أم القرى (18.5° / 90 دقيقة)", 0
         )
 
-        assertEquals((times[4] - 5 + 90) % 1440, times[5])
+        assertEquals((times[4] + 90) % 1440, times[5])
     }
 }
