@@ -129,6 +129,9 @@ class MainActivity : Activity(), SensorEventListener {
         requestLocation()
         PrayerAlarmScheduler.createChannel(this)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
+            if (!isFinishing && page == "home") showPage("home")
+        }
     }
 
     override fun onResume() {
@@ -138,6 +141,9 @@ class MainActivity : Activity(), SensorEventListener {
         }
         clockHandler.post(clockTick)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
+            if (!isFinishing && page == "home") showPage("home")
+        }
     }
     override fun onPause() { super.onPause(); sensorManager.unregisterListener(this); clockHandler.removeCallbacks(clockTick) }
 
@@ -175,6 +181,10 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("⌖  $cityName", 13f, muted, false, Gravity.CENTER)
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 15f, cream, true, Gravity.CENTER)
+            val selectedCalendar = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+            PrayerTimesRemoteRepository.getHijriLabel(this@MainActivity, selectedCalendar)?.let {
+                line(it, 13f, gold, true, Gravity.CENTER)
+            }
             line("تقبّل الله طاعتكم", 11f, gold, false, Gravity.CENTER)
         }
         gap(10)
@@ -252,6 +262,23 @@ class MainActivity : Activity(), SensorEventListener {
             row.addView(t)
             content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
         }
+        gap(2)
+        val prayerSource = TextView(this@MainActivity).apply {
+            text = PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity) + "\\n" +
+                PrayerTimesRemoteRepository.getProviderLabel(this@MainActivity)
+            textSize = 10f
+            setTextColor(muted)
+            gravity = Gravity.CENTER
+            setPadding(dp(4), dp(4), dp(4), dp(8))
+            setOnClickListener {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity))))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح مصدر المواقيت", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        content.addView(prayerSource, LinearLayout.LayoutParams(-1, -2))
         gap(5)
         val quickTitle = TextView(this@MainActivity).apply {
             text = "مساحتك الإيمانية"; textSize = 19f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
@@ -895,6 +922,7 @@ class MainActivity : Activity(), SensorEventListener {
                     timeOffsetMinutes = diff
                     getPreferences(0).edit().putInt("time_offset", diff).apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
                     showPage("settings")
                 }, baseMinutes / 60, baseMinutes % 60, true).show()
             }, LinearLayout.LayoutParams(-1, -2))
@@ -970,7 +998,7 @@ class MainActivity : Activity(), SensorEventListener {
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
-            line("حساب الأردن هنا تقديري (18° للفجر والعشاء واحتياط 5 دقائق للمغرب)، وقد يختلف عن جدول وزارة الأوقاف؛ اعتمد الجدول الرسمي عند توفره.", 12f, muted)
+            line("عند توفر الإنترنت تُجلب المواقيت بطريقة وزارة الأوقاف الأردنية المطابقة لجدولها المنشور عبر prayertime.si. عند انقطاع الإنترنت يُستخدم الحساب المحلي التقديري.", 12f, muted)
             addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
@@ -1047,13 +1075,14 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun prayerTimesMinutes(): List<Int> {
         val date = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-        return PrayerTimesCalculator.calculate(
-            date,
-            latitude,
-            longitude,
-            calculationMethod,
-            timeOffsetMinutes
-        )
+        return PrayerTimesRemoteRepository.getTimes(this, date)
+            ?: PrayerTimesCalculator.calculate(
+                date,
+                latitude,
+                longitude,
+                calculationMethod,
+                timeOffsetMinutes
+            )
     }
 
     private fun formatPrayerTime(minutes: Int): String {
@@ -1104,6 +1133,9 @@ class MainActivity : Activity(), SensorEventListener {
                 cityName = "موقعي الحالي"; locationMode = "gps"
                 getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "gps").apply()
                 PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+                PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude, force = true) {
+                    if (!isFinishing && page == "home") showPage("home")
+                }
                 if (page == "home" || page == "settings") showPage(page)
             }
             else Toast.makeText(this, "لم يتوفر موقع حديث؛ نستخدم الموقع الافتراضي", Toast.LENGTH_LONG).show()
