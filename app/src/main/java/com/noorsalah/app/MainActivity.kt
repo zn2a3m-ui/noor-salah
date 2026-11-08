@@ -1400,7 +1400,14 @@ class MainActivity : Activity(), SensorEventListener {
                 )
                 AlertDialog.Builder(this@MainActivity).setTitle("اختر المدينة").setItems(names) { _, i ->
                     cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
-                    getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "manual").apply()
+                    locationAccuracyMeters = null
+                    getPreferences(0).edit()
+                        .putString("city_name", cityName)
+                        .putString("city_lat", latitude.toString())
+                        .putString("city_lon", longitude.toString())
+                        .putString("location_mode", "manual")
+                        .remove("location_accuracy_m")
+                        .apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
                     PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude)
                     showPage("settings")
