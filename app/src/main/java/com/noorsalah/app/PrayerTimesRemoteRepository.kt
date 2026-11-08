@@ -154,6 +154,7 @@ object PrayerTimesRemoteRepository {
                     prefs.edit()
                         .putString("prayer_remote_lat", latitude.toString())
                         .putString("prayer_remote_lon", longitude.toString())
+                        .putString("prayer_remote_place_slug", placeSlug)
                         .putLong("prayer_remote_fetch_time", fetchTime)
                         .apply()
                     Handler(Looper.getMainLooper()).post {
@@ -175,9 +176,15 @@ object PrayerTimesRemoteRepository {
         val currentLat = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         val currentLon = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
         if (!isJordan(currentLat, currentLon)) return null
-        val cachedLat = prefs.getString("prayer_remote_lat", null)?.toDoubleOrNull() ?: return null
-        val cachedLon = prefs.getString("prayer_remote_lon", null)?.toDoubleOrNull() ?: return null
-        if (abs(currentLat - cachedLat) >= 0.015 || abs(currentLon - cachedLon) >= 0.015) return null
+        val cachedPlace = prefs.getString("prayer_remote_place_slug", null)
+        val currentPlace = placeSlugFor(prefs, currentLat, currentLon)
+        if (cachedPlace != null) {
+            if (currentPlace != cachedPlace) return null
+        } else {
+            val cachedLat = prefs.getString("prayer_remote_lat", null)?.toDoubleOrNull() ?: return null
+            val cachedLon = prefs.getString("prayer_remote_lon", null)?.toDoubleOrNull() ?: return null
+            if (abs(currentLat - cachedLat) >= 0.015 || abs(currentLon - cachedLon) >= 0.015) return null
+        }
         val raw = prefs.getString("prayer_remote_times_${dateKey(date)}", null) ?: return null
         return try {
             val values = JSONArray(raw)
