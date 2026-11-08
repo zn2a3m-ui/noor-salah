@@ -160,7 +160,7 @@ object PrayerTimesRemoteRepository {
             ?: return "المواقيت المحلية الحسابية • تقديرية عند عدم توفر الإنترنت"
         val status = prefs.getString("prayer_remote_method_status", "")
         return if (status == "verified") {
-            "$method • مطابقة للجدول المنشور"
+            "$method • طريقة موثقة من الجهة"
         } else {
             "$method • طريقة حسابية من المصدر"
         }
