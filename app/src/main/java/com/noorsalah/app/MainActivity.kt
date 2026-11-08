@@ -537,18 +537,29 @@ class MainActivity : Activity(), SensorEventListener {
             line("المصحف الشريف", 23f, cream, true, Gravity.CENTER)
             line("قراءة • تدبّر • استماع", 12f, muted, false, Gravity.CENTER)
             gap(8)
-            line("سيُربط المصحف بالرسم العثماني من مصدر موثوق، مع فهرس السور والأجزاء وحفظ موضع القراءة.", 13f, muted, false, Gravity.CENTER)
+            line("نعمل على تجهيز مصحف مدمج داخل التطبيق بالرسم العثماني مع فهرس السور وحفظ موضع القراءة.", 13f, muted, false, Gravity.CENTER)
+            addView(button("فتح المصحف الموثوق الآن") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح المتصفح. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
         card {
-            line("متابعة القراءة", 17f, gold, true)
-            line("سيظهر هنا آخر موضع قراءة بعد ربط نص المصحف الموثوق.", 13f, muted)
+            line("مصدر النص القرآني", 17f, gold, true)
+            line("سيُعتمد نص مشروع تنزيل (Tanzil) بالرسم العثماني كما هو دون أي تعديل، مع إبقاء إشعار حقوق النشر ورابط المصدر.", 13f, cream)
+            line("Tanzil Quran Text • Version 1.1 • CC BY 3.0", 11f, muted)
+            addView(button("زيارة موقع مشروع تنزيل") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/docs/Text_License")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط.", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
         }
-        card {
-            line("فهرس السور", 17f, gold, true)
-            line("قائمة السور والبحث والانتقال إلى الآيات ستتاح بعد إضافة بيانات المصحف ومراجعتها.", 13f, muted)
-        }
-        text("لم نعرض آيات تجريبية أو نصوصاً غير موثقة على أنها من القرآن الكريم.", 11f, muted, false, Gravity.CENTER)
+        text("المصحف المدمج والفهرس والبحث والحفظ دون إنترنت لم تُفعّل بعد؛ لن نعرض نصاً قرآنياً غير موثّق.", 11f, muted, false, Gravity.CENTER)
     }
 
     private fun settings() {
