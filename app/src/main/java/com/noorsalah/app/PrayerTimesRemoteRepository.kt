@@ -13,6 +13,7 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
 /**
@@ -84,25 +85,36 @@ object PrayerTimesRemoteRepository {
                 } else {
                     TimeZone.getDefault().id
                 }
-                dates.forEach { date ->
-                    try {
-                        // Send only city-level approximate coordinates to the provider.
-                        val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
-                        val requestLongitude = String.format(Locale.US, "%.2f", longitude).toDouble()
-                        val remote = fetchDay(requestLatitude, requestLongitude, timezone, date)
-                        val editor = prefs.edit()
-                            .putString("prayer_remote_times_${remote.date}", JSONArray(remote.minutes).toString())
-                            .putString("prayer_remote_hijri_${remote.date}", remote.hijriLabel)
-                            .putString("prayer_remote_method", remote.methodName)
-                            .putString("prayer_remote_method_status", remote.methodStatus)
-                            .putString("prayer_remote_authority_url", remote.authorityUrl)
-                            .putString("prayer_remote_page_url", remote.pageUrl)
-                            .putString("prayer_remote_license", "CC BY 4.0")
-                        editor.apply()
-                        updated++
-                    } catch (_: Exception) {
-                        // Keep the previous cached day and let the calculator be the fallback.
+                // Send only city-level approximate coordinates to the provider.
+                val requestLatitude = String.format(Locale.US, "%.2f", latitude).toDouble()
+                val requestLongitude = String.format(Locale.US, "%.2f", longitude).toDouble()
+                val fetchPool = Executors.newFixedThreadPool(dates.size)
+                try {
+                    val requests = dates.map { date ->
+                        fetchPool.submit<RemoteDay> {
+                            fetchDay(requestLatitude, requestLongitude, timezone, date)
+                        }
                     }
+                    requests.forEach { request ->
+                        try {
+                            val remote = request.get(20, TimeUnit.SECONDS)
+                            prefs.edit()
+                                .putString("prayer_remote_times_${remote.date}", JSONArray(remote.minutes).toString())
+                                .putString("prayer_remote_hijri_${remote.date}", remote.hijriLabel)
+                                .putString("prayer_remote_method", remote.methodName)
+                                .putString("prayer_remote_method_status", remote.methodStatus)
+                                .putString("prayer_remote_authority_url", remote.authorityUrl)
+                                .putString("prayer_remote_page_url", remote.pageUrl)
+                                .putString("prayer_remote_license", "CC BY 4.0")
+                                .apply()
+                            updated++
+                        } catch (_: Exception) {
+                            request.cancel(true)
+                            // Keep the previous cached day and let the calculator be the fallback.
+                        }
+                    }
+                } finally {
+                    fetchPool.shutdownNow()
                 }
                 if (updated > 0) {
                     val fetchTime = if (updated == dates.size) System.currentTimeMillis()
@@ -201,8 +213,8 @@ object PrayerTimesRemoteRepository {
         }
         val connection = (URL("https://prayertime.si/api/v1/times?$query").openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = 12000
-            readTimeout = 15000
+            connectTimeout = 8000
+            readTimeout = 10000
             setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "NoorSalah-Android")
         }
