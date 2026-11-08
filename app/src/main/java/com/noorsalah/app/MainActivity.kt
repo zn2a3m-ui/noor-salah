@@ -34,12 +34,32 @@ import java.util.concurrent.Executor
 import kotlin.math.*
 
 class MainActivity : Activity(), SensorEventListener {
-    private val bg = Color.rgb(5, 31, 26)
-    private val panel = Color.rgb(15, 45, 36)
-    private val panelAlt = Color.rgb(20, 55, 44)
-    private val gold = Color.rgb(222, 185, 105)
-    private val cream = Color.rgb(247, 243, 229)
-    private val muted = Color.rgb(184, 199, 184)
+    private var bg = Color.rgb(5, 31, 26)
+    private var panel = Color.rgb(15, 45, 36)
+    private var panelAlt = Color.rgb(20, 55, 44)
+    private var gold = Color.rgb(222, 185, 105)
+    private var cream = Color.rgb(247, 243, 229)
+    private var muted = Color.rgb(184, 199, 184)
+    private var isLightTheme = false
+
+    private fun applyThemeColors() {
+        isLightTheme = getPreferences(0).getString("app_theme", "dark") == "light"
+        if (isLightTheme) {
+            bg = Color.rgb(246, 249, 245)
+            panel = Color.rgb(255, 255, 255)
+            panelAlt = Color.rgb(233, 241, 234)
+            gold = Color.rgb(151, 111, 42)
+            cream = Color.rgb(29, 48, 39)
+            muted = Color.rgb(98, 116, 102)
+        } else {
+            bg = Color.rgb(5, 31, 26)
+            panel = Color.rgb(15, 45, 36)
+            panelAlt = Color.rgb(20, 55, 44)
+            gold = Color.rgb(222, 185, 105)
+            cream = Color.rgb(247, 243, 229)
+            muted = Color.rgb(184, 199, 184)
+        }
+    }
     private lateinit var content: LinearLayout
     private lateinit var navigationBar: LinearLayout
     private var mainScroll: ScrollView? = null
@@ -76,8 +96,13 @@ class MainActivity : Activity(), SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyThemeColors()
         window.statusBarColor = bg
         window.navigationBarColor = bg
+        window.decorView.systemUiVisibility = if (isLightTheme) {
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+                (if (android.os.Build.VERSION.SDK_INT >= 26) View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR else 0)
+        } else 0
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         latitude = getPreferences(0).getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         longitude = getPreferences(0).getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
@@ -1172,6 +1197,28 @@ class MainActivity : Activity(), SensorEventListener {
             line("إعداداتك، موقعك، وتنبيهات عبادتك في مكان واحد", 12f, muted, false, Gravity.CENTER)
         }
         gap(6)
+        card {
+            line("المظهر", 18f, gold, true)
+            val themeChoices = listOf("الوضع الداكن • زمردي", "الوضع الفاتح • هادئ")
+            val themePicker = Spinner(this@MainActivity).apply {
+                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, themeChoices)
+                setSelection(if (isLightTheme) 1 else 0)
+                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        val selectedTheme = if (position == 1) "light" else "dark"
+                        val currentTheme = getPreferences(0).getString("app_theme", "dark") ?: "dark"
+                        if (selectedTheme != currentTheme) {
+                            getPreferences(0).edit().putString("app_theme", selectedTheme).apply()
+                            recreate()
+                        }
+                    }
+                }
+            }
+            addView(themePicker, LinearLayout.LayoutParams(-1, -2))
+            line("يمكنك التبديل بين المظهرين في أي وقت.", 12f, muted)
+        }
+        gap(10)
         sectionHeading("المواقيت والموقع")
         card {
             line("التاريخ المعتمد للمواقيت", 18f, gold, true)
