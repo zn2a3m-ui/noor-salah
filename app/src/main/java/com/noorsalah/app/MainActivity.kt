@@ -810,7 +810,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         val categoryScroll = HorizontalScrollView(this@MainActivity).apply {
             isHorizontalScrollBarEnabled = false
-            addView(categoryStrip, HorizontalScrollView.LayoutParams(-2, -2))
+            addView(categoryStrip, android.view.ViewGroup.LayoutParams(-2, -2))
         }
         content.addView(categoryScroll, LinearLayout.LayoutParams(-1, -2))
         gap(10)
