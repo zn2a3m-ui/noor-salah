@@ -41,6 +41,9 @@ class MainActivity : Activity(), SensorEventListener {
     private var cream = Color.rgb(247, 243, 229)
     private var muted = Color.rgb(184, 199, 184)
     private var isLightTheme = false
+    private val creamOnDark = Color.rgb(247, 243, 229)
+    private val goldOnDark = Color.rgb(222, 185, 105)
+    private val mutedOnDark = Color.rgb(184, 199, 184)
 
     private fun applyThemeColors() {
         isLightTheme = getPreferences(0).getString("app_theme", "dark") == "light"
@@ -292,8 +295,8 @@ class MainActivity : Activity(), SensorEventListener {
             val selected = cell.tag == if (page == "calendar") "home" else page
             val glyph = cell.getChildAt(0) as? TextView
             val label = cell.getChildAt(1) as? TextView
-            glyph?.setTextColor(if (selected) gold else muted)
-            label?.setTextColor(if (selected) gold else muted)
+            glyph?.setTextColor(if (selected) goldOnDark else mutedOnDark)
+            label?.setTextColor(if (selected) goldOnDark else mutedOnDark)
             label?.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
             cell.background = if (selected) shape(Color.rgb(20, 67, 49), 15, Color.rgb(89, 127, 82)) else null
         }
@@ -328,19 +331,19 @@ class MainActivity : Activity(), SensorEventListener {
             text = "الصلاة القادمة"; textSize = 13f; setTextColor(Color.rgb(222, 220, 190)); gravity = Gravity.CENTER
         }
         val prayerName = TextView(this@MainActivity).apply {
-            text = next.first; textSize = 31f; setTextColor(gold); gravity = Gravity.CENTER
+            text = next.first; textSize = 31f; setTextColor(goldOnDark); gravity = Gravity.CENTER
             typeface = Typeface.create("serif", Typeface.BOLD); setPadding(0, dp(5), 0, dp(2))
         }
         nextPrayerView = prayerName
         val timer = TextView(this@MainActivity).apply {
-            text = countdownLabel(next.second); textSize = 32f; setTextColor(cream)
+            text = countdownLabel(next.second); textSize = 32f; setTextColor(creamOnDark)
             gravity = Gravity.CENTER; typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
             setPadding(0, dp(4), 0, dp(4))
         }
         countdownView = timer
         hero.addView(eyebrow); hero.addView(prayerName); hero.addView(timer)
         val sub = TextView(this@MainActivity).apply {
-            text = "الوقت المتبقي لدخول الصلاة"; textSize = 11f; setTextColor(muted); gravity = Gravity.CENTER
+            text = "الوقت المتبقي لدخول الصلاة"; textSize = 11f; setTextColor(mutedOnDark); gravity = Gravity.CENTER
         }
         hero.addView(sub)
         content.addView(hero, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
@@ -372,14 +375,14 @@ class MainActivity : Activity(), SensorEventListener {
                     15, if (active) gold else null)
             }
             val icon = TextView(this@MainActivity).apply {
-                text = symbols[i]; textSize = 20f; setTextColor(gold); gravity = Gravity.CENTER
+                text = symbols[i]; textSize = 20f; setTextColor(if (active) goldOnDark else gold); gravity = Gravity.CENTER
             }
             val n = TextView(this@MainActivity).apply {
-                text = name; textSize = 15f; setTextColor(cream)
+                text = name; textSize = 15f; setTextColor(if (active) creamOnDark else cream)
                 typeface = if (active) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
             }
             val t = TextView(this@MainActivity).apply {
-                text = times[i]; textSize = 16f; setTextColor(if (active) gold else cream)
+                text = times[i]; textSize = 16f; setTextColor(if (active) goldOnDark else cream)
                 typeface = Typeface.DEFAULT_BOLD
             }
             row.addView(icon, LinearLayout.LayoutParams(dp(34), -2))
@@ -596,7 +599,7 @@ class MainActivity : Activity(), SensorEventListener {
                 text = if (hijri != null) "$day\n${hijri.day}$eventMarker" else day.toString()
                 textSize = 14f
                 gravity = Gravity.CENTER
-                setTextColor(if (isSelected || isToday) gold else cream)
+                setTextColor(if (isSelected || isToday) goldOnDark else cream)
                 typeface = if (isSelected || isToday) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                 background = when {
                     isSelected -> shape(Color.rgb(31, 79, 57), 12, gold)
@@ -753,7 +756,7 @@ class MainActivity : Activity(), SensorEventListener {
                         val active = name == selectedCategory
                         view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
                             if (active) gold else Color.rgb(48, 99, 75))
-                        view.setTextColor(if (active) gold else cream)
+                        view.setTextColor(if (active) goldOnDark else cream)
                     }
                     renderCategory()
                 }
@@ -808,7 +811,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             val counter = TextView(this@MainActivity).apply {
                 text = count.toString(); textSize = 45f; gravity = Gravity.CENTER
-                setTextColor(gold); typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+                setTextColor(goldOnDark); typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
             }
             countView = counter
             counterShell.addView(counter, FrameLayout.LayoutParams(-1, -1))
@@ -1068,7 +1071,7 @@ class MainActivity : Activity(), SensorEventListener {
             val verseText = TextView(this).apply {
                 text = ayah.text
                 textSize = quranFontSize
-                setTextColor(cream)
+                setTextColor(if (ayah.number == focusAyah) creamOnDark else cream)
                 gravity = Gravity.CENTER
                 textDirection = View.TEXT_DIRECTION_RTL
                 typeface = Typeface.create("serif", Typeface.NORMAL)
@@ -1077,7 +1080,7 @@ class MainActivity : Activity(), SensorEventListener {
             val verseNumber = TextView(this).apply {
                 text = "﴿${ayah.number}﴾"
                 textSize = 12f
-                setTextColor(gold)
+                setTextColor(if (ayah.number == focusAyah) goldOnDark else gold)
                 gravity = Gravity.CENTER
                 setPadding(0, dp(9), 0, 0)
             }
