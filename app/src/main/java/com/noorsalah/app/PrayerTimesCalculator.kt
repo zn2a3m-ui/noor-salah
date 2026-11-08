@@ -44,7 +44,6 @@ object PrayerTimesCalculator {
             calculationMethod.startsWith("أم القرى") -> listOf(18.5, 0.0, 90.0, 0.0)
             calculationMethod.startsWith("الهيئة المصرية") -> listOf(19.5, 17.5, 0.0, 0.0)
             calculationMethod.startsWith("أمريكا الشمالية") -> listOf(15.0, 15.0, 0.0, 0.0)
-            calculationMethod.startsWith("جامعة كراتشي") -> listOf(18.0, 18.0, 0.0, 0.0)
             calculationMethod.startsWith("ديانت تركيا") -> listOf(18.0, 17.0, 0.0, 0.0)
             calculationMethod.startsWith("سنغافورة") -> listOf(20.0, 18.0, 0.0, 0.0)
             else -> listOf(18.0, 17.0, 0.0, 0.0)
