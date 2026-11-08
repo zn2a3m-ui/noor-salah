@@ -38,6 +38,9 @@ class MainActivity : Activity(), SensorEventListener {
     private val muted = Color.rgb(184, 199, 184)
     private lateinit var content: LinearLayout
     private lateinit var navigationBar: LinearLayout
+    private var mainScroll: ScrollView? = null
+    private val quranRepository by lazy(LazyThreadSafetyMode.NONE) { QuranRepository(this) }
+    private var quranFontSize = 25f
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
     private var longitude = 35.9106
@@ -89,6 +92,7 @@ class MainActivity : Activity(), SensorEventListener {
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
+        mainScroll = scroll
         shell.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         val nav = LinearLayout(this).apply {
             gravity = Gravity.CENTER; orientation = LinearLayout.HORIZONTAL
@@ -530,37 +534,240 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun quran() {
         text("القرآن الكريم", 27f, gold, true, Gravity.CENTER)
-        text("نورٌ للقلوب وهدايةٌ للطريق", 13f, muted, false, Gravity.CENTER)
-        gap(14)
+        text("مصحف عثماني موثّق • قراءة دون اتصال بالإنترنت", 13f, muted, false, Gravity.CENTER)
+        gap(12)
+
+        val surahs = try {
+            quranRepository.loadSurahs()
+        } catch (_: Exception) {
+            text("تعذّر تحميل فهرس المصحف. أعد فتح الصفحة بعد التحقق من اكتمال ملفات التطبيق.", 14f, muted)
+            return
+        }
+        val prefs = getPreferences(0)
+        val lastSurah = prefs.getInt("quran_last_surah", 1).coerceIn(1, 114)
+        val lastAyah = prefs.getInt("quran_last_ayah", 1).coerceAtLeast(1)
+        val lastInfo = surahs[lastSurah - 1]
+
         card {
-            line("۞", 38f, gold, true, Gravity.CENTER)
-            line("المصحف الشريف", 23f, cream, true, Gravity.CENTER)
-            line("قراءة • تدبّر • استماع", 12f, muted, false, Gravity.CENTER)
-            gap(8)
-            line("نعمل على تجهيز مصحف مدمج داخل التطبيق بالرسم العثماني مع فهرس السور وحفظ موضع القراءة.", 13f, muted, false, Gravity.CENTER)
-            addView(button("فتح المصحف الموثوق الآن") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح المتصفح. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
+            line("متابعة القراءة", 18f, gold, true)
+            line("سورة ${lastInfo.name} • الآية $lastAyah", 14f, cream)
+            addView(button("متابعة من آخر موضع") {
+                quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
+
+        card {
+            line("البحث في آيات القرآن", 17f, gold, true)
+            val query = EditText(this@MainActivity).apply {
+                hint = "اكتب كلمة أو جزءاً من آية"
+                textSize = 15f
+                setTextColor(cream)
+                setHintTextColor(muted)
+                setSingleLine(true)
+                textDirection = View.TEXT_DIRECTION_RTL
+                background = shape(panelAlt, 12, Color.rgb(68, 103, 80))
+                setPadding(dp(12), dp(10), dp(12), dp(10))
+            }
+            addView(query, LinearLayout.LayoutParams(-1, -2))
+            gap(7)
+            addView(button("بحث في المصحف") {
+                val value = query.text.toString().trim()
+                if (value.length < 2) {
+                    Toast.makeText(this@MainActivity, "اكتب حرفين على الأقل للبحث", Toast.LENGTH_SHORT).show()
+                } else {
+                    quranSearchResults(value)
                 }
             }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
+        text("فهرس السور • 114 سورة", 18f, gold, true)
+        surahs.forEach { surah ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(13), dp(10), dp(13), dp(10))
+                background = shape(panel, 14, Color.rgb(42, 91, 72))
+                setOnClickListener { quranSurah(surah.number, 1) }
+            }
+            val number = TextView(this).apply {
+                text = "%03d".format(Locale.US, surah.number)
+                textSize = 13f
+                setTextColor(gold)
+                gravity = Gravity.CENTER
+                setPadding(dp(8), dp(6), dp(8), dp(6))
+                background = shape(panelAlt, 10, Color.rgb(89, 127, 82))
+            }
+            val details = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(12), 0, 0, 0)
+            }
+            details.addView(TextView(this).apply {
+                text = surah.name
+                textSize = 19f
+                setTextColor(cream)
+                typeface = Typeface.DEFAULT_BOLD
+            })
+            details.addView(TextView(this).apply {
+                text = "${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}"
+                textSize = 11f
+                setTextColor(muted)
+            })
+            row.addView(number, LinearLayout.LayoutParams(dp(48), -2))
+            row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
+            content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+        }
+
+        gap(10)
         card {
-            line("مصدر النص القرآني", 17f, gold, true)
-            line("سيُعتمد نص مشروع تنزيل (Tanzil) بالرسم العثماني كما هو دون أي تعديل، مع إبقاء إشعار حقوق النشر ورابط المصدر.", 13f, cream)
-            line("Tanzil Quran Text • Version 1.1 • CC BY 3.0", 11f, muted)
-            addView(button("زيارة موقع مشروع تنزيل") {
+            line("مصدر المصحف وحقوق النص", 16f, gold, true)
+            line("نص تنزيل العثماني • الإصدار 1.1 • CC BY 3.0. النص محفوظ كما ورد من المصدر دون تعديل.", 12f, muted)
+            addView(button("عرض شروط استخدام تنزيل") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/docs/Text_License")))
                 } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
             }, LinearLayout.LayoutParams(-1, -2))
         }
-        text("المصحف المدمج والفهرس والبحث والحفظ دون إنترنت لم تُفعّل بعد؛ لن نعرض نصاً قرآنياً غير موثّق.", 11f, muted, false, Gravity.CENTER)
     }
+
+    private fun quranSurah(surahNumber: Int, focusAyah: Int = 1) {
+        val surah = try {
+            quranRepository.loadSurahs().first { it.number == surahNumber }
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر فتح السورة", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ayahs = try {
+            quranRepository.loadAyahs(surahNumber)
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر قراءة ملف المصحف. أعد تثبيت النسخة بعد اكتمال التحقق.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        content.removeAllViews()
+        text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
+        addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
+        text("سورة ${surah.name}", 24f, cream, true, Gravity.CENTER)
+        text("${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}", 12f, muted, false, Gravity.CENTER)
+        gap(8)
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        controls.addView(button("أصغر") {
+            quranFontSize = (quranFontSize - 2f).coerceAtLeast(18f)
+            quranSurah(surahNumber, focusAyah)
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
+        controls.addView(button("أكبر") {
+            quranFontSize = (quranFontSize + 2f).coerceAtMost(36f)
+            quranSurah(surahNumber, focusAyah)
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
+        content.addView(controls, LinearLayout.LayoutParams(-1, -2))
+        gap(10)
+        text("اضغط على الآية لحفظ موضع القراءة والعودة إليه لاحقاً.", 11f, muted, false, Gravity.CENTER)
+
+        var focusView: View? = null
+        val savedAyah = getPreferences(0).getInt("quran_last_ayah", -1)
+        ayahs.forEach { ayah ->
+            val verseCard = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(15), dp(13), dp(15), dp(13))
+                background = shape(
+                    if (ayah.number == focusAyah) Color.rgb(24, 66, 49) else panel,
+                    15,
+                    if (ayah.number == focusAyah || ayah.number == savedAyah) gold else Color.rgb(42, 91, 72)
+                )
+                setOnClickListener {
+                    getPreferences(0).edit()
+                        .putInt("quran_last_surah", surahNumber)
+                        .putInt("quran_last_ayah", ayah.number)
+                        .apply()
+                    Toast.makeText(this@MainActivity, "حُفظ موضع القراءة: ${surah.name} • ${ayah.number}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            val verseText = TextView(this).apply {
+                text = ayah.text
+                textSize = quranFontSize
+                setTextColor(cream)
+                gravity = Gravity.CENTER
+                textDirection = View.TEXT_DIRECTION_RTL
+                typeface = Typeface.create("serif", Typeface.NORMAL)
+                setLineSpacing(dp(7).toFloat(), 1.15f)
+            }
+            val verseNumber = TextView(this).apply {
+                text = "﴿${ayah.number}﴾"
+                textSize = 12f
+                setTextColor(gold)
+                gravity = Gravity.CENTER
+                setPadding(0, dp(9), 0, 0)
+            }
+            verseCard.addView(verseText, LinearLayout.LayoutParams(-1, -2))
+            verseCard.addView(verseNumber, LinearLayout.LayoutParams(-1, -2))
+            content.addView(verseCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+            if (ayah.number == focusAyah) focusView = verseCard
+        }
+
+        val nextRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        nextRow.addView(button("السورة السابقة") {
+            if (surahNumber > 1) quranSurah(surahNumber - 1, 1)
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
+        nextRow.addView(button("السورة التالية") {
+            if (surahNumber < 114) quranSurah(surahNumber + 1, 1)
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
+        content.addView(nextRow, LinearLayout.LayoutParams(-1, -2))
+        mainScroll?.post {
+            focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
+        }
+    }
+
+    private fun quranSearchResults(query: String) {
+        val results = try {
+            quranRepository.search(query)
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر البحث في المصحف", Toast.LENGTH_SHORT).show()
+            return
+        }
+        content.removeAllViews()
+        text("نتائج البحث", 25f, gold, true, Gravity.CENTER)
+        text("الكلمة: $query", 13f, muted, false, Gravity.CENTER)
+        addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
+        if (results.isEmpty()) {
+            text("لا توجد نتائج مطابقة. جرّب كتابة جزء آخر من الآية.", 14f, muted, false, Gravity.CENTER)
+        } else {
+            text("عدد النتائج المعروضة: ${results.size}", 12f, muted)
+            results.forEach { result ->
+                val resultCard = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(13), dp(11), dp(13), dp(11))
+                    background = shape(panel, 14, Color.rgb(42, 91, 72))
+                    setOnClickListener { quranSurah(result.surahNumber, result.ayahNumber) }
+                }
+                resultCard.addView(TextView(this).apply {
+                    text = "سورة ${result.surahName} • الآية ${result.ayahNumber}"
+                    textSize = 13f
+                    setTextColor(gold)
+                    typeface = Typeface.DEFAULT_BOLD
+                })
+                resultCard.addView(TextView(this).apply {
+                    text = result.text
+                    textSize = 19f
+                    setTextColor(cream)
+                    gravity = Gravity.CENTER
+                    textDirection = View.TEXT_DIRECTION_RTL
+                    typeface = Typeface.create("serif", Typeface.NORMAL)
+                })
+                content.addView(resultCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+            }
+        }
+    }
+
 
     private fun settings() {
         text("مركز التخصيص", 27f, gold, true, Gravity.CENTER)
