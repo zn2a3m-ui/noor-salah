@@ -922,7 +922,6 @@ class MainActivity : Activity(), SensorEventListener {
                     timeOffsetMinutes = diff
                     getPreferences(0).edit().putInt("time_offset", diff).apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
-                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
                     showPage("settings")
                 }, baseMinutes / 60, baseMinutes % 60, true).show()
             }, LinearLayout.LayoutParams(-1, -2))
@@ -957,6 +956,7 @@ class MainActivity : Activity(), SensorEventListener {
                     cityName = names[i]; latitude = coords[i][0]; longitude = coords[i][1]
                     getPreferences(0).edit().putString("city_name", cityName).putString("city_lat", latitude.toString()).putString("city_lon", longitude.toString()).putString("location_mode", "manual").apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
