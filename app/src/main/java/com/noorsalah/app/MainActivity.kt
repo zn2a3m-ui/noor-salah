@@ -367,7 +367,7 @@ class MainActivity : Activity(), SensorEventListener {
             !remotePrefs.getBoolean("prayer_remote_prompt_dismissed", false)) {
             card {
                 line("تحسين دقة مواقيت الصلاة", 16f, gold, true)
-                line("يمكن جلب مواقيت الأردن المطابقة لجدول الوزارة عبر prayertime.si. عند التفعيل تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين فقط.", 12f, muted)
+                line("يمكن جلب مواقيت الأردن بطريقة وزارة الأوقاف الموثّقة عبر prayertime.si؛ وقد تختلف دقيقة أو دقيقتين عن أذان المسجد. عند التفعيل تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين فقط.", 12f, muted)
                 addView(button("تفعيل التحديث عبر الإنترنت") {
                     remotePrefs.edit().putBoolean("prayer_remote_consent", true)
                         .putBoolean("prayer_remote_prompt_dismissed", true).apply()
@@ -1153,7 +1153,7 @@ class MainActivity : Activity(), SensorEventListener {
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
-            line("في الأردن تُستخدم عند الاتصال طريقة وزارة الأوقاف الأردنية المطابقة لجدولها المنشور عبر prayertime.si. إذا اخترت طريقة حساب أخرى أو انقطع الإنترنت، يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
+            line("في الأردن تُستخدم عند الاتصال طريقة وزارة الأوقاف الأردنية الموثّقة عبر prayertime.si، وقد تختلف المواقيت دقيقة أو دقيقتين عن أذان المسجد. إذا اخترت طريقة حساب أخرى أو انقطع الإنترنت، يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
             addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
