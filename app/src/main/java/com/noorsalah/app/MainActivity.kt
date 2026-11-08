@@ -1392,8 +1392,8 @@ class MainActivity : Activity(), SensorEventListener {
                         stopQuranAudio()
                     }
                 } else {
-                    quranAudioStatusView?.text = "انتهت التلاوة"
                     stopQuranAudio()
+                    quranAudioStatusView?.text = "انتهت التلاوة"
                 }
             }
             media.setOnErrorListener { failed, _, _ ->
