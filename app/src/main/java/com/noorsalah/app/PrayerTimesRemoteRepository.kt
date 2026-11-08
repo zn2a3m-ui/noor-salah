@@ -129,9 +129,11 @@ object PrayerTimesRemoteRepository {
         }
     }
 
-    fun getHijriLabel(context: Context, date: Calendar): String? =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    fun getHijriLabel(context: Context, date: Calendar): String? {
+        if (getTimes(context, date) == null) return null
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("prayer_remote_hijri_${dateKey(date)}", null)
+    }
 
     fun getMethodLabel(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
