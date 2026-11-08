@@ -544,7 +544,8 @@ class MainActivity : Activity(), SensorEventListener {
                 selected.get(java.util.Calendar.MONTH) == monthIndex &&
                 selected.get(java.util.Calendar.DAY_OF_MONTH) == day
             val dayCell = TextView(this).apply {
-                text = if (hijri != null) "$day\n${hijri.day}" else day.toString()
+                val eventMarker = if (hijri != null && hijriEvent(hijri) != null) " •" else ""
+                text = if (hijri != null) "$day\n${hijri.day}$eventMarker" else day.toString()
                 textSize = 14f
                 gravity = Gravity.CENTER
                 setTextColor(if (isSelected || isToday) gold else cream)
@@ -564,6 +565,7 @@ class MainActivity : Activity(), SensorEventListener {
             grid.addView(dayCell, cellParams(60))
         }
         content.addView(grid, LinearLayout.LayoutParams(-1, -2))
+        text("• يوم مناسبة دينية", 10f, gold, false, Gravity.CENTER)
         if (firstHijri == null) {
             text("إذا كان مصدر المواقيت مفعّلاً، يجري تحميل بيانات الشهر الهجري عند توفر الاتصال.", 11f, muted, false, Gravity.CENTER)
         }
