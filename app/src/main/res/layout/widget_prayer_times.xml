@@ -62,14 +62,6 @@
             android:textSize="25sp"
             android:textStyle="bold"/>
 
-        <TextView
-            android:id="@+id/widget_countdown"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="بعد 00:25"
-            android:textColor="#D3DDCF"
-            android:textSize="11sp"/>
     </LinearLayout>
 
     <View
