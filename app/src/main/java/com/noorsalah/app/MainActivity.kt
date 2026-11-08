@@ -279,6 +279,28 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }
         content.addView(prayerSource, LinearLayout.LayoutParams(-1, -2))
+        val remotePrefs = getPreferences(0)
+        if (!remotePrefs.getBoolean("prayer_remote_consent", false) &&
+            !remotePrefs.getBoolean("prayer_remote_prompt_dismissed", false)) {
+            card {
+                line("تحسين دقة مواقيت الصلاة", 16f, gold, true)
+                line("يمكن جلب مواقيت الأردن المطابقة لجدول الوزارة عبر prayertime.si. عند التفعيل تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين فقط.", 12f, muted)
+                addView(button("تفعيل التحديث عبر الإنترنت") {
+                    remotePrefs.edit().putBoolean("prayer_remote_consent", true)
+                        .putBoolean("prayer_remote_prompt_dismissed", true).apply()
+                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true) {
+                        if (!isFinishing && page == "home") showPage("home")
+                    }
+                    Toast.makeText(this@MainActivity, "بدأ تحديث المواقيت", Toast.LENGTH_SHORT).show()
+                    showPage("home")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("المتابعة بالحساب المحلي") {
+                    remotePrefs.edit().putBoolean("prayer_remote_consent", false)
+                        .putBoolean("prayer_remote_prompt_dismissed", true).apply()
+                    showPage("home")
+                }, LinearLayout.LayoutParams(-1, -2))
+            }
+        }
         gap(5)
         val quickTitle = TextView(this@MainActivity).apply {
             text = "مساحتك الإيمانية"; textSize = 19f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
