@@ -1,0 +1,20 @@
+PRAYER TIMES DATA ATTRIBUTION
+
+Provider: prayertime.si
+API documentation: https://prayertime.si/developers/
+Provider terms: https://prayertime.si/terms/
+License: Creative Commons Attribution 4.0 (CC BY 4.0)
+Required attribution: display a link to https://prayertime.si when showing provider data.
+
+Jordan method:
+Authority named by the provider: Ministry of Awqaf, Islamic Affairs and Holy Places.
+Fajr angle: 18 degrees.
+Isha angle: 18 degrees.
+Provider verification status: matched against the authority's published timetable.
+Method/source details: https://prayertime.si/methods/
+Official Jordan timetable: https://www.awqaf.gov.jo/ar/Pages/PrayerTime
+
+The provider is an independent service, not a government agency. Its Jordan method
+is identified as matched against the Ministry's published timetable. The app keeps
+the provider attribution visible and falls back to its clearly labeled local estimate
+when verified online data is unavailable or another calculation method is selected.
