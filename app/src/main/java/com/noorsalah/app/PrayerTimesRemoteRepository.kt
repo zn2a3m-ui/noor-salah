@@ -85,8 +85,11 @@ object PrayerTimesRemoteRepository {
         val nearest = jordanCities.minByOrNull {
             distanceKm(latitude, longitude, it.latitude, it.longitude)
         } ?: return null
-        return nearest.nameArabic.takeIf {
-            distanceKm(latitude, longitude, nearest.latitude, nearest.longitude) <= 95.0
+        val distance = distanceKm(latitude, longitude, nearest.latitude, nearest.longitude)
+        return when {
+            distance <= 35.0 -> nearest.nameArabic
+            distance <= 95.0 -> "بالقرب من ${nearest.nameArabic}"
+            else -> null
         }
     }
 
