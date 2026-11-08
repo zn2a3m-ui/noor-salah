@@ -94,6 +94,7 @@ object PrayerTimesRemoteRepository {
         executor.execute {
             var updated = 0
             var allSucceeded = true
+            var cachePlaceSlug: String? = null
             try {
                 if (placeSlug != null) {
                     // A city month endpoint returns the full Gregorian month and its Hijri dates.
@@ -114,6 +115,7 @@ object PrayerTimesRemoteRepository {
                             try {
                                 val monthDays = request.get(20, TimeUnit.SECONDS)
                                 monthDays.forEach { storeRemoteDay(prefs, it) }
+                                if (monthDays.isNotEmpty()) cachePlaceSlug = placeSlug
                                 updated += monthDays.size
                             } catch (_: Exception) {
                                 allSucceeded = false
@@ -157,7 +159,7 @@ object PrayerTimesRemoteRepository {
                     prefs.edit()
                         .putString("prayer_remote_lat", latitude.toString())
                         .putString("prayer_remote_lon", longitude.toString())
-                        .putString("prayer_remote_place_slug", placeSlug)
+                        .putString("prayer_remote_place_slug", cachePlaceSlug)
                         .putLong("prayer_remote_fetch_time", fetchTime)
                         .apply()
                     Handler(Looper.getMainLooper()).post {
