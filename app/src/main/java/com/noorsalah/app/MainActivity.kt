@@ -211,11 +211,19 @@ class MainActivity : Activity(), SensorEventListener {
             return
         }
         val customUri = getPreferences(0).getString("custom_adhan_uri", null)
-        val player = if (selectedMuezzin.startsWith("صوت مخصص") && customUri != null) {
-            MediaPlayer.create(this, Uri.parse(customUri))
-        } else {
-            val resource = if (selectedMuezzin.startsWith("أذان قصير")) R.raw.adhan_short else R.raw.adhan_full
-            MediaPlayer.create(this, resource)
+        if (selectedMuezzin.startsWith("صوت مخصص") && customUri == null) {
+            Toast.makeText(this, "ملف الأذان المخصص غير متاح. اختره من جديد.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val player = try {
+            if (selectedMuezzin.startsWith("صوت مخصص")) {
+                MediaPlayer.create(this, Uri.parse(customUri!!))
+            } else {
+                val resource = if (selectedMuezzin.startsWith("أذان قصير")) R.raw.adhan_short else R.raw.adhan_full
+                MediaPlayer.create(this, resource)
+            }
+        } catch (_: Exception) {
+            null
         }
         if (player == null) {
             Toast.makeText(this, "تعذّر تشغيل ملف الأذان", Toast.LENGTH_SHORT).show()
