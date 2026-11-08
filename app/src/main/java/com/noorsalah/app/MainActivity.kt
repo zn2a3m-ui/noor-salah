@@ -1075,14 +1075,18 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun prayerTimesMinutes(): List<Int> {
         val date = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-        return PrayerTimesRemoteRepository.getTimes(this, date)
-            ?: PrayerTimesCalculator.calculate(
+        val remoteTimes = PrayerTimesRemoteRepository.getTimes(this, date)
+        return if (remoteTimes != null) {
+            remoteTimes.map { ((it + timeOffsetMinutes) % 1440 + 1440) % 1440 }
+        } else {
+            PrayerTimesCalculator.calculate(
                 date,
                 latitude,
                 longitude,
                 calculationMethod,
                 timeOffsetMinutes
             )
+        }
     }
 
     private fun formatPrayerTime(minutes: Int): String {
