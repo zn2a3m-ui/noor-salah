@@ -1,0 +1,22 @@
+QURAN AUDIO ATTRIBUTION
+
+Streaming provider: Al Quran Cloud / Islamic Network CDN
+Documentation: https://alquran.cloud/cdn
+Terms and conditions: https://alquran.cloud/terms-and-conditions
+CDN: https://cdn.islamic.network
+
+Audio is streamed on demand by complete surah. Audio files are not bundled
+with this application. An internet connection is required.
+
+Reciters offered in the app:
+- Mishary Rashid Alafasy (ar.alafasy)
+- Mahmoud Khalil Al-Husary (ar.husary)
+- Mohamed Siddiq al-Minshawi (ar.minshawi)
+- Abdul Rahman Al-Sudais (ar.sudais)
+- Abdul Basit Abdul Samad (ar.abdulbasit)
+
+The provider states that recitations are licensed to Islamic Network by the
+reciters or their estates for free, non-commercial redistribution at the
+published bitrates. Streaming and embedding are permitted for personal and
+educational use. Copyright remains with the reciters or their rights-holders.
+The app does not claim ownership of the recordings.
