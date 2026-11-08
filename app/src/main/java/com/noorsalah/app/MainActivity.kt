@@ -352,7 +352,7 @@ class MainActivity : Activity(), SensorEventListener {
             val selectedCalendar = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
             hijriDateForCalendar(selectedCalendar)?.let { hijri ->
                 line("${hijri.day} ${hijri.monthArabic} ${hijri.year} هـ", 13f, gold, true, Gravity.CENTER)
-                if (hijri.basis == "local-umm-al-qura") {
+                if (hijri.basis.contains("umm-al-qura")) {
                     line("تقويم أم القرى • قد يختلف عن الرؤية المحلية", 10f, muted, false, Gravity.CENTER)
                 }
             }
