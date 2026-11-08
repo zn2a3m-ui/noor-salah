@@ -324,7 +324,7 @@ class MainActivity : Activity(), SensorEventListener {
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 intArrayOf(Color.rgb(8, 92, 65), Color.rgb(4, 48, 39), Color.rgb(3, 31, 27))
-            ).apply { cornerRadius = dp(25).toFloat(); setStroke(dp(1), gold) }
+            ).apply { cornerRadius = dp(25).toFloat(); setStroke(dp(1), goldOnDark) }
             elevation = dp(5).toFloat()
         }
         val eyebrow = TextView(this@MainActivity).apply {
@@ -602,7 +602,7 @@ class MainActivity : Activity(), SensorEventListener {
                 setTextColor(if (isSelected || isToday) goldOnDark else cream)
                 typeface = if (isSelected || isToday) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                 background = when {
-                    isSelected -> shape(Color.rgb(31, 79, 57), 12, gold)
+                    isSelected -> shape(Color.rgb(31, 79, 57), 12, goldOnDark)
                     isToday -> shape(Color.rgb(23, 62, 47), 12, Color.rgb(107, 143, 93))
                     else -> shape(panel, 12, Color.rgb(39, 78, 62))
                 }
