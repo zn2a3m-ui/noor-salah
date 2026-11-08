@@ -595,7 +595,26 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("تنبيهات الصلاة", 18f, gold, true)
             line("فعّل التنبيهات ليصلك إشعار عند دخول وقت كل صلاة. الصوت الحالي هو صوت إشعار الهاتف، وليس ملف أذان.", 13f, muted)
-            addView(button("تفعيل تنبيهات الصلاة") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
+            val prayerSettings = listOf(
+                "الفجر" to "prayer_enabled_fajr",
+                "الظهر" to "prayer_enabled_dhuhr",
+                "العصر" to "prayer_enabled_asr",
+                "المغرب" to "prayer_enabled_maghrib",
+                "العشاء" to "prayer_enabled_isha"
+            )
+            prayerSettings.forEach { (label, key) ->
+                val toggle = Switch(this@MainActivity).apply {
+                    text = "تنبيه صلاة $label"
+                    setTextColor(cream)
+                    isChecked = getPreferences(0).getBoolean(key, true)
+                    setOnCheckedChangeListener { _, enabled ->
+                        getPreferences(0).edit().putBoolean(key, enabled).apply()
+                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                    }
+                }
+                addView(toggle, LinearLayout.LayoutParams(-1, -2))
+            }
+            addView(button("تفعيل صلاحية الإشعارات") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
             addView(button("السماح بالتنبيه الدقيق في وقته") { requestExactAlarmPermission() }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
