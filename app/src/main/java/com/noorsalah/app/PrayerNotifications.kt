@@ -51,6 +51,9 @@ object PrayerAlarmScheduler {
             val times = prayerTimes(context, date)
             val dayKey = date.get(Calendar.YEAR) * 5000 + date.get(Calendar.DAY_OF_YEAR) * 10
             times.forEachIndexed { index, minuteOfDay ->
+                val preferenceKeys = listOf("prayer_enabled_fajr", "prayer_enabled_dhuhr", "prayer_enabled_asr", "prayer_enabled_maghrib", "prayer_enabled_isha")
+                val prefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+                if (!prefs.getBoolean(preferenceKeys[index], true)) return@forEachIndexed
                 val trigger = (date.clone() as Calendar).apply {
                     set(Calendar.HOUR_OF_DAY, minuteOfDay / 60)
                     set(Calendar.MINUTE, minuteOfDay % 60)
