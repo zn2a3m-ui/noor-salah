@@ -88,6 +88,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var locationRequestInFlight = false
     private var locationAccuracyMeters: Float? = null
     private var heading = 0f
+    private var hasCompassReading = false
     private var page = "home"
     private var count = 0
     private var selectedDhikr = "سُبْحَانَ اللهِ وَبِحَمْدِهِ"
@@ -724,7 +725,11 @@ class MainActivity : Activity(), SensorEventListener {
                 gravity = Gravity.CENTER; topMargin = dp(12); bottomMargin = dp(14)
             })
             val infoView = TextView(this@MainActivity).apply {
-                text = "اتجاه الهاتف عن الشمال الحقيقي: ${"%.0f".format(heading)}°"
+                text = if (hasCompassReading) {
+                    "اتجاه الهاتف عن الشمال الحقيقي: ${"%.0f".format(heading)}°"
+                } else {
+                    "جارٍ قراءة اتجاه الهاتف من البوصلة…"
+                }
                 textSize = 14f; gravity = Gravity.CENTER; setTextColor(cream)
             }
             compassInfo = infoView
@@ -2079,6 +2084,7 @@ class MainActivity : Activity(), SensorEventListener {
             System.currentTimeMillis()
         ).declination
         heading = QiblaCalculator.trueHeading(magneticHeading, declination)
+        hasCompassReading = true
         arrow?.rotation = qibla().toFloat() - heading
         val accuracyHint = if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) " • حرّك الهاتف للمعايرة" else ""
         compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°$accuracyHint"
