@@ -14,10 +14,9 @@ class QuranRepositoryTest {
 
     @Test
     fun normalizesHamzaAndTatweelWithoutChangingPublishedText() {
-        val repository = QuranRepository(android.test.mock.MockContext())
         assertEquals(
             "مومنون",
-            repository.normalizeForSearch("مُؤْمِنُون")
+            normalizeQuranSearchText("مُؤْمِنُون")
         )
         assertEquals(
             "بسم الله",
