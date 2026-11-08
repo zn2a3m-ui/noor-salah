@@ -7,7 +7,7 @@ class QuranRepositoryTest {
     @Test
     fun normalizesArabicDiacriticsAndAlifVariantsForSearch() {
         assertEquals(
-            "الله يهدي الى الصراط",
+            "الله يهدي الي الصراط",
             normalizeQuranSearchText("اللَّهُ يَهْدِي إِلَى الصِّرَاطِ")
         )
     }
