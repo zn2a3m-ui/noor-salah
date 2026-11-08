@@ -208,18 +208,22 @@ object PrayerTimesRemoteRepository {
         }
         executor.execute {
             try {
-                val monthDays = fetchMonth("jordan", placeSlug, year, month)
-                monthDays.forEach { storeRemoteDay(prefs, it) }
-                if (monthDays.isNotEmpty()) {
-                    prefs.edit()
-                        .putString("prayer_remote_lat", latitude.toString())
-                        .putString("prayer_remote_lon", longitude.toString())
-                        .putString("prayer_remote_place_slug", placeSlug)
-                        .putLong("prayer_remote_fetch_time", System.currentTimeMillis())
-                        .apply()
-                    Handler(Looper.getMainLooper()).post {
-                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(appContext)
-                        onUpdated?.invoke()
+                val alreadyCached = getTimes(appContext, firstDay) != null &&
+                    getTimes(appContext, lastDay) != null
+                if (!alreadyCached) {
+                    val monthDays = fetchMonth("jordan", placeSlug, year, month)
+                    monthDays.forEach { storeRemoteDay(prefs, it) }
+                    if (monthDays.isNotEmpty()) {
+                        prefs.edit()
+                            .putString("prayer_remote_lat", latitude.toString())
+                            .putString("prayer_remote_lon", longitude.toString())
+                            .putString("prayer_remote_place_slug", placeSlug)
+                            .putLong("prayer_remote_fetch_time", System.currentTimeMillis())
+                            .apply()
+                        Handler(Looper.getMainLooper()).post {
+                            PrayerAlarmScheduler.scheduleTodayAndTomorrow(appContext)
+                            onUpdated?.invoke()
+                        }
                     }
                 }
             } catch (_: Exception) {
