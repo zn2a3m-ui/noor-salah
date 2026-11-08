@@ -710,10 +710,17 @@ class MainActivity : Activity(), SensorEventListener {
         val categoryItems = linkedMapOf(
             "الصباح" to listOf("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "سُبْحَانَ اللهِ وَبِحَمْدِهِ"),
             "المساء" to listOf("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ"),
-            "بعد الصلاة" to listOf("أَسْتَغْفِرُ اللهَ", "اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ", "سُبْحَانَ اللهِ", "الْحَمْدُ لِلَّهِ", "اللهُ أَكْبَرُ", "لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ")
+            "بعد الصلاة" to listOf("أَسْتَغْفِرُ اللهَ", "اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ", "سُبْحَانَ اللهِ", "الْحَمْدُ لِلَّهِ", "اللهُ أَكْبَرُ", "لَا إِلَهَ إِلَّا اللهُ وَحْدَهُ لَا شَرِيكَ لَهُ"),
+            "النوم" to listOf("بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا", "اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ"),
+            "الاستيقاظ" to listOf("الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَمَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ")
+        )
+        val azkarSources = mapOf(
+            "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا" to "صحيح البخاري",
+            "اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ" to "سنن أبي داود والترمذي",
+            "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَمَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ" to "صحيح البخاري"
         )
         val categoryStrip = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
         }
         val categoryContent = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
         fun renderCategory() {
@@ -741,11 +748,21 @@ class MainActivity : Activity(), SensorEventListener {
                     setPadding(0, dp(5), 0, 0)
                 }
                 item.addView(phraseView); item.addView(hintView)
+                azkarSources[phrase]?.let { source ->
+                    val sourceView = TextView(this@MainActivity).apply {
+                        text = "المصدر: $source"
+                        textSize = 10f
+                        setTextColor(muted)
+                        gravity = Gravity.CENTER
+                        setPadding(0, dp(5), 0, 0)
+                    }
+                    item.addView(sourceView)
+                }
                 categoryContent.addView(item, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
             }
         }
         val categoryButtons = linkedMapOf<String, TextView>()
-        listOf("الصباح", "المساء", "بعد الصلاة").forEach { label ->
+        categoryItems.keys.toList().forEach { label ->
             val chip = TextView(this@MainActivity).apply {
                 text = label; textSize = 11f; gravity = Gravity.CENTER
                 setTextColor(cream); setPadding(dp(8), dp(10), dp(8), dp(10))
@@ -762,7 +779,7 @@ class MainActivity : Activity(), SensorEventListener {
                 }
             }
             categoryButtons[label] = chip
-            categoryStrip.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
+            categoryStrip.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
         }
         categoryButtons.forEach { (name, view) ->
             val active = name == selectedCategory
@@ -770,7 +787,12 @@ class MainActivity : Activity(), SensorEventListener {
                 if (active) gold else Color.rgb(48, 99, 75))
             view.setTextColor(if (active) gold else cream)
         }
-        content.addView(categoryStrip); gap(10)
+        val categoryScroll = HorizontalScrollView(this@MainActivity).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(categoryStrip, HorizontalScrollView.LayoutParams(-2, -2))
+        }
+        content.addView(categoryScroll, LinearLayout.LayoutParams(-1, -2))
+        gap(10)
         renderCategory()
         content.addView(categoryContent)
         gap(8)
