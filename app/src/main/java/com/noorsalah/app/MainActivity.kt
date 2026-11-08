@@ -354,11 +354,11 @@ class MainActivity : Activity(), SensorEventListener {
                     setPadding(dp(13), dp(12), dp(13), dp(12))
                     background = shape(panel, 15, Color.rgb(42, 91, 72))
                     setOnClickListener {
-                        selectedDhikr = phrase
                         val prefs = getPreferences(0)
-                        prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).putString("selected_dhikr", phrase).apply()
+                        prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
+                        selectedDhikr = phrase
                         count = prefs.getInt("tasbeeh_count_$phrase", 0)
-                        prefs.edit().putInt("tasbeeh", count).apply()
+                        prefs.edit().putString("selected_dhikr", phrase).putInt("tasbeeh", count).apply()
                         showPage("azkar")
                     }
                 }
