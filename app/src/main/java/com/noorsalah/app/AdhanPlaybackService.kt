@@ -121,9 +121,6 @@ class AdhanPlaybackService : Service() {
             val volume = getSharedPreferences("MainActivity", MODE_PRIVATE)
                 .getInt("adhan_volume", 100).coerceIn(0, 100) / 100f
             media.setVolume(volume, volume)
-            val volume = getSharedPreferences("MainActivity", MODE_PRIVATE)
-                .getInt("adhan_volume", 100).coerceIn(0, 100) / 100f
-            media.setVolume(volume, volume)
             if (selectedAudio.startsWith("صوت مخصص") && customUri != null) {
                 media.setDataSource(this, customUri)
             } else {
