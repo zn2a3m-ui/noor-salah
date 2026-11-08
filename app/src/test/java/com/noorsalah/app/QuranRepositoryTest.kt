@@ -6,10 +6,9 @@ import org.junit.Test
 class QuranRepositoryTest {
     @Test
     fun normalizesArabicDiacriticsAndAlifVariantsForSearch() {
-        val repository = QuranRepository(android.test.mock.MockContext())
         assertEquals(
             "الله يهدي الى الصراط",
-            repository.normalizeForSearch("اللَّهُ يَهْدِي إِلَى الصِّرَاطِ")
+            normalizeQuranSearchText("اللَّهُ يَهْدِي إِلَى الصِّرَاطِ")
         )
     }
 
