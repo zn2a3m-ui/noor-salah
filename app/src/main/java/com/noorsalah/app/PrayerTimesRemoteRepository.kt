@@ -113,6 +113,7 @@ object PrayerTimesRemoteRepository {
         if (!selectedMethod.startsWith("الأردن")) return null
         val currentLat = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         val currentLon = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+        if (!isJordan(currentLat, currentLon)) return null
         val cachedLat = prefs.getString("prayer_remote_lat", null)?.toDoubleOrNull() ?: return null
         val cachedLon = prefs.getString("prayer_remote_lon", null)?.toDoubleOrNull() ?: return null
         if (abs(currentLat - cachedLat) >= 0.015 || abs(currentLon - cachedLon) >= 0.015) return null
