@@ -374,6 +374,8 @@ object PrayerTimesRemoteRepository {
         return when (status) {
             "fitted" -> "$method • مطابقة لجدول الجهة المنشور"
             "verified" -> "$method • موثقة من مصدر الجهة"
+            "library" -> "$method • من مكتبة الطرق لدى المصدر"
+            "unverified" -> "$method • لم تُتحقق مطابقته محلياً"
             else -> "$method • طريقة حسابية من المصدر"
         }
     }
