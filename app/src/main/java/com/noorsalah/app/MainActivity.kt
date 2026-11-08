@@ -126,6 +126,7 @@ class MainActivity : Activity(), SensorEventListener {
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
         timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
         selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
+        quranFontSize = getPreferences(0).getFloat("quran_font_size", 25f).coerceIn(18f, 36f)
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
@@ -1166,10 +1167,12 @@ class MainActivity : Activity(), SensorEventListener {
         }
         controls.addView(button("أصغر") {
             quranFontSize = (quranFontSize - 2f).coerceAtLeast(18f)
+            getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
             quranSurah(surahNumber, focusAyah)
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
         controls.addView(button("أكبر") {
             quranFontSize = (quranFontSize + 2f).coerceAtMost(36f)
+            getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
             quranSurah(surahNumber, focusAyah)
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(controls, LinearLayout.LayoutParams(-1, -2))
