@@ -1653,7 +1653,10 @@ class MainActivity : Activity(), SensorEventListener {
             }.maxByOrNull { it.time }
 
             val lastAge = lastKnown?.let { System.currentTimeMillis() - it.time } ?: Long.MAX_VALUE
-            if (!forceGps && lastKnown != null && lastAge in 0..(10 * 60 * 1000L)) {
+            val lastKnownAccurate = lastKnown != null &&
+                (!lastKnown.hasAccuracy() || lastKnown.accuracy <= 150f)
+            if (!forceGps && lastKnown != null && lastKnownAccurate &&
+                lastAge in 0..(10 * 60 * 1000L)) {
                 applyLocation(lastKnown)
                 return
             }
