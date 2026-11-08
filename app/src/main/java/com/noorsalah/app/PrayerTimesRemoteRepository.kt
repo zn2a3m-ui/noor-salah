@@ -100,6 +100,8 @@ object PrayerTimesRemoteRepository {
         force: Boolean = false,
         onUpdated: (() -> Unit)? = null
     ) {
+        if (!latitude.isFinite() || !longitude.isFinite() ||
+            latitude !in -90.0..90.0 || longitude !in -180.0..180.0) return
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("prayer_remote_consent", false)) return
@@ -315,6 +317,8 @@ object PrayerTimesRemoteRepository {
         if (prefs.getString("prayer_remote_method_key", null) != methodId) return null
         val currentLat = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         val currentLon = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+        if (!currentLat.isFinite() || !currentLon.isFinite() ||
+            currentLat !in -90.0..90.0 || currentLon !in -180.0..180.0) return null
         val cachedPlace = prefs.getString("prayer_remote_place_slug", null)
         val currentPlace = if (methodId == "JORDAN" && isJordan(currentLat, currentLon)) {
             placeSlugFor(prefs, currentLat, currentLon)
