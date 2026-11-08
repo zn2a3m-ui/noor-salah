@@ -168,9 +168,14 @@ object PrayerTimesRemoteRepository {
                         requests.forEach { request ->
                             try {
                                 val monthDays = request.get(20, TimeUnit.SECONDS)
-                                monthDays.forEach { storeRemoteDay(prefs, it) }
-                                if (monthDays.isNotEmpty()) cachePlaceSlug = placeSlug
-                                updated += monthDays.size
+                                if (isCurrentMethod(prefs, methodId)) {
+                                    monthDays.forEach { storeRemoteDay(prefs, it) }
+                                    if (monthDays.isNotEmpty()) cachePlaceSlug = placeSlug
+                                    updated += monthDays.size
+                                } else {
+                                    allSucceeded = false
+                                    request.cancel(true)
+                                }
                             } catch (_: Exception) {
                                 allSucceeded = false
                                 request.cancel(true)
@@ -196,8 +201,13 @@ object PrayerTimesRemoteRepository {
                         requests.forEach { request ->
                             try {
                                 val remote = request.get(20, TimeUnit.SECONDS)
-                                storeRemoteDay(prefs, remote)
-                                updated++
+                                if (isCurrentMethod(prefs, methodId)) {
+                                    storeRemoteDay(prefs, remote)
+                                    updated++
+                                } else {
+                                    allSucceeded = false
+                                    request.cancel(true)
+                                }
                             } catch (_: Exception) {
                                 allSucceeded = false
                                 request.cancel(true)
@@ -207,7 +217,7 @@ object PrayerTimesRemoteRepository {
                         fetchPool.shutdownNow()
                     }
                 }
-                if (updated > 0) {
+                if (updated > 0 && isCurrentMethod(prefs, methodId)) {
                     val fetchTime = if (allSucceeded) System.currentTimeMillis()
                     else System.currentTimeMillis() - (REFRESH_INTERVAL_MS / 2)
                     prefs.edit()
@@ -283,8 +293,9 @@ object PrayerTimesRemoteRepository {
                     getTimes(appContext, lastDay) != null
                 if (!alreadyCached) {
                     val monthDays = fetchMonth("jordan", placeSlug, year, month)
+                    if (!isCurrentMethod(prefs, methodId)) return@execute
                     monthDays.forEach { storeRemoteDay(prefs, it) }
-                    if (monthDays.isNotEmpty()) {
+                    if (monthDays.isNotEmpty() && isCurrentMethod(prefs, methodId)) {
                         prefs.edit()
                             .putString("prayer_remote_lat", latitude.toString())
                             .putString("prayer_remote_lon", longitude.toString())
@@ -412,6 +423,11 @@ object PrayerTimesRemoteRepository {
         label.startsWith("ديانت تركيا") -> "DIYANET"
         label.startsWith("سنغافورة") -> "SINGAPORE"
         else -> "MWL"
+    }
+
+    private fun isCurrentMethod(prefs: android.content.SharedPreferences, methodId: String): Boolean {
+        val selected = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
+        return methodIdFor(selected) == methodId
     }
 
     private fun clearRemoteDayCache(prefs: android.content.SharedPreferences) {
