@@ -1849,12 +1849,12 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         sectionHeading("مصدر مواقيت الصلاة والخصوصية")
         card {
-            line("المواقيت بطريقة وزارة الأوقاف الموثّقة", 16f, gold, true)
+            line("مصدر مواقيت الصلاة المتصل", 16f, gold, true)
             val onlineSwitch = Switch(this@MainActivity).apply {
                 text = "السماح بتحديث المواقيت عبر الإنترنت"
                 setTextColor(cream)
-                isEnabled = calculationMethod.startsWith("الأردن") &&
-                    PrayerTimesRemoteRepository.isJordan(latitude, longitude)
+                isEnabled = latitude.isFinite() && longitude.isFinite() &&
+                    latitude in -90.0..90.0 && longitude in -180.0..180.0
                 isChecked = getPreferences(0).getBoolean("prayer_remote_consent", false) && isEnabled
                 setOnCheckedChangeListener { _, enabled ->
                     getPreferences(0).edit()
@@ -1874,9 +1874,9 @@ class MainActivity : Activity(), SensorEventListener {
                 }
             }
             addView(onlineSwitch, LinearLayout.LayoutParams(-1, -2))
-            line("عند التفعيل يُرسل اسم المدينة أو إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين إلى prayertime.si لجلب المواقيت. لا تُرسل الإحداثيات الدقيقة أو ملفاتك. يمكنك إيقاف هذا الخيار في أي وقت؛ وعند الإيقاف يعمل الحساب المحلي التقديري.", 12f, muted)
-            line("المصدر الأردني متاح حالياً داخل الأردن عند اختيار طريقة حساب الأردن؛ دعم مصادر بقية الدول قيد التطوير.", 11f, muted)
-            line("يحفظ جداول الأشهر القريبة للمدن المدعومة، أو مواقيت الأيام السبعة القادمة للمواقع الأخرى، لتستمر التنبيهات دون اتصال بقدر البيانات المخزنة.", 12f, muted)
+            line("عند التفعيل تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين إلى prayertime.si لحساب المواقيت وفق طريقة الحساب المختارة. لا تُرسل الإحداثيات الدقيقة أو ملفاتك. يمكنك إيقاف هذا الخيار في أي وقت؛ وعند الإيقاف يعمل الحساب المحلي التقديري.", 12f, muted)
+            line("يدعم المصدر المتصل المواقع حول العالم. في الأردن مع طريقة الوزارة يستخدم جدول المدينة المنشور لدى الخدمة، وفي بقية الحالات يستخدم طريقة الحساب التي تختارها. قد تختلف النتائج دقيقة أو دقيقتين عن أذان المسجد.", 11f, muted)
+            line("يحفظ التطبيق جداول الأشهر القريبة للمدن الأردنية المدعومة، أو مواقيت الأيام السبعة القادمة للمواقع والطرق الأخرى، لتستمر التنبيهات دون اتصال بقدر البيانات المخزنة.", 12f, muted)
             addView(button("شروط مصدر المواقيت") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://prayertime.si/terms/")))
@@ -1911,13 +1911,11 @@ class MainActivity : Activity(), SensorEventListener {
                     calculationMethod = methods[i]
                     getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
-                    if (calculationMethod.startsWith("الأردن")) {
-                        PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
-                    }
+                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
-            line("في الأردن تُستخدم عند الاتصال طريقة الحساب التي تنسبها خدمة prayertime.si إلى وزارة الأوقاف، وتذكر أنها طابقتها مع جدول الجهة المنشور؛ وقد تختلف المواقيت دقيقة أو دقيقتين عن أذان المسجد. إذا اخترت طريقة حساب أخرى أو انقطع الإنترنت، يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
+            line("اختر طريقة الحساب المناسبة لموقعك. عند تفعيل المصدر المتصل تُرسل الطريقة المختارة للخدمة؛ وفي الأردن عند اختيار طريقة الوزارة تُستخدم بيانات جدول المدينة. قد تختلف المواقيت دقيقة أو دقيقتين عن أذان المسجد، وعند انقطاع الإنترنت يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
             addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
