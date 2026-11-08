@@ -190,13 +190,24 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
             val selectedAudio = preferences.getString("muezzin", "أذان كامل — تسجيل مرخّص") ?: "أذان كامل — تسجيل مرخّص"
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val customChannelAvailable = Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            val customUri = preferences.getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
+            val customAudioAvailable = if (selectedAudio.startsWith("صوت مخصص") && customUri != null) {
+                try {
+                    context.contentResolver.openFileDescriptor(customUri, "r")?.use { true } ?: false
+                } catch (_: Exception) {
+                    false
+                }
+            } else false
+            val customChannelAvailable = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                customAudioAvailable
+            } else {
                 manager.getNotificationChannel(PrayerAlarmScheduler.CHANNEL_CUSTOM_ID) != null
+            }
             val channelId = when {
                 selectedAudio.startsWith("أذان قصير") -> PrayerAlarmScheduler.CHANNEL_SHORT_ID
                 selectedAudio.startsWith("تنبيه النظام") -> PrayerAlarmScheduler.CHANNEL_ALERT_ID
                 selectedAudio.startsWith("صوت مخصص") &&
-                    preferences.getString("custom_adhan_uri", null) != null && customChannelAvailable ->
+                    customAudioAvailable && customChannelAvailable ->
                     PrayerAlarmScheduler.CHANNEL_CUSTOM_ID
                 else -> PrayerAlarmScheduler.CHANNEL_ID
             }
@@ -206,9 +217,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 val sound = when {
                     selectedAudio.startsWith("أذان قصير") -> Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_short}")
                     selectedAudio.startsWith("تنبيه النظام") -> Settings.System.DEFAULT_NOTIFICATION_URI
-                    selectedAudio.startsWith("صوت مخصص") ->
-                        preferences.getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
-                            ?: Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_full}")
+                    selectedAudio.startsWith("صوت مخصص") && customAudioAvailable && customUri != null -> customUri
                     else -> Uri.parse("android.resource://${context.packageName}/${R.raw.adhan_full}")
                 }
                 Notification.Builder(context)
