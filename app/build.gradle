@@ -16,9 +16,9 @@ def adhanFullAsset = file("$projectDir/src/main/res/raw/adhan_full.ogg")
 def adhanShortAsset = file("$projectDir/src/main/res/raw/adhan_short.ogg")
 def adhanAudioSources = [
     [file: adhanFullAsset, url: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Beautiful_adhan.ogg",
-     sha1: "a1fa4fd942401922c5c3301816384aae86956522", size: 1229032],
+     sha1: "a1fa4fd942401922c5c3301816384aae86956522", sha256: "35fe06b08fe80505c550c33fed8a783fa9901ddc81ac884958b4be048f5b2a79", size: 1229032],
     [file: adhanShortAsset, url: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Adhan.ogg",
-     sha1: "b86432f1581e11f898de1dc3402af0d541af110e", size: 338741]
+     sha1: "b86432f1581e11f898de1dc3402af0d541af110e", sha256: "faeb03e4338554fb8b54dba98ed4949648615b58e991bbd560a89f4837dde413", size: 338741]
 ]
 
 tasks.register("downloadVerifiedAdhanAudio") {
@@ -38,7 +38,9 @@ tasks.register("downloadVerifiedAdhanAudio") {
             }
             def digest = java.security.MessageDigest.getInstance("SHA-1").digest(source.file.bytes)
             def actualSha1 = new BigInteger(1, digest).toString(16).padLeft(40, "0")
-            if (source.file.length() != source.size || actualSha1 != source.sha1) {
+            def actualSha256 = new BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(source.file.bytes))
+                .toString(16).padLeft(64, "0")
+            if (source.file.length() != source.size || actualSha1 != source.sha1 || actualSha256 != source.sha256) {
                 source.file.delete()
                 throw new GradleException("Adhan audio verification failed for ${source.file.name}.")
             }
