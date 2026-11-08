@@ -783,31 +783,14 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun prayerTimesMinutes(): List<Int> {
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-        val day = cal.get(java.util.Calendar.DAY_OF_YEAR)
-        val days = if (cal.getActualMaximum(java.util.Calendar.DAY_OF_YEAR) == 366) 366.0 else 365.0
-        val g = 2.0 * Math.PI / days * (day - 1)
-        val eq = 229.18 * (0.000075 + 0.001868*cos(g) - 0.032077*sin(g) - 0.014615*cos(2*g) - 0.040849*sin(2*g))
-        val dec = 0.006918 - 0.399912*cos(g) + 0.070257*sin(g) - 0.006758*cos(2*g) + 0.000907*sin(2*g) - 0.002697*cos(3*g) + 0.00148*sin(3*g)
-        val lat = Math.toRadians(latitude)
-        val zone = (cal.get(java.util.Calendar.ZONE_OFFSET) + cal.get(java.util.Calendar.DST_OFFSET)) / 60000.0
-        val noon = 720.0 - 4.0*longitude - eq + zone + timeOffsetMinutes
-        fun ha(altitude: Double): Double {
-            val a = Math.toRadians(altitude)
-            val v = (sin(a)-sin(lat)*sin(dec))/(cos(lat)*cos(dec))
-            return Math.toDegrees(acos(v.coerceIn(-1.0,1.0)))*4.0
-        }
-        val fajrAngle = if (calculationMethod.startsWith("أم القرى")) 18.5 else 18.0
-        val ishaAngle = if (calculationMethod.startsWith("أم القرى")) 0.0 else if (calculationMethod.startsWith("الأردن")) 18.0 else 17.0
-        val fajr = noon-ha(-fajrAngle)
-        val sunrise = noon-ha(-0.833)
-        val dhuhr = noon+2.0
-        val asrAltitude = Math.toDegrees(atan(1.0/(1.0+tan(abs(lat-dec)))))
-        val asr = noon+ha(asrAltitude)
-        val sunset = noon+ha(-0.833)
-        val maghrib = sunset + if (calculationMethod.startsWith("الأردن")) 5.0 else 0.0
-        val isha = if (ishaAngle == 0.0) sunset+90.0 else noon+ha(-ishaAngle)
-        return listOf(fajr,sunrise,dhuhr,asr,maghrib,isha).map { ((it.roundToInt()%1440)+1440)%1440 }
+        val date = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        return PrayerTimesCalculator.calculate(
+            date,
+            latitude,
+            longitude,
+            calculationMethod,
+            timeOffsetMinutes
+        )
     }
 
     private fun formatPrayerTime(minutes: Int): String {
