@@ -681,7 +681,10 @@ class MainActivity : Activity(), SensorEventListener {
         text("اضغط على الآية لحفظ موضع القراءة والعودة إليه لاحقاً.", 11f, muted, false, Gravity.CENTER)
 
         var focusView: View? = null
-        val savedAyah = getPreferences(0).getInt("quran_last_ayah", -1)
+        val savedPrefs = getPreferences(0)
+        val savedAyah = if (savedPrefs.getInt("quran_last_surah", -1) == surahNumber) {
+            savedPrefs.getInt("quran_last_ayah", -1)
+        } else -1
         ayahs.forEach { ayah ->
             val verseCard = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
