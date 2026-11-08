@@ -24,6 +24,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import java.text.SimpleDateFormat
@@ -182,6 +183,12 @@ class MainActivity : Activity(), SensorEventListener {
             return
         }
         adhanPreviewPlayer = player
+        player.setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+        )
         player.setOnCompletionListener {
             it.release()
             if (adhanPreviewPlayer === it) adhanPreviewPlayer = null
