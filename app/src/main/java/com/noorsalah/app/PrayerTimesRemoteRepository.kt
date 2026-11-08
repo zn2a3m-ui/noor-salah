@@ -103,6 +103,12 @@ object PrayerTimesRemoteRepository {
                         onUpdated?.invoke()
                     }
                 }
+                else {
+                    // Avoid retrying on every Activity resume when the device is offline.
+                    prefs.edit()
+                        .putLong("prayer_remote_fetch_time", System.currentTimeMillis() - REFRESH_INTERVAL_MS + 30L * 60L * 1000L)
+                        .apply()
+                }
             } finally {
                 refreshInFlight = false
             }
