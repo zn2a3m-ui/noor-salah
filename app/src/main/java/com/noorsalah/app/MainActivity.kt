@@ -1594,7 +1594,11 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 pageView.setOnTouchListener { _, event ->
                     when (event.actionMasked) {
-                        android.view.MotionEvent.ACTION_DOWN ->
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            val zoomed = pageView.zoom.step > 0 || pageView.zoom.zoom > 1.01f
+                            pageView.parent?.requestDisallowInterceptTouchEvent(zoomed)
+                        }
+                        android.view.MotionEvent.ACTION_POINTER_DOWN ->
                             pageView.parent?.requestDisallowInterceptTouchEvent(true)
                         android.view.MotionEvent.ACTION_UP,
                         android.view.MotionEvent.ACTION_CANCEL ->
