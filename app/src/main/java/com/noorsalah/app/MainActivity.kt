@@ -104,6 +104,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranAudioQueue: List<Int> = emptyList()
     private var quranAudioQueueIndex = 0
     private var quranAudioQueueStartGlobal = 1
+    private var quranAudioQueueEndGlobal = 6236
     private var quranAudioQueueReciter: QuranReciter? = null
     private data class QuranReciter(val name: String, val edition: String, val bitrate: Int)
     private val quranReciters = listOf(
@@ -1525,7 +1526,7 @@ class MainActivity : Activity(), SensorEventListener {
                         val chosen = quranReciters[position]
                         if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
                             prefs.edit().putString("quran_reciter", chosen.edition).apply()
-                            if (quranAudioSurahNumber == surahNumber) playQuranFromGlobalAyah(quranAudioQueueStartGlobal)
+                            if (quranAudioSurahNumber == surahNumber) playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
                         }
                     }
                 }
@@ -2147,18 +2148,19 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun playQuranSurah(surahNumber: Int) {
-        val globalStart = try {
-            quranRepository.globalAyahNumber(surahNumber, 1)
-        } catch (_: Exception) {
+        val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1)
+        if (surah == null) {
             Toast.makeText(this, "تعذّر تحديد السورة", Toast.LENGTH_LONG).show()
             return
         }
-        playQuranFromGlobalAyah(globalStart)
+        val globalStart = quranRepository.globalAyahNumber(surahNumber, 1)
+        val globalEnd = surah.startLine + surah.ayahCount
+        playQuranFromGlobalAyah(globalStart, globalEnd)
     }
 
-    private fun playQuranFromGlobalAyah(globalStart: Int) {
+    private fun playQuranFromGlobalAyah(globalStart: Int, globalEnd: Int = 6236) {
         val surahs = quranRepository.loadSurahs()
-        if (globalStart !in 1..6236) {
+        if (globalStart !in 1..6236 || globalEnd !in globalStart..6236) {
             Toast.makeText(this, "تعذّر تحديد موضع بداية التلاوة", Toast.LENGTH_LONG).show()
             return
         }
@@ -2172,9 +2174,10 @@ class MainActivity : Activity(), SensorEventListener {
         val reciter = quranReciters.firstOrNull { it.edition == reciterId } ?: quranReciters.first()
         quranRepeat = getPreferences(0).getBoolean("quran_repeat", false)
         releaseQuranAudioPlayer()
-        quranAudioQueue = (globalStart..6236).toList()
+        quranAudioQueue = (globalStart..globalEnd).toList()
         quranAudioQueueIndex = 0
         quranAudioQueueStartGlobal = globalStart
+        quranAudioQueueEndGlobal = globalEnd
         quranAudioQueueReciter = reciter
         quranAudioSurahNumber = startSurah.number
         quranAudioLastSurahNumber = startSurah.number
@@ -2224,12 +2227,12 @@ class MainActivity : Activity(), SensorEventListener {
                     playCurrentQuranQueueAyah()
                 } else if (quranRepeat) {
                     quranAudioQueueIndex = 0
-                    playCurrentQuranQueueAyah(surahNumber, surahName)
+                    playCurrentQuranQueueAyah()
                 } else {
                     releaseQuranAudioPlayer()
                     quranAudioQueue = emptyList()
                     quranAudioQueueReciter = null
-                    setQuranAudioStatus("انتهت التلاوة المتتابعة حتى نهاية القرآن الكريم")
+                    setQuranAudioStatus(if (quranAudioQueueEndGlobal == 6236) "انتهت التلاوة المتتابعة حتى نهاية القرآن الكريم" else "انتهت تلاوة السورة")
                 }
             }
             media.setOnErrorListener { failed, _, _ ->
@@ -2272,6 +2275,7 @@ class MainActivity : Activity(), SensorEventListener {
         quranAudioQueue = emptyList()
         quranAudioQueueIndex = 0
         quranAudioQueueStartGlobal = 1
+        quranAudioQueueEndGlobal = 6236
         quranAudioQueueReciter = null
         quranRepeatAyah = false
         setQuranAudioStatus("التلاوة متوقفة")
