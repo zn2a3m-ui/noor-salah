@@ -1242,18 +1242,24 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "تعذّر فتح السورة", Toast.LENGTH_SHORT).show()
             return
         }
-        val ayahs = try {
-            quranRepository.loadAyahs(surahNumber)
+        val pageNumber = try {
+            quranRepository.pageFor(surahNumber, focusAyah)
         } catch (_: Exception) {
-            Toast.makeText(this, "تعذّر قراءة ملف المصحف. أعد تثبيت النسخة بعد اكتمال التحقق.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "تعذّر تحديد صفحة الآية", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ayahs = try {
+            quranRepository.loadPageAyahs(pageNumber)
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر تحميل صفحة المصحف الموثقة", Toast.LENGTH_LONG).show()
             return
         }
 
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
-        text("سورة ${surah.name}", 24f, cream, true, Gravity.CENTER)
-        text("${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}", 12f, muted, false, Gravity.CENTER)
+        text("صفحة المصحف $pageNumber", 24f, cream, true, Gravity.CENTER)
+        text("تبدأ من سورة ${surah.name} • 604 صفحة", 12f, muted, false, Gravity.CENTER)
         gap(8)
 
         card {
@@ -1329,9 +1335,8 @@ class MainActivity : Activity(), SensorEventListener {
         text("اضغط على رقم الآية لحفظ موضع القراءة والعودة إليه لاحقاً.", 11f, muted, false, Gravity.CENTER)
 
         val savedPrefs = getPreferences(0)
-        val savedAyah = if (savedPrefs.getInt("quran_last_surah", -1) == surahNumber) {
-            savedPrefs.getInt("quran_last_ayah", -1)
-        } else -1
+        val savedSurah = savedPrefs.getInt("quran_last_surah", -1)
+        val savedAyah = savedPrefs.getInt("quran_last_ayah", -1)
 
         val mushafText = SpannableStringBuilder()
         ayahs.forEach { ayah ->
@@ -1342,11 +1347,12 @@ class MainActivity : Activity(), SensorEventListener {
             mushafText.append(marker)
             mushafText.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    showQuranVerseActions(surahNumber, surah.name, ayah.number)
+                    val ayahSurah = quranRepository.loadSurahs().first { it.number == ayah.surahNumber }
+                    showQuranVerseActions(ayah.surahNumber, ayahSurah.name, ayah.number)
                 }
 
                 override fun updateDrawState(ds: TextPaint) {
-                    ds.color = if (ayah.number == savedAyah) Color.rgb(139, 91, 28) else Color.rgb(151, 111, 42)
+                    ds.color = if (ayah.surahNumber == savedSurah && ayah.number == savedAyah) Color.rgb(139, 91, 28) else Color.rgb(151, 111, 42)
                     ds.isUnderlineText = false
                     ds.isFakeBoldText = true
                 }
@@ -1390,11 +1396,17 @@ class MainActivity : Activity(), SensorEventListener {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        nextRow.addView(button("السورة السابقة") {
-            if (surahNumber > 1) quranSurah(surahNumber - 1, 1)
+        nextRow.addView(button("الصفحة السابقة") {
+            if (pageNumber > 1) {
+                val location = quranRepository.pageStart(pageNumber - 1)
+                quranSurah(location.first, location.second)
+            }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
-        nextRow.addView(button("السورة التالية") {
-            if (surahNumber < 114) quranSurah(surahNumber + 1, 1)
+        nextRow.addView(button("الصفحة التالية") {
+            if (pageNumber < 604) {
+                val location = quranRepository.pageStart(pageNumber + 1)
+                quranSurah(location.first, location.second)
+            }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(nextRow, LinearLayout.LayoutParams(-1, -2))
         mainScroll?.post {
