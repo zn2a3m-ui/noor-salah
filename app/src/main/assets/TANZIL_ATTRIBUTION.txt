@@ -22,3 +22,18 @@ License: Creative Commons Attribution 3.0 (CC BY 3.0)
 Copyright notice in source metadata: (C) 2008-2009 Tanzil.info
 
 No Quran translation or tafsir is included in this asset set.
+MUSHAF PAGE ARTWORK AND RENDERING DATA
+
+Printed edition: King Fahd Glorious Qur'an Printing Complex (KFGQPC),
+Madani Mushaf, version 4 (1441 AH), Hafs riwayah.
+Page data: Quran Engine QVP data release v0.5.0.
+Immediate upstream artwork source: quran-ws/quran-svg-elements, hafs-kfgqpc v1.1.2.
+Quran Engine data provenance:
+https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md
+Quran Engine licence and reproduced KFGQPC usage terms:
+https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/LICENSE
+Official KFGQPC website: https://qurancomplex.gov.sa/
+
+The QVP page archive is verified against its published SHA-256 digest before
+full-pack installation. Individual downloaded pages are checked against the
+versioned QVP manifest and each page's recorded SHA-256 digest.
