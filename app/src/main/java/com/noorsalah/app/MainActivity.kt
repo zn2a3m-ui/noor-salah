@@ -1237,7 +1237,14 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("مصدر المصحف وحقوق النص", 16f, gold, true)
             line("نص تنزيل العثماني • الإصدار 1.1 • CC BY 3.0. النص محفوظ كما ورد من المصدر دون تعديل.", 12f, muted)
-            addView(button("عرض شروط استخدام تنزيل") {
+            addView(button("زيارة المصدر الرسمي للمصحف – تنزيل") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/download/")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("قراءة رخصة وشروط استخدام النص") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/docs/Text_License")))
                 } catch (_: Exception) {
