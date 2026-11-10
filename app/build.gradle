@@ -12,6 +12,33 @@ def tanzilQuranAsset = file("$projectDir/src/main/assets/tanzil-uthmani-1.1.txt"
 def tanzilQuranUrl = "https://raw.githubusercontent.com/iptvchecker/content-tanzil/1f7f2e368983e33208f16bbb7fbf826fc0a56619/tanzil-uthmani-1.1.txt"
 def tanzilQuranSha256 = "ac0724796cbbda0f4801470fbbd11d0f3c5802067bae0493466d0128b0c667af"
 
+def qvpAndroidAar = file("$projectDir/libs/qvp-android-0.8.0.aar")
+def qvpAndroidAarUrl = "https://github.com/quran-ws/quran-engine/releases/download/v0.8.0/qvp-android-0.8.0.aar"
+def qvpAndroidAarSha256 = "df3055762a6ffcfb8ba02626f607a87933d56f9b483f3be5783daa3d5352bc81"
+
+tasks.register("downloadVerifiedQvpAndroidAar") {
+    outputs.file(qvpAndroidAar)
+    outputs.upToDateWhen { false }
+    doLast {
+        qvpAndroidAar.parentFile.mkdirs()
+        if (!qvpAndroidAar.exists()) {
+            def connection = new URL(qvpAndroidAarUrl).openConnection()
+            connection.connectTimeout = 20000
+            connection.readTimeout = 120000
+            connection.setRequestProperty("User-Agent", "NoorSalah-Android-Build")
+            connection.inputStream.withCloseable { input ->
+                qvpAndroidAar.withOutputStream { output -> output << input }
+            }
+        }
+        def digest = java.security.MessageDigest.getInstance("SHA-256").digest(qvpAndroidAar.bytes)
+        def actualSha256 = new BigInteger(1, digest).toString(16).padLeft(64, "0")
+        if (actualSha256 != qvpAndroidAarSha256) {
+            qvpAndroidAar.delete()
+            throw new GradleException("QVP Android renderer checksum mismatch; refusing to use an unverified native library.")
+        }
+    }
+}
+
 def adhanFullAsset = file("$projectDir/src/main/res/raw/adhan_full.ogg")
 def adhanShortAsset = file("$projectDir/src/main/res/raw/adhan_short.ogg")
 def adhanAudioSources = [
@@ -101,7 +128,7 @@ android {
 
     defaultConfig {
         applicationId 'com.noorsalah.app'
-        minSdk 23
+        minSdk 24
         targetSdk 36
         versionCode 3
         versionName '1.2'
@@ -138,10 +165,12 @@ android {
 }
 
 dependencies {
+    implementation files(qvpAndroidAar)
     testImplementation 'junit:junit:4.13.2'
 }
 
 tasks.named("preBuild").configure {
     dependsOn(tasks.named("downloadVerifiedTanzilQuran"))
+    dependsOn(tasks.named("downloadVerifiedQvpAndroidAar"))
     dependsOn(tasks.named("downloadVerifiedAdhanAudio"))
 }
