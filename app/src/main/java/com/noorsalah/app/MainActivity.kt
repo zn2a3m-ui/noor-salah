@@ -82,6 +82,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranMushafView: QvpPageView? = null
     private var quranMushafRequestId = 0
     private var quranMushafOfflineStatusView: TextView? = null
+    private var quranMushafOfflineDownloadButton: Button? = null
     private var quranFontSize = 25f
     private var adhanPreviewPlayer: MediaPlayer? = null
     private var quranAudioPlayer: MediaPlayer? = null
@@ -1092,9 +1093,15 @@ class MainActivity : Activity(), SensorEventListener {
             }
             quranMushafOfflineStatusView = offlineStatus
             addView(offlineStatus, LinearLayout.LayoutParams(-1, -2))
-            addView(button(if (quranMushafDataRepository.isFullPackInstalled()) "صفحات المصحف محفوظة دون إنترنت" else "تنزيل صفحات المصحف كاملة دون إنترنت") {
-                downloadFullQuranMushafPack()
-            }, LinearLayout.LayoutParams(-1, -2))
+            val fullPackInstalled = quranMushafDataRepository.isFullPackInstalled()
+            val downloadButton = button(
+                if (fullPackInstalled) "صفحات المصحف محفوظة دون إنترنت"
+                else "تنزيل صفحات المصحف كاملة دون إنترنت"
+            ) {
+                if (!quranMushafDataRepository.isFullPackInstalled()) downloadFullQuranMushafPack()
+            }.apply { isEnabled = !fullPackInstalled }
+            quranMushafOfflineDownloadButton = downloadButton
+            addView(downloadButton, LinearLayout.LayoutParams(-1, -2))
         }
         gap(12)
 
@@ -1708,6 +1715,10 @@ class MainActivity : Activity(), SensorEventListener {
                 if (dialog.isShowing) dialog.dismiss()
                 result.onSuccess {
                     quranMushafOfflineStatusView?.text = "تم حفظ صفحات المصحف الـ604 على الجهاز."
+                    quranMushafOfflineDownloadButton?.apply {
+                        text = "صفحات المصحف محفوظة دون إنترنت"
+                        isEnabled = false
+                    }
                     Toast.makeText(this, "اكتمل حفظ المصحف. أصبح متاحاً دون إنترنت.", Toast.LENGTH_LONG).show()
                 }.onFailure { error ->
                     Toast.makeText(
