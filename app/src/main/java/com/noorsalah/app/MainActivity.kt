@@ -1549,19 +1549,6 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
         text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
         gap(8)
-        val pageWidth = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
-        val estimatedHeight = (pageWidth * 1.42f).roundToInt()
-        val host = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val frames = (1..604).map { number ->
-            FrameLayout(this).apply {
-                setBackgroundColor(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(-1, estimatedHeight)
-                contentDescription = "صفحة المصحف " + number
-                host.addView(this)
-            }
-        }
-        quranContinuousFrames = frames
-        content.addView(host, LinearLayout.LayoutParams(-1, -2))
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
             val prefs = getPreferences(0)
@@ -1609,6 +1596,19 @@ class MainActivity : Activity(), SensorEventListener {
             addView(quranAudioStatusView, LinearLayout.LayoutParams(-1, -2))
             line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
         }
+        val pageWidth = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
+        val estimatedHeight = (pageWidth * 1.42f).roundToInt()
+        val host = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val frames = (1..604).map { number ->
+            FrameLayout(this).apply {
+                setBackgroundColor(Color.WHITE)
+                layoutParams = LinearLayout.LayoutParams(-1, estimatedHeight)
+                contentDescription = "صفحة المصحف " + number
+                host.addView(this)
+            }
+        }
+        quranContinuousFrames = frames
+        content.addView(host, LinearLayout.LayoutParams(-1, -2))
         var lastVisiblePage = -1
         fun refreshWindow(scrollY: Int) {
             if (token != quranMushafRequestId || isFinishing || isDestroyed) return
