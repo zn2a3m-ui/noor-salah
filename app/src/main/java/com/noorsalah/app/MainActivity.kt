@@ -1686,7 +1686,7 @@ class MainActivity : Activity(), SensorEventListener {
                             word.surah.toString() + ":" + word.ayah,
                             QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x66FFD54F.toInt())
                         )
-                        pageView.invalidate()
+                        quranContinuousViews[pageNumber]?.invalidate()
                         showQuranAyahAudioActions(word.surah, word.ayah)
                     }
                     onDecorationTap = { decoration, _ ->
