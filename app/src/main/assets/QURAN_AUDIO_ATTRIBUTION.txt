@@ -9,11 +9,13 @@ Audio is streamed on demand by complete surah. Audio files are not bundled
 with this application. An internet connection is required.
 
 Reciters offered in the app:
+- Maher Al-Muaiqly (ar.mahermuaiqly)
+- Abdul Rahman Al-Sudais (ar.abdurrahmaansudais)
+- Ahmed ibn Ali al-Ajamy (ar.ahmedajamy)
 - Mishary Rashid Alafasy (ar.alafasy)
 - Mahmoud Khalil Al-Husary (ar.husary)
 - Mohamed Siddiq al-Minshawi (ar.minshawi)
-- Abdul Rahman Al-Sudais (ar.sudais)
-- Abdul Basit Abdul Samad (ar.abdulbasit)
+- Abdul Basit Abdul Samad (ar.abdulbasitmurattal)
 
 The provider states that recitations are licensed to Islamic Network by the
 reciters or their estates for free, non-commercial redistribution at the
