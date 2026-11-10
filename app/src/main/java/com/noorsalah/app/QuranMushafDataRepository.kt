@@ -46,7 +46,8 @@ class QuranMushafDataRepository(context: Context) : Closeable {
     fun isFullPackInstalled(): Boolean {
         if (!File(root, ".tag").isFile || !File(root, "atlas.qva").isFile) return false
         val pages = root.listFiles { file -> file.isFile && file.name.matches(Regex("\\d{3}\\.qvp")) }
-        return pages?.size == PAGE_COUNT &&
+        val sidecars = root.listFiles { file -> file.isFile && file.name.matches(Regex("\\d{3}\\.words\\.json")) }
+        return pages?.size == PAGE_COUNT && sidecars?.size == PAGE_COUNT &&
             runCatching { File(root, ".tag").readText(Charsets.UTF_8).trim() == DATA_VERSION }.getOrDefault(false)
     }
 
@@ -133,6 +134,7 @@ class QuranMushafDataRepository(context: Context) : Closeable {
     private fun downloadArchive(target: File, onProgress: (Int) -> Unit) {
         target.parentFile?.mkdirs()
         val part = File(target.parentFile, target.name + ".part")
+        target.delete()
         part.delete()
         val connection = (URL(ARCHIVE_URL).openConnection() as HttpURLConnection).apply {
             connectTimeout = 20000
