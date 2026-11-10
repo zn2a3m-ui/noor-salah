@@ -1262,14 +1262,14 @@ class MainActivity : Activity(), SensorEventListener {
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("توثيق مصدر صفحات المصحف وبياناتها") {
                 try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/main/docs/DATA.md")))
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")))
                 } catch (_: Exception) {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("شروط ترخيص بيانات الصفحات") {
                 try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/main/LICENSE")))
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/LICENSE")))
                 } catch (_: Exception) {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
