@@ -81,9 +81,10 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranMushafAtlas: QvpAtlas? = null
     private var quranMushafView: QvpPageView? = null
     private var quranMushafRequestId = 0
+    private var quranSelectedAyahHighlight = 0
     private var quranMushafOfflineStatusView: TextView? = null
     private var quranMushafOfflineDownloadButton: Button? = null
-    private var quranFontSize = 25f
+    private var quranFontSize = 29f
     private var adhanPreviewPlayer: MediaPlayer? = null
     private var quranAudioPlayer: MediaPlayer? = null
     private var quranAudioSurahNumber = -1
@@ -162,7 +163,7 @@ class MainActivity : Activity(), SensorEventListener {
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
         timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
         selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
-        quranFontSize = getPreferences(0).getFloat("quran_font_size", 25f).coerceIn(18f, 36f)
+        quranFontSize = getPreferences(0).getFloat("quran_font_size", 29f).coerceIn(24f, 36f)
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
@@ -1247,8 +1248,6 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun showQuranVerseActions(surahNumber: Int, surahName: String, ayahNumber: Int) {
         val choices = arrayOf(
-            "استماع لهذه الآية",
-            "تكرار الآية للحفظ",
             "حفظ علامة مرجعية",
             "حفظ موضع متابعة القراءة",
             "إلغاء"
@@ -1257,9 +1256,7 @@ class MainActivity : Activity(), SensorEventListener {
             .setTitle("سورة $surahName • الآية $ayahNumber")
             .setItems(choices) { dialog, which ->
                 when (which) {
-                    0 -> playQuranAyah(surahNumber, ayahNumber, false)
-                    1 -> playQuranAyah(surahNumber, ayahNumber, true)
-                    2 -> {
+                    0 -> {
                         val prefs = getPreferences(0)
                         val bookmarks = prefs.getStringSet("quran_bookmarks_v1", emptySet())
                             ?.toMutableSet() ?: mutableSetOf()
@@ -1271,13 +1268,27 @@ class MainActivity : Activity(), SensorEventListener {
                             .apply()
                         Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
                     }
-                    3 -> {
+                    1 -> {
                         getPreferences(0).edit()
                             .putInt("quran_last_surah", surahNumber)
                             .putInt("quran_last_ayah", ayahNumber)
                             .apply()
                         Toast.makeText(this, "تم حفظ موضع متابعة القراءة", Toast.LENGTH_SHORT).show()
                     }
+                }
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun showQuranAyahAudioActions(surahNumber: Int, ayahNumber: Int) {
+        val choices = arrayOf("استماع مرة واحدة", "تكرار الآية للحفظ", "إلغاء")
+        AlertDialog.Builder(this)
+            .setTitle("الآية $ayahNumber")
+            .setItems(choices) { dialog, which ->
+                when (which) {
+                    0 -> playQuranAyah(surahNumber, ayahNumber, false)
+                    1 -> playQuranAyah(surahNumber, ayahNumber, true)
                 }
                 dialog.dismiss()
             }
@@ -1319,7 +1330,7 @@ class MainActivity : Activity(), SensorEventListener {
         val pageStartSurah = quranMushafAtlas?.pageRange(pageNumber)?.first?.first
             ?: ayahs.first().surahNumber
         val pageFirstSurah = quranRepository.loadSurahs().first { it.number == pageStartSurah }
-        quranFontSize = getPreferences(0).getFloat("quran_font_size", 27f).coerceIn(18f, 36f)
+        quranFontSize = getPreferences(0).getFloat("quran_font_size", 29f).coerceIn(24f, 36f)
 
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
@@ -1328,19 +1339,8 @@ class MainActivity : Activity(), SensorEventListener {
         text("تبدأ من سورة ${pageFirstSurah.name} • 604 صفحة", 12f, muted, false, Gravity.CENTER)
         gap(8)
 
-        val controls = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        controls.addView(button("تصغير") {
-            adjustQuranMushafZoom(false, surahNumber, focusAyah)
-        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
-        controls.addView(button("تكبير") {
-            adjustQuranMushafZoom(true, surahNumber, focusAyah)
-        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
-        content.addView(controls, LinearLayout.LayoutParams(-1, -2))
-        gap(10)
-        text("اضغط على رقم الآية لخيارات الاستماع والحفظ والرجوع إليها لاحقاً.", 11f, muted, false, Gravity.CENTER)
+        text("المس كلمات الآية للاستماع أو التكرار، والمس رقم الآية لحفظ موضعك.", 12f, muted, false, Gravity.CENTER)
+        gap(8)
 
         val savedPrefs = getPreferences(0)
         val savedSurah = savedPrefs.getInt("quran_last_surah", -1)
@@ -1517,6 +1517,10 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun releaseQuranMushafPage() {
         quranMushafRequestId++
+        if (quranSelectedAyahHighlight != 0) {
+            quranMushafPage?.removeHighlight(quranSelectedAyahHighlight)
+            quranSelectedAyahHighlight = 0
+        }
         quranMushafView?.page = null
         quranMushafView = null
         quranMushafPage?.close()
@@ -1589,6 +1593,19 @@ class MainActivity : Activity(), SensorEventListener {
                     padBottom = dp(5).toFloat()
                     padSide = dp(4).toFloat()
                     reflowBreaks = QvpBreaks.PRINTED
+                    onWordTap = { word, _ ->
+                        if (quranSelectedAyahHighlight != 0) {
+                            loaded.removeHighlight(quranSelectedAyahHighlight)
+                        }
+                        quranSelectedAyahHighlight = loaded.highlight(
+                            "${word.surah}:${word.ayah}",
+                            QvpHighlightStyle(
+                                mode = HighlightMode.BAND,
+                                band = 0x238b50a0.toInt()
+                            )
+                        )
+                        showQuranAyahAudioActions(word.surah, word.ayah)
+                    }
                     onDecorationTap = { decoration, _ ->
                         if (decoration.ayah > 0) {
                             val name = quranRepository.loadSurahs()
