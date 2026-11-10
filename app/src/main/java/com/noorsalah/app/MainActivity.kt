@@ -85,15 +85,14 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranAudioStatusText = "جاهز للتلاوة"
     private var quranRepeat = false
     private var quranRepeatAyah = false
+    private var quranAudioQueue: List<Int> = emptyList()
+    private var quranAudioQueueIndex = 0
+    private var quranAudioQueueReciter: QuranReciter? = null
     private data class QuranReciter(val name: String, val edition: String, val bitrate: Int)
     private val quranReciters = listOf(
         QuranReciter("ماهر المعيقلي", "ar.mahermuaiqly", 128),
         QuranReciter("عبدالرحمن السديس", "ar.sudais", 192),
-        QuranReciter("أحمد بن علي العجمي", "ar.ajamy", 128),
-        QuranReciter("مشاري راشد العفاسي", "ar.alafasy", 128),
-        QuranReciter("محمود خليل الحصري", "ar.husary", 128),
-        QuranReciter("محمد صديق المنشاوي", "ar.minshawi", 128),
-        QuranReciter("عبدالباسط عبدالصمد", "ar.abdulbasitmurattal", 128)
+        QuranReciter("أحمد بن علي العجمي", "ar.ajamy", 128)
     )
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
@@ -1546,52 +1545,92 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
-    private fun quranSurahAudioFile(edition: String, surahNumber: Int): File? {
+    private fun quranAyahAudioFile(edition: String, globalAyahNumber: Int): File? {
         val directory = getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: return null
-        return File(directory, "noor_quran_${edition}_${surahNumber}.mp3")
+        return File(directory, "noor_quran_${edition}_ayah_${globalAyahNumber}.mp3")
     }
 
     private fun downloadQuranSurah(surahNumber: Int) {
         val reciterId = getPreferences(0).getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
         val reciter = quranReciters.firstOrNull { it.edition == reciterId } ?: quranReciters.first()
-        val target = quranSurahAudioFile(reciter.edition, surahNumber)
-        if (target == null) {
+        val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1)
+        if (surah == null) {
+            Toast.makeText(this, "تعذّر تحديد السورة للتنزيل", Toast.LENGTH_LONG).show()
+            return
+        }
+        val directory = getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+        if (directory == null) {
             Toast.makeText(this, "مساحة التخزين غير متاحة حالياً", Toast.LENGTH_LONG).show()
             return
         }
-        if (target.exists() && target.length() > 0L) {
-            Toast.makeText(this, "السورة محفوظة بالفعل للاستماع دون إنترنت", Toast.LENGTH_SHORT).show()
-            return
-        }
         try {
-            val surahName = quranRepository.loadSurahs().getOrNull(surahNumber - 1)?.name ?: "القرآن"
-            val url = "https://cdn.islamic.network/quran/audio-surah/${reciter.bitrate}/${reciter.edition}/$surahNumber.mp3"
-            val request = DownloadManager.Request(Uri.parse(url))
-                .setTitle("تنزيل سورة $surahName")
-                .setDescription("القارئ: ${reciter.name} • نور الصلاة")
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(false)
-                .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_MUSIC, target.name)
             val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-            manager.enqueue(request)
-            Toast.makeText(this, "بدأ تنزيل سورة $surahName. ستصلك رسالة عند اكتمال التنزيل.", Toast.LENGTH_LONG).show()
+            var queued = 0
+            var alreadySaved = 0
+            for (ayahNumber in 1..surah.ayahCount) {
+                val globalNumber = quranRepository.globalAyahNumber(surahNumber, ayahNumber)
+                val target = quranAyahAudioFile(reciter.edition, globalNumber) ?: continue
+                if (target.exists() && target.length() > 0L) {
+                    alreadySaved++
+                    continue
+                }
+                val url = "https://cdn.islamic.network/quran/audio/${reciter.bitrate}/${reciter.edition}/$globalNumber.mp3"
+                val request = DownloadManager.Request(Uri.parse(url))
+                    .setTitle("تنزيل سورة ${surah.name} • الآية $ayahNumber")
+                    .setDescription("القارئ: ${reciter.name} • نور الصلاة")
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                    .setAllowedOverMetered(true)
+                    .setAllowedOverRoaming(false)
+                    .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_MUSIC, target.name)
+                manager.enqueue(request)
+                queued++
+            }
+            val message = when {
+                queued == 0 && alreadySaved == surah.ayahCount -> "السورة محفوظة بالفعل للاستماع دون إنترنت"
+                queued > 0 -> "بدأ تنزيل $queued آية من سورة ${surah.name}. سيكتمل الحفظ بعد انتهاء التنزيلات."
+                else -> "لم يبدأ التنزيل. تحقق من مساحة التخزين."
+            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         } catch (_: Exception) {
-            Toast.makeText(this, "تعذّر بدء التنزيل. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "تعذّر بدء تنزيل آيات السورة. تحقق من اتصال الإنترنت ومساحة التخزين.", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun playQuranSurah(surahNumber: Int) {
         val reciterId = getPreferences(0).getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
         val reciter = quranReciters.firstOrNull { it.edition == reciterId } ?: quranReciters.first()
+        val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1)
+        if (surah == null) {
+            Toast.makeText(this, "تعذّر تحديد السورة", Toast.LENGTH_LONG).show()
+            return
+        }
         quranRepeat = getPreferences(0).getBoolean("quran_repeat", false)
-        stopQuranAudio()
+        val ayahNumbers = try {
+            (1..surah.ayahCount).map { quranRepository.globalAyahNumber(surahNumber, it) }
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر تجهيز آيات السورة", Toast.LENGTH_LONG).show()
+            return
+        }
+        releaseQuranAudioPlayer()
+        quranAudioQueue = ayahNumbers
+        quranAudioQueueIndex = 0
+        quranAudioQueueReciter = reciter
+        quranAudioSurahNumber = surahNumber
+        quranAudioLastSurahNumber = surahNumber
+        setQuranAudioStatus("جارٍ تجهيز تلاوة سورة ${surah.name} بصوت ${reciter.name}…")
+        playCurrentQuranQueueAyah(surahNumber, surah.name)
+    }
+
+    private fun playCurrentQuranQueueAyah(surahNumber: Int, surahName: String) {
+        val reciter = quranAudioQueueReciter ?: return
+        val globalNumber = quranAudioQueue.getOrNull(quranAudioQueueIndex) ?: return
+        releaseQuranAudioPlayer()
         val media = MediaPlayer()
         quranAudioPlayer = media
         quranAudioSurahNumber = surahNumber
-        quranAudioLastSurahNumber = surahNumber
         quranAudioPreparing = true
-        setQuranAudioStatus("جارٍ الاتصال بمصدر التلاوة…")
+        val currentAyah = quranAudioQueueIndex + 1
+        setQuranAudioStatus("جارٍ تحميل الآية $currentAyah من سورة $surahName…")
         try {
             media.setAudioAttributes(
                 AudioAttributes.Builder()
@@ -1599,49 +1638,51 @@ class MainActivity : Activity(), SensorEventListener {
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
-            val localAudio = quranSurahAudioFile(reciter.edition, surahNumber)
+            val localAudio = quranAyahAudioFile(reciter.edition, globalNumber)
             if (localAudio != null && localAudio.exists() && localAudio.length() > 0L) {
                 media.setDataSource(localAudio.absolutePath)
             } else {
-                val url = "https://cdn.islamic.network/quran/audio-surah/${reciter.bitrate}/${reciter.edition}/$surahNumber.mp3"
+                val url = "https://cdn.islamic.network/quran/audio/${reciter.bitrate}/${reciter.edition}/$globalNumber.mp3"
                 media.setDataSource(url)
             }
             media.setOnPreparedListener { prepared ->
                 if (quranAudioPlayer === prepared) {
                     quranAudioPreparing = false
                     prepared.start()
-                    setQuranAudioStatus("تُتلى السورة بصوت ${reciter.name}")
-                    Toast.makeText(this, "بدأت تلاوة سورة ${quranRepository.loadSurahs().getOrNull(surahNumber - 1)?.name ?: surahNumber} بصوت ${reciter.name}", Toast.LENGTH_SHORT).show()
+                    setQuranAudioStatus("سورة $surahName • الآية $currentAyah • القارئ ${reciter.name}")
                 }
             }
             media.setOnCompletionListener { completed ->
                 if (quranAudioPlayer !== completed) return@setOnCompletionListener
-                if (quranRepeat) {
-                    try {
-                        setQuranAudioStatus("إعادة التلاوة")
-                        completed.seekTo(0)
-                        completed.start()
-                    } catch (_: Exception) {
-                        stopQuranAudio()
-                    }
+                if (quranAudioQueueIndex < quranAudioQueue.lastIndex) {
+                    quranAudioQueueIndex++
+                    playCurrentQuranQueueAyah(surahNumber, surahName)
+                } else if (quranRepeat) {
+                    quranAudioQueueIndex = 0
+                    playCurrentQuranQueueAyah(surahNumber, surahName)
                 } else {
-                    stopQuranAudio()
-                    setQuranAudioStatus("انتهت التلاوة")
+                    releaseQuranAudioPlayer()
+                    quranAudioQueue = emptyList()
+                    quranAudioQueueReciter = null
+                    setQuranAudioStatus("انتهت تلاوة سورة $surahName")
                 }
             }
             media.setOnErrorListener { failed, _, _ ->
                 if (quranAudioPlayer === failed) {
-                    stopQuranAudio()
-                    setQuranAudioStatus("تعذّر تحميل التلاوة")
-                    Toast.makeText(this, "تعذّر تحميل التلاوة. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
+                    releaseQuranAudioPlayer()
+                    quranAudioQueue = emptyList()
+                    quranAudioQueueReciter = null
+                    setQuranAudioStatus("تعذّر تحميل الآية $currentAyah من سورة $surahName")
+                    Toast.makeText(this, "تعذّر تحميل آية من السورة. تحقق من اتصال الإنترنت أو أعد تنزيل السورة.", Toast.LENGTH_LONG).show()
                 }
                 true
             }
             media.prepareAsync()
-            setQuranAudioStatus("جارٍ تحميل التلاوة الصوتية…")
-            Toast.makeText(this, "جارٍ تحميل التلاوة الصوتية…", Toast.LENGTH_SHORT).show()
         } catch (_: Exception) {
-            stopQuranAudio()
+            releaseQuranAudioPlayer()
+            quranAudioQueue = emptyList()
+            quranAudioQueueReciter = null
+            setQuranAudioStatus("تعذّر تشغيل سورة $surahName")
             Toast.makeText(this, "تعذّر بدء التلاوة حالياً", Toast.LENGTH_LONG).show()
         }
     }
@@ -1651,14 +1692,21 @@ class MainActivity : Activity(), SensorEventListener {
         quranAudioStatusView?.text = status
     }
 
-    private fun stopQuranAudio() {
+    private fun releaseQuranAudioPlayer() {
         quranAudioPlayer?.let {
             try { if (it.isPlaying) it.stop() } catch (_: Exception) {}
             try { it.release() } catch (_: Exception) {}
         }
         quranAudioPlayer = null
-        quranAudioSurahNumber = -1
         quranAudioPreparing = false
+    }
+
+    private fun stopQuranAudio() {
+        releaseQuranAudioPlayer()
+        quranAudioSurahNumber = -1
+        quranAudioQueue = emptyList()
+        quranAudioQueueIndex = 0
+        quranAudioQueueReciter = null
         quranRepeatAyah = false
         setQuranAudioStatus("التلاوة متوقفة")
     }
