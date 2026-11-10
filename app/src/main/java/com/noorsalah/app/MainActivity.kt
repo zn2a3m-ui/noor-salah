@@ -1275,6 +1275,7 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun quranSurah(surahNumber: Int, focusAyah: Int = 1) {
+        releaseQuranMushafPage()
         if (quranAudioSurahNumber != -1 && quranAudioSurahNumber != surahNumber) stopQuranAudio()
         if (quranAudioLastSurahNumber != -1 && quranAudioLastSurahNumber != surahNumber) {
             quranAudioLastSurahNumber = -1
