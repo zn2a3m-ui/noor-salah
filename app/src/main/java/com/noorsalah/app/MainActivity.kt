@@ -1258,12 +1258,13 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "تعذّر تحميل صفحة المصحف الموثقة", Toast.LENGTH_LONG).show()
             return
         }
+        val pageFirstSurah = quranRepository.loadSurahs().first { it.number == ayahs.first().surahNumber }
 
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         text("صفحة المصحف $pageNumber", 24f, cream, true, Gravity.CENTER)
-        text("تبدأ من سورة ${surah.name} • 604 صفحة", 12f, muted, false, Gravity.CENTER)
+        text("تبدأ من سورة ${pageFirstSurah.name} • 604 صفحة", 12f, muted, false, Gravity.CENTER)
         gap(8)
 
         card {
@@ -1381,7 +1382,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         if (ayahs.firstOrNull()?.number == 1) {
             mushafPage.addView(TextView(this).apply {
-                text = "۞  ${surah.name}  ۞"
+                text = "۞  ${pageFirstSurah.name}  ۞"
                 textSize = 19f
                 setTextColor(Color.rgb(103, 77, 35))
                 typeface = Typeface.create("serif", Typeface.BOLD)
