@@ -126,6 +126,7 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                 if (!isFullPackInstalled()) {
                     throw IOException("The Mushaf pages could not be verified after extraction.")
                 }
+                main.post { onProgress(100) }
             }
             main.post { callback(result) }
         }
@@ -170,7 +171,6 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                 part.copyTo(target, overwrite = true)
                 part.delete()
             }
-            main.post { onProgress(100) }
         } catch (error: Exception) {
             part.delete()
             throw error
