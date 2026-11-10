@@ -47,6 +47,58 @@ class QuranRepository(private val context: Context) {
 
     fun juzStart(juzNumber: Int): Pair<Int, Int> = metadataLocation("juz", juzNumber)
     fun pageStart(pageNumber: Int): Pair<Int, Int> = metadataLocation("pages", pageNumber)
+
+    fun pageFor(surahNumber: Int, ayahNumber: Int): Int {
+        val surah = loadSurahs().firstOrNull { it.number == surahNumber }
+            ?: throw IllegalArgumentException("Unknown surah number: $surahNumber")
+        require(ayahNumber in 1..surah.ayahCount) { "Invalid ayah number: $ayahNumber" }
+        val pages = metadata().getJSONArray("pages")
+        val targetSurah = surahNumber
+        val targetAyah = ayahNumber
+        var matchedPage = 1
+        for (index in 0 until pages.length()) {
+            val entry = pages.getJSONObject(index)
+            val entrySurah = entry.getInt("surah")
+            val entryAyah = entry.getInt("ayah")
+            if (entrySurah < targetSurah || (entrySurah == targetSurah && entryAyah <= targetAyah)) {
+                matchedPage = entry.getInt("index")
+            } else {
+                break
+            }
+        }
+        return matchedPage
+    }
+
+    fun loadPageAyahs(pageNumber: Int): List<QuranAyah> {
+        val pages = metadata().getJSONArray("pages")
+        require(pageNumber in 1..pages.length()) { "Invalid page number: $pageNumber" }
+        val surahs = loadSurahs()
+        val start = pages.getJSONObject(pageNumber - 1)
+        val startSurah = start.getInt("surah")
+        val startAyah = start.getInt("ayah")
+        val startIndex = surahs[startSurah - 1].startLine + startAyah - 1
+
+        val endIndex = if (pageNumber < pages.length()) {
+            val next = pages.getJSONObject(pageNumber)
+            surahs[next.getInt("surah") - 1].startLine + next.getInt("ayah") - 1
+        } else {
+            loadAyahLines().size
+        }
+        check(startIndex in 0 until endIndex && endIndex <= 6236) {
+            "Mushaf page boundaries are invalid."
+        }
+
+        val lines = loadAyahLines()
+        return (startIndex until endIndex).map { globalIndex ->
+            val surah = surahs.last { it.startLine <= globalIndex }
+            QuranAyah(
+                surahNumber = surah.number,
+                number = globalIndex - surah.startLine + 1,
+                text = lines[globalIndex]
+            )
+        }
+    }
+
     fun hizbQuarterStart(quarterNumber: Int): Pair<Int, Int> = metadataLocation("hizbQuarters", quarterNumber)
 
     private fun metadataLocation(collection: String, index: Int): Pair<Int, Int> {
