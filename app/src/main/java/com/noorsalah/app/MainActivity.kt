@@ -1577,6 +1577,16 @@ class MainActivity : Activity(), SensorEventListener {
                     contentDescription = "صفحة المصحف $pageNumber"
                     page = loaded
                 }
+                pageView.setOnTouchListener { _, event ->
+                    when (event.actionMasked) {
+                        android.view.MotionEvent.ACTION_DOWN ->
+                            pageView.parent?.requestDisallowInterceptTouchEvent(true)
+                        android.view.MotionEvent.ACTION_UP,
+                        android.view.MotionEvent.ACTION_CANCEL ->
+                            pageView.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
+                    false
+                }
                 quranMushafView = pageView
                 container.removeAllViews()
                 val availableWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
@@ -1636,7 +1646,11 @@ class MainActivity : Activity(), SensorEventListener {
         quranMushafDataRepository.downloadFullPack(
             onProgress = { percent ->
                 progress.progress = percent
-                status.text = "تنزيل وفحص صفحات المصحف: $percent٪"
+                status.text = if (percent >= 99) {
+                    "تم تنزيل الملف، جارٍ فك الضغط والتحقق من الصفحات…"
+                } else {
+                    "تنزيل صفحات المصحف: $percent٪"
+                }
             },
             callback = { result ->
                 if (isFinishing || isDestroyed) return@downloadFullPack
