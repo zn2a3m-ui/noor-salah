@@ -2,7 +2,7 @@ name: Noor Salah Android Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/quran-reading-mushaf ]
   workflow_dispatch:
 
 permissions:
