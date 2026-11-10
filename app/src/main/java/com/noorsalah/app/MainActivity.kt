@@ -89,6 +89,8 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranContinuousCurrentPage = -1
     private var quranContinuousSelectedPage = -1
     private var quranContinuousSelectedHighlight = 0
+    private var quranContinuousHost: LinearLayout? = null
+    private var quranAudioHighlightGlobal = 0
     private var quranMushafOfflineStatusView: TextView? = null
     private var quranMushafOfflineDownloadButton: Button? = null
     private var quranFontSize = 29f
@@ -1666,8 +1668,9 @@ class MainActivity : Activity(), SensorEventListener {
             line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
         }
         val pageWidth = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
-        val estimatedHeight = (pageWidth * 1.42f).roundToInt()
+        val estimatedHeight = (pageWidth * 1.42f).roundToInt() + dp(28)
         val host = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        quranContinuousHost = host
         val frames = (1..604).map { number ->
             FrameLayout(this).apply {
                 setBackgroundColor(Color.WHITE)
@@ -1721,6 +1724,34 @@ class MainActivity : Activity(), SensorEventListener {
         quranContinuousSelectedHighlight = 0
     }
 
+    private fun updateQuranPlaybackHighlight(globalNumber: Int) {
+        if (globalNumber !in 1..6236) return
+        quranAudioHighlightGlobal = globalNumber
+        val surah = quranRepository.loadSurahs().lastOrNull { it.startLine < globalNumber } ?: return
+        val ayah = globalNumber - surah.startLine
+        val pageNumber = quranRepository.pageFor(surah.number, ayah)
+        if (pageNumber !in 1..604 || quranContinuousFrames.isEmpty()) return
+
+        clearQuranContinuousSelection()
+        val page = quranContinuousPages[pageNumber]
+        if (page != null && page.ayahs.any { it.surah == surah.number && it.ayah == ayah }) {
+            quranContinuousSelectedPage = pageNumber
+            quranContinuousSelectedHighlight = page.highlight(
+                "${surah.number}:$ayah",
+                QvpHighlightStyle(mode = HighlightMode.BAND, band = 0xD6A32690.toInt())
+            )
+            quranContinuousViews[pageNumber]?.invalidate()
+        }
+
+        quranContinuousCurrentPage = pageNumber
+        val frame = quranContinuousFrames.getOrNull(pageNumber - 1)
+        val host = quranContinuousHost
+        if (frame != null && host != null) {
+            mainScroll?.post { mainScroll?.smoothScrollTo(0, host.top + frame.top) }
+        }
+        if (page == null) loadContinuousQuranPage(pageNumber, quranMushafRequestId)
+    }
+
     private fun loadContinuousQuranPage(pageNumber: Int, token: Int) {
         if (pageNumber !in 1..604 || quranContinuousPages.containsKey(pageNumber) || quranContinuousPending.containsKey(pageNumber)) return
         quranContinuousPending[pageNumber] = token
@@ -1744,6 +1775,19 @@ class MainActivity : Activity(), SensorEventListener {
                         loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x8B50A060.toInt()))
                     }
                 }
+                if (quranAudioHighlightGlobal in 1..6236) {
+                    val playbackSurah = quranRepository.loadSurahs().lastOrNull { it.startLine < quranAudioHighlightGlobal }
+                    val playbackAyah = playbackSurah?.let { quranAudioHighlightGlobal - it.startLine } ?: 0
+                    if (playbackSurah != null && quranRepository.pageFor(playbackSurah.number, playbackAyah) == pageNumber &&
+                        loaded.ayahs.any { it.surah == playbackSurah.number && it.ayah == playbackAyah }) {
+                        clearQuranContinuousSelection()
+                        quranContinuousSelectedPage = pageNumber
+                        quranContinuousSelectedHighlight = loaded.highlight(
+                            "${playbackSurah.number}:$playbackAyah",
+                            QvpHighlightStyle(mode = HighlightMode.BAND, band = 0xD6A32690.toInt())
+                        )
+                    }
+                }
                 val pageView = QvpPageView(this).apply {
                     paperColor = Color.WHITE
                     padTop = dp(5).toFloat()
@@ -1751,6 +1795,7 @@ class MainActivity : Activity(), SensorEventListener {
                     padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.PRINTED
                     onWordTap = { word, _ ->
+                        quranAudioHighlightGlobal = 0
                         clearQuranContinuousSelection()
                         quranContinuousSelectedPage = pageNumber
                         quranContinuousSelectedHighlight = loaded.highlight(
@@ -1785,8 +1830,23 @@ class MainActivity : Activity(), SensorEventListener {
                 val frame = quranContinuousFrames.getOrNull(pageNumber - 1) ?: return@onSuccess
                 frame.removeAllViews()
                 val width = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
-                frame.layoutParams = frame.layoutParams.apply { height = (width * loaded.height / loaded.width).roundToInt() }
-                frame.addView(pageView, FrameLayout.LayoutParams(-1, -1))
+                val pageHeight = (width * loaded.height / loaded.width).roundToInt()
+                frame.layoutParams = frame.layoutParams.apply { height = pageHeight + dp(28) }
+                val pageColumn = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setBackgroundColor(Color.WHITE)
+                }
+                pageColumn.addView(pageView, LinearLayout.LayoutParams(-1, pageHeight))
+                val pageNumberLabel = TextView(this).apply {
+                    text = pageNumber.toString().map { digit -> "٠١٢٣٤٥٦٧٨٩"[digit - '0'] }.joinToString("")
+                    textSize = 12f
+                    typeface = Typeface.DEFAULT_BOLD
+                    setTextColor(Color.rgb(70, 70, 70))
+                    gravity = Gravity.CENTER
+                    contentDescription = "رقم الصفحة $pageNumber"
+                }
+                pageColumn.addView(pageNumberLabel, LinearLayout.LayoutParams(-1, dp(28)))
+                frame.addView(pageColumn, FrameLayout.LayoutParams(-1, -1))
             }.onFailure {
                 quranContinuousFrames.getOrNull(pageNumber - 1)?.let { frame ->
                     frame.removeAllViews()
@@ -1809,6 +1869,7 @@ class MainActivity : Activity(), SensorEventListener {
         quranContinuousPages.clear()
         quranContinuousPending.clear()
         quranContinuousFrames = emptyList()
+        quranContinuousHost = null
         quranContinuousCurrentPage = -1
         clearQuranContinuousSelection()
         if (quranSelectedAyahHighlight != 0) {
@@ -2072,6 +2133,7 @@ class MainActivity : Activity(), SensorEventListener {
                 if (quranAudioPlayer === prepared) {
                     quranAudioPreparing = false
                     prepared.start()
+                    updateQuranPlaybackHighlight(globalNumber)
                     setQuranAudioStatus(if (repeat) "تتكرر الآية للحفظ بصوت ${reciter.name}" else "تُتلى الآية بصوت ${reciter.name}")
                 }
             }
@@ -2247,6 +2309,7 @@ class MainActivity : Activity(), SensorEventListener {
                 if (quranAudioPlayer === prepared) {
                     quranAudioPreparing = false
                     prepared.start()
+                    updateQuranPlaybackHighlight(globalNumber)
                     setQuranAudioStatus("سورة $surahName • الآية $currentAyah • القارئ ${reciter.name}")
                 }
             }
@@ -2308,6 +2371,8 @@ class MainActivity : Activity(), SensorEventListener {
         quranAudioQueueEndGlobal = 6236
         quranAudioQueueReciter = null
         quranRepeatAyah = false
+        quranAudioHighlightGlobal = 0
+        clearQuranContinuousSelection()
         setQuranAudioStatus("التلاوة متوقفة")
     }
 
