@@ -12,8 +12,8 @@ bundled in the APK.
 
 Reciters offered in the app:
 - Maher Al-Muaiqly (ar.mahermuaiqly)
-- Abdul Rahman Al-Sudais (ar.abdurrahmaansudais)
-- Ahmed ibn Ali al-Ajamy (ar.ahmedajamy)
+- Abdul Rahman Al-Sudais (ar.sudais)
+- Ahmed ibn Ali al-Ajamy (ar.ajamy)
 - Mishary Rashid Alafasy (ar.alafasy)
 - Mahmoud Khalil Al-Husary (ar.husary)
 - Mohamed Siddiq al-Minshawi (ar.minshawi)
