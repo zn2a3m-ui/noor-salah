@@ -48,6 +48,13 @@ class QuranRepository(private val context: Context) {
     fun juzStart(juzNumber: Int): Pair<Int, Int> = metadataLocation("juz", juzNumber)
     fun pageStart(pageNumber: Int): Pair<Int, Int> = metadataLocation("pages", pageNumber)
 
+    fun globalAyahNumber(surahNumber: Int, ayahNumber: Int): Int {
+        val surah = loadSurahs().firstOrNull { it.number == surahNumber }
+            ?: throw IllegalArgumentException("Unknown surah number: $surahNumber")
+        require(ayahNumber in 1..surah.ayahCount) { "Invalid ayah number: $ayahNumber" }
+        return surah.startLine + ayahNumber
+    }
+
     fun pageFor(surahNumber: Int, ayahNumber: Int): Int {
         val surah = loadSurahs().firstOrNull { it.number == surahNumber }
             ?: throw IllegalArgumentException("Unknown surah number: $surahNumber")
