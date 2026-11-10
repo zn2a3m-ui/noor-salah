@@ -1533,7 +1533,7 @@ class MainActivity : Activity(), SensorEventListener {
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         val pageLabel = TextView(this).apply {
-            text = "صفحة المصحف " + startPage + " من 604"
+            text = "قراءة متواصلة في المصحف"
             textSize = 14f
             setTextColor(muted)
             gravity = Gravity.CENTER
@@ -1542,13 +1542,13 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
         text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
         gap(8)
-        val pageWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
+        val pageWidth = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
         val estimatedHeight = (pageWidth * 1.42f).roundToInt()
         val host = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val frames = (1..604).map { number ->
             FrameLayout(this).apply {
-                setBackgroundColor(if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38))
-                layoutParams = LinearLayout.LayoutParams(-1, estimatedHeight).apply { bottomMargin = dp(10) }
+                setBackgroundColor(Color.WHITE)
+                layoutParams = LinearLayout.LayoutParams(-1, estimatedHeight)
                 contentDescription = "صفحة المصحف " + number
                 host.addView(this)
             }
@@ -1611,7 +1611,7 @@ class MainActivity : Activity(), SensorEventListener {
             if (visiblePage == lastVisiblePage) return
             lastVisiblePage = visiblePage
             quranContinuousCurrentPage = visiblePage
-            pageLabel.text = "صفحة المصحف " + visiblePage + " من 604"
+            pageLabel.text = "قراءة متواصلة في المصحف"
             val location = quranPageStart(visiblePage)
             getPreferences(0).edit().putInt("quran_last_surah", location.first).putInt("quran_last_ayah", location.second).apply()
             for (number in (visiblePage - 1).coerceAtLeast(1)..(visiblePage + 2).coerceAtMost(604)) {
@@ -1645,7 +1645,7 @@ class MainActivity : Activity(), SensorEventListener {
                 return@loadPage
             }
             result.onSuccess { loaded ->
-                val ink = if (isLightTheme) 0x231f20ff.toInt() else 0xe8e4dcff.toInt()
+                val ink = 0xFF111111.toInt()
                 loaded.theme(QvpTheme(ink = ink, diacritics = ink, dots = ink, waqf = ink, sifr = ink, ayahMark = ink, numeral = ink, headers = ink))
                 val bookmarks = getPreferences(0).getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
                 bookmarks.forEach { key ->
@@ -1657,10 +1657,10 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 }
                 val pageView = QvpPageView(this).apply {
-                    paperColor = if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38)
+                    paperColor = Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
-                    padSide = dp(4).toFloat()
+                    padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.PRINTED
                     onWordTap = { word, _ ->
                         if (quranContinuousSelectedHighlight != 0) quranContinuousPages[quranContinuousSelectedPage]?.removeHighlight(quranContinuousSelectedHighlight)
@@ -1692,7 +1692,7 @@ class MainActivity : Activity(), SensorEventListener {
                 quranContinuousViews[pageNumber] = pageView
                 val frame = quranContinuousFrames.getOrNull(pageNumber - 1) ?: return@onSuccess
                 frame.removeAllViews()
-                val width = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
+                val width = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
                 frame.layoutParams = frame.layoutParams.apply { height = (width * loaded.height / loaded.width).roundToInt() }
                 frame.addView(pageView, FrameLayout.LayoutParams(-1, -1))
             }.onFailure {
@@ -1748,7 +1748,7 @@ class MainActivity : Activity(), SensorEventListener {
                 quranMushafPage?.close()
                 quranMushafPage = loaded
 
-                val ink = if (isLightTheme) 0x231f20ff.toInt() else 0xe8e4dcff.toInt()
+                val ink = 0xFF111111.toInt()
                 loaded.theme(QvpTheme(
                     ink = ink,
                     diacritics = ink,
@@ -1791,10 +1791,10 @@ class MainActivity : Activity(), SensorEventListener {
                             quranSurah(location.first, location.second)
                         }
                     }
-                    paperColor = if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38)
+                    paperColor = Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
-                    padSide = dp(4).toFloat()
+                    padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.PRINTED
                     onWordTap = { word, _ ->
                         if (quranSelectedAyahHighlight != 0) {
