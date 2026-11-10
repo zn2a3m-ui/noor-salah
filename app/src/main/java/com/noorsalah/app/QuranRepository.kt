@@ -26,6 +26,38 @@ data class QuranSearchResult(
 )
 
 /**
+ * Resolves a verse to its containing Madani Mushaf page using ordered page
+ * start locations. Kept pure so the page-boundary rule can be unit tested.
+ */
+internal fun findMushafPage(
+    pageStarts: List<Pair<Int, Int>>,
+    targetSurah: Int,
+    targetAyah: Int
+): Int {
+    require(pageStarts.isNotEmpty()) { "Mushaf page metadata is empty." }
+    require(targetSurah in 1..114 && targetAyah >= 1) { "Invalid Quran location." }
+    var matchedPage = 1
+    var previous: Pair<Int, Int>? = null
+    pageStarts.forEachIndexed { index, location ->
+        require(location.first in 1..114 && location.second >= 1) { "Invalid page start location." }
+        previous?.let { prior ->
+            require(location.first > prior.first ||
+                (location.first == prior.first && location.second > prior.second)) {
+                "Mushaf page starts must be strictly ordered."
+            }
+        }
+        previous = location
+        if (location.first < targetSurah ||
+            (location.first == targetSurah && location.second <= targetAyah)) {
+            matchedPage = index + 1
+        } else {
+            return matchedPage
+        }
+    }
+    return matchedPage
+}
+
+/**
  * Reads the original Tanzil text without changing its contents.
  * Only the publisher's blank and comment lines are excluded from the
  * in-memory verse index; the packaged source asset remains byte-for-byte intact.
@@ -60,20 +92,11 @@ class QuranRepository(private val context: Context) {
             ?: throw IllegalArgumentException("Unknown surah number: $surahNumber")
         require(ayahNumber in 1..surah.ayahCount) { "Invalid ayah number: $ayahNumber" }
         val pages = metadata().getJSONArray("pages")
-        val targetSurah = surahNumber
-        val targetAyah = ayahNumber
-        var matchedPage = 1
-        for (index in 0 until pages.length()) {
+        val pageStarts = (0 until pages.length()).map { index ->
             val entry = pages.getJSONObject(index)
-            val entrySurah = entry.getInt("surah")
-            val entryAyah = entry.getInt("ayah")
-            if (entrySurah < targetSurah || (entrySurah == targetSurah && entryAyah <= targetAyah)) {
-                matchedPage = entry.getInt("index")
-            } else {
-                break
-            }
+            entry.getInt("surah") to entry.getInt("ayah")
         }
-        return matchedPage
+        return findMushafPage(pageStarts, surahNumber, ayahNumber)
     }
 
     fun loadPageAyahs(pageNumber: Int): List<QuranAyah> {
