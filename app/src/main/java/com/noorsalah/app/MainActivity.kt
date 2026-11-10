@@ -1309,7 +1309,9 @@ class MainActivity : Activity(), SensorEventListener {
             .putInt("quran_last_surah", surahNumber)
             .putInt("quran_last_ayah", focusAyah)
             .apply()
-        val pageFirstSurah = quranRepository.loadSurahs().first { it.number == ayahs.first().surahNumber }
+        val pageStartSurah = quranMushafAtlas?.pageRange(pageNumber)?.first?.first
+            ?: ayahs.first().surahNumber
+        val pageFirstSurah = quranRepository.loadSurahs().first { it.number == pageStartSurah }
         quranFontSize = getPreferences(0).getFloat("quran_font_size", 27f).coerceIn(18f, 36f)
 
         content.removeAllViews()
