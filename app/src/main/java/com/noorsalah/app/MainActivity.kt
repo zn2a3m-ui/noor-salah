@@ -1267,6 +1267,12 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "تعذّر تحميل صفحة المصحف الموثقة", Toast.LENGTH_LONG).show()
             return
         }
+        // Keep the reading position current whenever a page is opened.
+        // The explicit verse action remains available for users who prefer manual saving.
+        getPreferences(0).edit()
+            .putInt("quran_last_surah", surahNumber)
+            .putInt("quran_last_ayah", focusAyah)
+            .apply()
         val pageFirstSurah = quranRepository.loadSurahs().first { it.number == ayahs.first().surahNumber }
         quranFontSize = getPreferences(0).getFloat("quran_font_size", 27f).coerceIn(18f, 36f)
 
