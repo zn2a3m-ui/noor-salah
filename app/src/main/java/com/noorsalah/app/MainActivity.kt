@@ -1405,6 +1405,22 @@ class MainActivity : Activity(), SensorEventListener {
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(15))
             }, LinearLayout.LayoutParams(-1, -2))
+
+            // In the Madani Mushaf, the basmala is a separate line at the
+            // beginning of every surah except Al-Fatihah (already in ayah 1)
+            // and At-Tawbah (which has no basmala).
+            if (pageFirstSurah.number != 1 && pageFirstSurah.number != 9) {
+                val verifiedBasmala = quranRepository.loadAyahs(1).first().text
+                mushafPage.addView(TextView(this).apply {
+                    text = verifiedBasmala
+                    textSize = quranFontSize
+                    setTextColor(Color.rgb(42, 43, 35))
+                    gravity = Gravity.CENTER
+                    textDirection = View.TEXT_DIRECTION_RTL
+                    typeface = Typeface.create("serif", Typeface.NORMAL)
+                    setPadding(dp(2), 0, dp(2), dp(12))
+                }, LinearLayout.LayoutParams(-1, -2))
+            }
         }
         mushafPage.addView(TextView(this).apply {
             text = mushafText
