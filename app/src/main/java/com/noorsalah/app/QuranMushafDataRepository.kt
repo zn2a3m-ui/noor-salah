@@ -3,6 +3,7 @@ package com.noorsalah.app
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import ws.quran.qvp.QvpAtlas
 import ws.quran.qvp.QvpPage
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -50,6 +51,31 @@ class QuranMushafDataRepository(context: Context) : Closeable {
         val sidecars = root.listFiles { file -> file.isFile && file.name.matches(Regex("\\d{3}\\.words\\.json")) }
         return pages?.size == PAGE_COUNT && sidecars?.size == PAGE_COUNT &&
             runCatching { File(root, ".tag").readText(Charsets.UTF_8).trim() == DATA_VERSION }.getOrDefault(false)
+    }
+
+    fun loadAtlas(callback: (Result<QvpAtlas>) -> Unit) {
+        worker.execute {
+            val result = runCatching {
+                root.mkdirs()
+                val atlasFile = File(root, "atlas.qva")
+                val fullPackReady = isFullPackInstalled() && atlasFile.isFile
+                if (!fullPackReady) {
+                    val expected = manifestEntry("atlas.qva")
+                    if (!matchesManifest(atlasFile, expected)) {
+                        downloadFile("$CDN_BASE/atlas.qva", atlasFile) { bytes ->
+                            matchesManifest(bytes, expected)
+                        }
+                    }
+                }
+                val atlas = QvpAtlas(atlasFile.readBytes())
+                if (atlas.pageCount() != PAGE_COUNT) {
+                    atlas.close()
+                    throw IOException("The Mushaf atlas does not contain 604 pages.")
+                }
+                atlas
+            }
+            main.post { callback(result) }
+        }
     }
 
     fun loadPage(pageNumber: Int, callback: (Result<QvpPage>) -> Unit) {
