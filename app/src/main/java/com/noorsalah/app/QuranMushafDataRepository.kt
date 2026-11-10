@@ -164,6 +164,7 @@ class QuranMushafDataRepository(context: Context) : Closeable {
             readTimeout = 120000
             instanceFollowRedirects = true
             setRequestProperty("User-Agent", "NoorSalah-Android")
+            setRequestProperty("Accept-Encoding", "identity")
         }
         try {
             connection.connect()
