@@ -1605,7 +1605,7 @@ class MainActivity : Activity(), SensorEventListener {
                 quranMushafView = pageView
                 container.removeAllViews()
                 val availableWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
-                val pageHeight = (availableWidth * 550f / 345f).roundToInt()
+                val pageHeight = (availableWidth * loaded.height / loaded.width).roundToInt()
                 container.addView(pageView, LinearLayout.LayoutParams(-1, pageHeight))
                 }.onFailure {
                     Toast.makeText(
