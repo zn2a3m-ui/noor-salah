@@ -1251,6 +1251,29 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
             }, LinearLayout.LayoutParams(-1, -2))
+            gap(6)
+            line("صفحات العرض: مصحف المدينة النبوية، مجمع الملك فهد، الإصدار الرابع (1441هـ)، برواية حفص. تُعرض الصفحات من بيانات QVP موثّقة ببصمات SHA-256.", 12f, muted)
+            addView(button("المصدر الرسمي لمجمع الملك فهد") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://qurancomplex.gov.sa/")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("توثيق مصدر صفحات المصحف وبياناتها") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/main/docs/DATA.md")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("شروط ترخيص بيانات الصفحات") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/main/LICENSE")))
+                } catch (_: Exception) {
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                }
+            }, LinearLayout.LayoutParams(-1, -2))
             line("التلاوات الصوتية تُبث من Islamic Network بإذن أصحاب الحقوق، ولا تُخزّن ضمن التطبيق.", 12f, muted)
             addView(button("شروط استخدام التلاوات الصوتية") {
                 try {
