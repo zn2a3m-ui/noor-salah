@@ -1,0 +1,28 @@
+MUSHAF PAGE DATA AND RENDERER ATTRIBUTION
+
+Printed page source:
+King Fahd Glorious Qur'an Printing Complex (KFGQPC)
+Mushaf al-Madinah al-Nabawiyyah, Hafs 'an Asim.
+The Complex's published usage rights permit its complete digital Mushaf copy
+(Adobe Illustrator, PDF, high-quality images and TrueType font) to be used
+free of charge in software and applications worldwide.
+
+Page-data conversion and distribution:
+Quran.ws, quran-engine data release data-v0.5.0
+https://github.com/quran-ws/quran-engine
+https://cdn.quran.ws/qvp/v0.5.0/
+The QVP page data is derived from KFGQPC page artwork. Quran.ws processing
+and data are published under CC BY 4.0 where Quran.ws holds the rights;
+third-party Mushaf artwork remains under KFGQPC's published usage rights.
+The complete page-data archive is verified against SHA-256 before extraction:
+ffc2f4f86893357ad82b864a09e7813d604760596b84202bdab1dd47cad569db
+
+Android rendering engine:
+Quran.ws QVP Android SDK 0.8.0
+https://github.com/quran-ws/quran-engine
+Code licence: MIT. The AAR is downloaded during the build and checked against:
+df3055762a6ffcfb8ba02626f607a87933d56f9b483f3be5783daa3d5352bc81
+
+The application does not claim ownership of the printed page artwork, Qur'anic
+text, or rendering engine. The original publisher's and data distributor's
+rights and terms remain applicable.
