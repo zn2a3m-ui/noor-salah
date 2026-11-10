@@ -254,14 +254,14 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                 }.getOrDefault(false)
             }
         }
-        var json = runCatching {
+        val cachedJson = runCatching {
             if (!file.isFile || file.length() == 0L) throw IOException("Missing Mushaf manifest.")
             JSONObject(file.readText(Charsets.UTF_8))
         }.getOrNull()
-        if (json == null) {
+        val json = cachedJson ?: run {
             file.delete()
             downloadManifest()
-            json = JSONObject(file.readText(Charsets.UTF_8))
+            JSONObject(file.readText(Charsets.UTF_8))
         }
         if (json.optString("version") != "v0.5.0") {
             file.delete()
