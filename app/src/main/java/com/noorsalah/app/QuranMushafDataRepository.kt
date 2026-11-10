@@ -5,8 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import ws.quran.qvp.QvpAtlas
 import ws.quran.qvp.QvpPage
-import java.io.BufferedInputStream
-import java.io.BufferedOutputStream
 import java.io.Closeable
 import java.io.File
 import java.io.FileInputStream
@@ -17,7 +15,6 @@ import java.net.URL
 import java.security.MessageDigest
 import org.json.JSONObject
 import java.util.concurrent.Executors
-import java.util.zip.GZIPInputStream
 
 /**
  * Loads the publisher-derived Hafs/KFGQPC page data for the native QVP renderer.
