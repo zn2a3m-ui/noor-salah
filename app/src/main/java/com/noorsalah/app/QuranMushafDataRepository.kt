@@ -14,6 +14,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.zip.GZIPInputStream
 
@@ -57,15 +58,24 @@ class QuranMushafDataRepository(context: Context) : Closeable {
             val result = runCatching {
                 root.mkdirs()
                 val pageFile = pageFile(pageNumber)
-                if (!validPageFile(pageFile)) {
-                    downloadFile("$CDN_BASE/${pageName(pageNumber)}.qvp", pageFile) { bytes ->
-                        bytes.size >= 8 && String(bytes.copyOfRange(0, 4), Charsets.US_ASCII) == "QVP1"
-                    }
-                }
                 val wordsFile = File(root, "${pageName(pageNumber)}.words.json")
-                if (!wordsFile.isFile || wordsFile.length() == 0L) {
-                    downloadFile("$CDN_BASE/${pageName(pageNumber)}.words.json", wordsFile) { bytes ->
-                        bytes.isNotEmpty() && bytes.first() == '{'.code.toByte()
+                val fullPackReady = isFullPackInstalled() && validPageFile(pageFile) &&
+                    wordsFile.isFile && wordsFile.length() > 0L
+                if (!fullPackReady) {
+                    val pageName = "${pageName(pageNumber)}.qvp"
+                    val pageDigest = manifestEntry(pageName)
+                    if (!matchesManifest(pageFile, pageDigest)) {
+                        downloadFile("$CDN_BASE/$pageName", pageFile) { bytes ->
+                            isValidPageBytes(bytes) && matchesManifest(bytes, pageDigest)
+                        }
+                    }
+                    val wordsName = "${pageName(pageNumber)}.words.json"
+                    val wordsDigest = manifestEntry(wordsName)
+                    if (!matchesManifest(wordsFile, wordsDigest)) {
+                        downloadFile("$CDN_BASE/$wordsName", wordsFile) { bytes ->
+                            bytes.isNotEmpty() && bytes.first() == '{'.code.toByte() &&
+                                matchesManifest(bytes, wordsDigest)
+                        }
                     }
                 }
                 val page = QvpPage(pageFile.readBytes())
@@ -231,6 +241,56 @@ class QuranMushafDataRepository(context: Context) : Closeable {
         }
     }
 
+    private data class ManifestFile(val bytes: Long, val sha256: String)
+
+    private fun manifestEntry(name: String): ManifestFile {
+        val file = File(root, "manifest.json")
+        fun downloadManifest() {
+            downloadFile("$CDN_BASE/manifest.json", file) { bytes ->
+                runCatching {
+                    val json = JSONObject(String(bytes, Charsets.UTF_8))
+                    json.optString("version") == "v0.5.0" &&
+                        (json.optJSONArray("files")?.length() ?: 0) > 0
+                }.getOrDefault(false)
+            }
+        }
+        var json = runCatching {
+            if (!file.isFile || file.length() == 0L) throw IOException("Missing Mushaf manifest.")
+            JSONObject(file.readText(Charsets.UTF_8))
+        }.getOrNull()
+        if (json == null) {
+            file.delete()
+            downloadManifest()
+            json = JSONObject(file.readText(Charsets.UTF_8))
+        }
+        if (json.optString("version") != "v0.5.0") {
+            file.delete()
+            throw IOException("The Mushaf page manifest has an unexpected version.")
+        }
+        val files = json.optJSONArray("files")
+            ?: throw IOException("The Mushaf page manifest has no file list.")
+        for (index in 0 until files.length()) {
+            val item = files.getJSONObject(index)
+            if (item.optString("name") == name) {
+                val bytes = item.optLong("bytes", -1L)
+                val digest = item.optString("sha256")
+                if (bytes > 0L && digest.matches(Regex("[0-9a-f]{64}"))) {
+                    return ManifestFile(bytes, digest)
+                }
+            }
+        }
+        throw IOException("The Mushaf manifest does not contain $name.")
+    }
+
+    private fun matchesManifest(file: File, expected: ManifestFile): Boolean =
+        file.isFile && file.length() == expected.bytes && sha256(file) == expected.sha256
+
+    private fun matchesManifest(bytes: ByteArray, expected: ManifestFile): Boolean =
+        bytes.size.toLong() == expected.bytes && sha256(bytes) == expected.sha256
+
+    private fun isValidPageBytes(bytes: ByteArray): Boolean =
+        bytes.size >= 8 && String(bytes.copyOfRange(0, 4), Charsets.US_ASCII) == "QVP1"
+
     private fun validPageFile(file: File): Boolean {
         if (!file.isFile || file.length() < 8L) return false
         return runCatching {
@@ -313,6 +373,9 @@ class QuranMushafDataRepository(context: Context) : Closeable {
             remaining -= count
         }
     }
+
+    private fun sha256(bytes: ByteArray): String =
+        MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     private fun sha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
