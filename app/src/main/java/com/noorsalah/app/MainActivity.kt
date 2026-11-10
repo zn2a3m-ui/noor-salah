@@ -1995,8 +1995,8 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this, "أدخل رقم صفحة صحيحاً من 1 إلى 604", Toast.LENGTH_SHORT).show()
                 } else {
                     try {
-                        val location = quranRepository.pageStart(pageNumber)
-                        quranSurah(location.first, location.second)
+                        val location = quranPageStart(pageNumber)
+                        quranSurah(location.first, location.second, pageNumber)
                     } catch (_: Exception) {
                         Toast.makeText(this, "تعذّر الانتقال إلى الصفحة", Toast.LENGTH_SHORT).show()
                     }
