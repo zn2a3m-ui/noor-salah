@@ -1364,11 +1364,15 @@ class MainActivity : Activity(), SensorEventListener {
         val bookmarkedAyahs = savedPrefs.getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
 
         val mushafText = SpannableStringBuilder()
+        var focusMarkerOffset: Int? = null
         ayahs.forEach { ayah ->
             mushafText.append(ayah.text)
             mushafText.append("  ")
             val marker = "﴿${ayah.number}﴾"
             val markerStart = mushafText.length
+            if (ayah.surahNumber == surahNumber && ayah.number == focusAyah) {
+                focusMarkerOffset = markerStart
+            }
             mushafText.append(marker)
             mushafText.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
@@ -1421,7 +1425,7 @@ class MainActivity : Activity(), SensorEventListener {
                 }, LinearLayout.LayoutParams(-1, -2))
             }
         }
-        mushafPage.addView(TextView(this).apply {
+        val mushafTextView = TextView(this).apply {
             text = mushafText
             textSize = quranFontSize
             setTextColor(Color.rgb(42, 43, 35))
@@ -1432,7 +1436,8 @@ class MainActivity : Activity(), SensorEventListener {
             movementMethod = LinkMovementMethod.getInstance()
             highlightColor = Color.TRANSPARENT
             setPadding(dp(2), dp(5), dp(2), dp(5))
-        }, LinearLayout.LayoutParams(-1, -2))
+        }
+        mushafPage.addView(mushafTextView, LinearLayout.LayoutParams(-1, -2))
         content.addView(mushafPage, LinearLayout.LayoutParams(-1, -2).apply {
             topMargin = dp(6)
             bottomMargin = dp(12)
@@ -1457,7 +1462,15 @@ class MainActivity : Activity(), SensorEventListener {
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(nextRow, LinearLayout.LayoutParams(-1, -2))
         mainScroll?.post {
-            focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
+            val offset = focusMarkerOffset
+            val layout = mushafTextView.layout
+            if (offset != null && layout != null) {
+                val line = layout.getLineForOffset(offset)
+                val targetY = mushafPage.top + mushafTextView.top + layout.getLineTop(line)
+                mainScroll?.smoothScrollTo(0, (targetY - dp(24)).coerceAtLeast(0))
+            } else {
+                focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
+            }
         }
     }
 
