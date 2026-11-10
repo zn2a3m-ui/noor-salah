@@ -87,6 +87,7 @@ class MainActivity : Activity(), SensorEventListener {
         QuranReciter("محمود خليل الحصري", "ar.husary", 128),
         QuranReciter("محمد صديق المنشاوي", "ar.minshawi", 128),
         QuranReciter("عبدالرحمن السديس", "ar.sudais", 192),
+        QuranReciter("أحمد بن علي العجمي", "ar.ahmedajamy", 128),
         QuranReciter("عبدالباسط عبدالصمد", "ar.abdulbasit", 192)
     )
     private lateinit var sensorManager: SensorManager
@@ -1078,6 +1079,32 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
 
+        val savedBookmarks = prefs.getStringSet("quran_bookmarks_v1", emptySet())?.toList().orEmpty()
+            .mapNotNull { value ->
+                val parts = value.split(":")
+                if (parts.size == 2) {
+                    val surahNumber = parts[0].toIntOrNull()
+                    val ayahNumber = parts[1].toIntOrNull()
+                    if (surahNumber != null && ayahNumber != null) surahNumber to ayahNumber else null
+                } else null
+            }
+            .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+
+        card {
+            line("علاماتي المرجعية", 18f, gold, true)
+            if (savedBookmarks.isEmpty()) {
+                line("لم تحفظ علامات بعد. اضغط على رقم أي آية واختر حفظ علامة مرجعية.", 13f, muted)
+            } else {
+                savedBookmarks.forEach { bookmark ->
+                    val bookmarkSurah = surahs.getOrNull(bookmark.first - 1) ?: return@forEach
+                    addView(button("سورة ${bookmarkSurah.name} • الآية ${bookmark.second}") {
+                        quranSurah(bookmark.first, bookmark.second)
+                    }, LinearLayout.LayoutParams(-1, -2))
+                }
+            }
+        }
+        gap(10)
+
         card {
             line("البحث في آيات القرآن", 17f, gold, true)
             val query = EditText(this@MainActivity).apply {
@@ -1170,6 +1197,37 @@ class MainActivity : Activity(), SensorEventListener {
                 }
             }, LinearLayout.LayoutParams(-1, -2))
         }
+    }
+
+    private fun showQuranVerseActions(surahNumber: Int, surahName: String, ayahNumber: Int) {
+        val choices = arrayOf("حفظ علامة مرجعية", "حفظ موضع متابعة القراءة", "إلغاء")
+        AlertDialog.Builder(this)
+            .setTitle("سورة $surahName • الآية $ayahNumber")
+            .setItems(choices) { dialog, which ->
+                when (which) {
+                    0 -> {
+                        val prefs = getPreferences(0)
+                        val bookmarks = prefs.getStringSet("quran_bookmarks_v1", emptySet())
+                            ?.toMutableSet() ?: mutableSetOf()
+                        bookmarks.add("$surahNumber:$ayahNumber")
+                        prefs.edit()
+                            .putStringSet("quran_bookmarks_v1", bookmarks)
+                            .putInt("quran_last_surah", surahNumber)
+                            .putInt("quran_last_ayah", ayahNumber)
+                            .apply()
+                        Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
+                    }
+                    1 -> {
+                        getPreferences(0).edit()
+                            .putInt("quran_last_surah", surahNumber)
+                            .putInt("quran_last_ayah", ayahNumber)
+                            .apply()
+                        Toast.makeText(this, "تم حفظ موضع متابعة القراءة", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun quranSurah(surahNumber: Int, focusAyah: Int = 1) {
@@ -1284,15 +1342,7 @@ class MainActivity : Activity(), SensorEventListener {
             mushafText.append(marker)
             mushafText.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    getPreferences(0).edit()
-                        .putInt("quran_last_surah", surahNumber)
-                        .putInt("quran_last_ayah", ayah.number)
-                        .apply()
-                    Toast.makeText(
-                        this@MainActivity,
-                        "تم حفظ موضع القراءة: سورة ${surah.name} • الآية ${ayah.number}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    showQuranVerseActions(surahNumber, surah.name, ayah.number)
                 }
 
                 override fun updateDrawState(ds: TextPaint) {
