@@ -1526,14 +1526,14 @@ class MainActivity : Activity(), SensorEventListener {
                         val chosen = quranReciters[position]
                         if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
                             prefs.edit().putString("quran_reciter", chosen.edition).apply()
-                            if (quranAudioSurahNumber == surahNumber) playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
+                            if (quranAudioQueueReciter != null) playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
                         }
                     }
                 }
             }
             addView(reciterPicker, LinearLayout.LayoutParams(-1, -2))
             val repeatSwitch = Switch(this@MainActivity).apply {
-                text = "تكرار السورة بعد انتهائها"
+                text = "تكرار التلاوة بعد انتهائها"
                 setTextColor(cream)
                 isChecked = prefs.getBoolean("quran_repeat", false)
                 quranRepeat = isChecked
@@ -1602,7 +1602,7 @@ class MainActivity : Activity(), SensorEventListener {
                         val chosen = quranReciters[position]
                         if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
                             prefs.edit().putString("quran_reciter", chosen.edition).apply()
-                            if (quranAudioSurahNumber == surahNumber) playQuranSurah(surahNumber)
+                            if (quranAudioQueueReciter != null) playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
                         }
                     }
                 }
@@ -2077,7 +2077,7 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun toggleQuranAudio(surahNumber: Int) {
         val current = quranAudioPlayer
-        if (current != null && quranAudioSurahNumber == surahNumber && !quranAudioPreparing) {
+        if (current != null && quranAudioQueueReciter != null && !quranAudioPreparing) {
             try {
                 if (current.isPlaying) {
                     current.pause()
