@@ -47,6 +47,13 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
+      - name: Verify stable debug signing certificate
+        run: |
+          keytool -list -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey | grep -E 'SHA256:'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
