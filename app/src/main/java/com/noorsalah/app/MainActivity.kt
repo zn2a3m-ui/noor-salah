@@ -1711,7 +1711,7 @@ class MainActivity : Activity(), SensorEventListener {
                     val s = parts.getOrNull(0)?.toIntOrNull()
                     val a = parts.getOrNull(1)?.toIntOrNull()
                     if (s != null && a != null && loaded.ayahs.any { it.surah == s && it.ayah == a }) {
-                        loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x8B50A023.toInt()))
+                        loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x8B50A060.toInt()))
                     }
                 }
                 val pageView = QvpPageView(this).apply {
@@ -1725,7 +1725,7 @@ class MainActivity : Activity(), SensorEventListener {
                         quranContinuousSelectedPage = pageNumber
                         quranContinuousSelectedHighlight = loaded.highlight(
                             word.surah.toString() + ":" + word.ayah,
-                            QvpHighlightStyle(mode = HighlightMode.BAND, band = 0xFFD54F66.toInt())
+                            QvpHighlightStyle(mode = HighlightMode.BAND, band = 0xD6A32690.toInt())
                         )
                         quranContinuousViews[pageNumber]?.invalidate()
                         showQuranAyahAudioActions(word.surah, word.ayah)
@@ -1823,7 +1823,7 @@ class MainActivity : Activity(), SensorEventListener {
 
                 val bookmarkStyle = QvpHighlightStyle(
                     mode = HighlightMode.BAND,
-                    band = 0x8B50A023.toInt()
+                    band = 0x8B50A060.toInt()
                 )
                 val currentStyle = QvpHighlightStyle(
                     mode = HighlightMode.BAND,
@@ -1865,7 +1865,7 @@ class MainActivity : Activity(), SensorEventListener {
                             "${word.surah}:${word.ayah}",
                             QvpHighlightStyle(
                                 mode = HighlightMode.BAND,
-                                band = 0x8B50A023.toInt()
+                                band = 0x8B50A060.toInt()
                             )
                         )
                         showQuranAyahAudioActions(word.surah, word.ayah)
