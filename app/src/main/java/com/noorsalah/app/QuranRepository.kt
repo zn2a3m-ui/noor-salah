@@ -36,9 +36,8 @@ internal fun findMushafPage(
 ): Int {
     require(pageStarts.isNotEmpty()) { "Mushaf page metadata is empty." }
     require(targetSurah in 1..114 && targetAyah >= 1) { "Invalid Quran location." }
-    var matchedPage = 1
     var previous: Pair<Int, Int>? = null
-    pageStarts.forEachIndexed { index, location ->
+    pageStarts.forEach { location ->
         require(location.first in 1..114 && location.second >= 1) { "Invalid page start location." }
         previous?.let { prior ->
             require(location.first > prior.first ||
@@ -47,6 +46,10 @@ internal fun findMushafPage(
             }
         }
         previous = location
+    }
+
+    var matchedPage = 1
+    pageStarts.forEachIndexed { index, location ->
         if (location.first < targetSurah ||
             (location.first == targetSurah && location.second <= targetAyah)) {
             matchedPage = index + 1
