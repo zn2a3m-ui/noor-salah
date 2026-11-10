@@ -84,7 +84,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranSelectedAyahHighlight = 0
     private val quranContinuousPages = mutableMapOf<Int, QvpPage>()
     private val quranContinuousViews = mutableMapOf<Int, QvpPageView>()
-    private val quranContinuousPending = mutableSetOf<Int>()
+    private val quranContinuousPending = mutableMapOf<Int, Int>()
     private var quranContinuousFrames: List<FrameLayout> = emptyList()
     private var quranContinuousCurrentPage = -1
     private var quranContinuousSelectedPage = -1
@@ -1688,10 +1688,12 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun loadContinuousQuranPage(pageNumber: Int, token: Int) {
-        if (pageNumber !in 1..604 || quranContinuousPages.containsKey(pageNumber) || quranContinuousPending.contains(pageNumber)) return
-        quranContinuousPending.add(pageNumber)
+        if (pageNumber !in 1..604 || quranContinuousPages.containsKey(pageNumber) || quranContinuousPending.containsKey(pageNumber)) return
+        quranContinuousPending[pageNumber] = token
         quranMushafDataRepository.loadPage(pageNumber) { result ->
-            quranContinuousPending.remove(pageNumber)
+            if (quranContinuousPending[pageNumber] == token) {
+                quranContinuousPending.remove(pageNumber)
+            }
             if (token != quranMushafRequestId || isFinishing || isDestroyed || abs(pageNumber - quranContinuousCurrentPage) > 3) {
                 result.getOrNull()?.close()
                 return@loadPage
