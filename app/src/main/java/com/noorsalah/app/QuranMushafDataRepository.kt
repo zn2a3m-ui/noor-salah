@@ -199,6 +199,7 @@ class QuranMushafDataRepository(context: Context) : Closeable {
             }
             val total = connection.contentLengthLong.takeIf { it > 0L } ?: ARCHIVE_SIZE
             var copied = 0L
+            var lastReportedPercent = -1
             connection.inputStream.use { input ->
                 FileOutputStream(part).use { output ->
                     val buffer = ByteArray(32 * 1024)
@@ -208,7 +209,10 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                         output.write(buffer, 0, count)
                         copied += count
                         val percent = ((copied * 100L) / total).toInt().coerceIn(0, 99)
-                        main.post { onProgress(percent) }
+                        if (percent != lastReportedPercent) {
+                            lastReportedPercent = percent
+                            main.post { onProgress(percent) }
+                        }
                     }
                     output.fd.sync()
                 }
