@@ -1711,7 +1711,7 @@ class MainActivity : Activity(), SensorEventListener {
                     val s = parts.getOrNull(0)?.toIntOrNull()
                     val a = parts.getOrNull(1)?.toIntOrNull()
                     if (s != null && a != null && loaded.ayahs.any { it.surah == s && it.ayah == a }) {
-                        loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x238b50a0.toInt()))
+                        loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x8B50A023.toInt()))
                     }
                 }
                 val pageView = QvpPageView(this).apply {
@@ -1809,7 +1809,7 @@ class MainActivity : Activity(), SensorEventListener {
                 quranMushafPage?.close()
                 quranMushafPage = loaded
 
-                val ink = 0xFF111111.toInt()
+                val ink = 0x111111FF.toInt()
                 loaded.theme(QvpTheme(
                     ink = ink,
                     diacritics = ink,
@@ -1823,11 +1823,11 @@ class MainActivity : Activity(), SensorEventListener {
 
                 val bookmarkStyle = QvpHighlightStyle(
                     mode = HighlightMode.BAND,
-                    band = 0x238b50a0.toInt()
+                    band = 0x8B50A023.toInt()
                 )
                 val currentStyle = QvpHighlightStyle(
                     mode = HighlightMode.BAND,
-                    band = 0xd6a32690.toInt()
+                    band = 0xA32690D6.toInt()
                 )
                 val savedBookmarks = getPreferences(0)
                     .getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
@@ -1865,7 +1865,7 @@ class MainActivity : Activity(), SensorEventListener {
                             "${word.surah}:${word.ayah}",
                             QvpHighlightStyle(
                                 mode = HighlightMode.BAND,
-                                band = 0x238b50a0.toInt()
+                                band = 0x8B50A023.toInt()
                             )
                         )
                         showQuranAyahAudioActions(word.surah, word.ayah)
