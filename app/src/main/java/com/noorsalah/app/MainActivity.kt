@@ -12,6 +12,11 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
+import android.text.style.ClickableSpan
+import android.text.method.LinkMovementMethod
+import android.text.TextPaint
+import android.text.Spanned
+import android.text.SpannableStringBuilder
 import android.widget.*
 import android.content.Context
 import android.content.Intent
@@ -1265,51 +1270,71 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         text("اضغط على رقم الآية لحفظ موضع القراءة والعودة إليه لاحقاً.", 11f, muted, false, Gravity.CENTER)
 
-        var focusView: View? = null
         val savedPrefs = getPreferences(0)
         val savedAyah = if (savedPrefs.getInt("quran_last_surah", -1) == surahNumber) {
             savedPrefs.getInt("quran_last_ayah", -1)
         } else -1
+
+        val mushafText = SpannableStringBuilder()
         ayahs.forEach { ayah ->
-            val verseCard = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(15), dp(13), dp(15), dp(13))
-                background = shape(
-                    if (ayah.number == focusAyah) Color.rgb(24, 66, 49) else panel,
-                    15,
-                    if (ayah.number == focusAyah) goldOnDark else if (ayah.number == savedAyah) gold else Color.rgb(42, 91, 72)
-                )
-            }
-            val verseText = TextView(this).apply {
-                text = ayah.text
-                textSize = quranFontSize
-                setTextColor(if (ayah.number == focusAyah) creamOnDark else cream)
-                gravity = Gravity.CENTER
-                textDirection = View.TEXT_DIRECTION_RTL
-                typeface = Typeface.create("serif", Typeface.NORMAL)
-                setLineSpacing(dp(7).toFloat(), 1.15f)
-            }
-            val verseNumber = TextView(this).apply {
-                text = "﴿${ayah.number}﴾"
-                textSize = 12f
-                setTextColor(if (ayah.number == focusAyah) goldOnDark else gold)
-                gravity = Gravity.CENTER
-                setPadding(0, dp(9), 0, 0)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
+            mushafText.append(ayah.text)
+            mushafText.append("  ")
+            val marker = "﴿${ayah.number}﴾"
+            val markerStart = mushafText.length
+            mushafText.append(marker)
+            mushafText.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
                     getPreferences(0).edit()
                         .putInt("quran_last_surah", surahNumber)
                         .putInt("quran_last_ayah", ayah.number)
                         .apply()
-                    Toast.makeText(this@MainActivity, "تم حفظ موضع القراءة: سورة ${surah.name} • الآية ${ayah.number}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "تم حفظ موضع القراءة: سورة ${surah.name} • الآية ${ayah.number}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-            }
-            verseCard.addView(verseText, LinearLayout.LayoutParams(-1, -2))
-            verseCard.addView(verseNumber, LinearLayout.LayoutParams(-1, -2))
-            content.addView(verseCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
-            if (ayah.number == focusAyah) focusView = verseCard
+
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = if (ayah.number == savedAyah) Color.rgb(139, 91, 28) else Color.rgb(151, 111, 42)
+                    ds.isUnderlineText = false
+                    ds.isFakeBoldText = true
+                }
+            }, markerStart, markerStart + marker.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            mushafText.append("  ")
         }
+
+        val mushafPage = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(22), dp(18), dp(22))
+            background = shape(Color.rgb(247, 241, 222), 18, Color.rgb(184, 145, 77))
+            elevation = dp(2).toFloat()
+        }
+        mushafPage.addView(TextView(this).apply {
+            text = "۞  ${surah.name}  ۞"
+            textSize = 19f
+            setTextColor(Color.rgb(103, 77, 35))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, dp(15))
+        }, LinearLayout.LayoutParams(-1, -2))
+        mushafPage.addView(TextView(this).apply {
+            text = mushafText
+            textSize = quranFontSize
+            setTextColor(Color.rgb(42, 43, 35))
+            gravity = Gravity.CENTER
+            textDirection = View.TEXT_DIRECTION_RTL
+            typeface = Typeface.create("serif", Typeface.NORMAL)
+            setLineSpacing(dp(12).toFloat(), 1.25f)
+            movementMethod = LinkMovementMethod.getInstance()
+            highlightColor = Color.TRANSPARENT
+            setPadding(dp(2), dp(5), dp(2), dp(5))
+        }, LinearLayout.LayoutParams(-1, -2))
+        content.addView(mushafPage, LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(6)
+            bottomMargin = dp(12)
+        })
+        var focusView: View? = mushafPage
 
         val nextRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
