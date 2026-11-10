@@ -88,8 +88,8 @@ class MainActivity : Activity(), SensorEventListener {
     private data class QuranReciter(val name: String, val edition: String, val bitrate: Int)
     private val quranReciters = listOf(
         QuranReciter("ماهر المعيقلي", "ar.mahermuaiqly", 128),
-        QuranReciter("عبدالرحمن السديس", "ar.abdurrahmaansudais", 128),
-        QuranReciter("أحمد بن علي العجمي", "ar.ahmedajamy", 128),
+        QuranReciter("عبدالرحمن السديس", "ar.sudais", 192),
+        QuranReciter("أحمد بن علي العجمي", "ar.ajamy", 128),
         QuranReciter("مشاري راشد العفاسي", "ar.alafasy", 128),
         QuranReciter("محمود خليل الحصري", "ar.husary", 128),
         QuranReciter("محمد صديق المنشاوي", "ar.minshawi", 128),
@@ -1268,6 +1268,7 @@ class MainActivity : Activity(), SensorEventListener {
             return
         }
         val pageFirstSurah = quranRepository.loadSurahs().first { it.number == ayahs.first().surahNumber }
+        quranFontSize = getPreferences(0).getFloat("quran_font_size", 27f).coerceIn(18f, 36f)
 
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
@@ -1279,7 +1280,7 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
             val prefs = getPreferences(0)
-            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.alafasy"
+            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
             val selectedReciterIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
             val reciterPicker = Spinner(this@MainActivity).apply {
                 adapter = ArrayAdapter(
@@ -1350,7 +1351,7 @@ class MainActivity : Activity(), SensorEventListener {
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(controls, LinearLayout.LayoutParams(-1, -2))
         gap(10)
-        text("اضغط على رقم الآية لحفظ موضع القراءة والعودة إليه لاحقاً.", 11f, muted, false, Gravity.CENTER)
+        text("اضغط على رقم الآية لخيارات الاستماع والحفظ والرجوع إليها لاحقاً.", 11f, muted, false, Gravity.CENTER)
 
         val savedPrefs = getPreferences(0)
         val savedSurah = savedPrefs.getInt("quran_last_surah", -1)
