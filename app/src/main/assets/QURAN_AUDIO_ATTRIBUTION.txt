@@ -5,8 +5,9 @@ Documentation: https://alquran.cloud/cdn
 Terms and conditions: https://alquran.cloud/terms-and-conditions
 CDN: https://cdn.islamic.network
 
-Audio is streamed on demand by complete surah. Audio files are not bundled
-with this application. An internet connection is required.
+Audio is streamed on demand by complete surah. Users may optionally download
+a surah through the app for offline listening. Downloaded files are stored in
+the app's private external files directory and are not bundled in the APK.
 
 Reciters offered in the app:
 - Maher Al-Muaiqly (ar.mahermuaiqly)
