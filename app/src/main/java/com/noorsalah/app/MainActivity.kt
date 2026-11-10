@@ -1319,64 +1319,6 @@ class MainActivity : Activity(), SensorEventListener {
         text("تبدأ من سورة ${pageFirstSurah.name} • 604 صفحة", 12f, muted, false, Gravity.CENTER)
         gap(8)
 
-        card {
-            line("التلاوة الصوتية للسورة", 17f, gold, true)
-            val prefs = getPreferences(0)
-            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
-            val selectedReciterIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
-            val reciterPicker = Spinner(this@MainActivity).apply {
-                adapter = ArrayAdapter(
-                    this@MainActivity,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    quranReciters.map { it.name }
-                )
-                setSelection(selectedReciterIndex)
-                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                        val chosen = quranReciters[position]
-                        if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
-                            prefs.edit().putString("quran_reciter", chosen.edition).apply()
-                            if (quranAudioSurahNumber == surahNumber) playQuranSurah(surahNumber)
-                        }
-                    }
-                }
-            }
-            addView(reciterPicker, LinearLayout.LayoutParams(-1, -2))
-            val repeatSwitch = Switch(this@MainActivity).apply {
-                text = "تكرار السورة بعد انتهائها"
-                setTextColor(cream)
-                isChecked = prefs.getBoolean("quran_repeat", false)
-                quranRepeat = isChecked
-                setOnCheckedChangeListener { _, checked ->
-                    quranRepeat = checked
-                    prefs.edit().putBoolean("quran_repeat", checked).apply()
-                }
-            }
-            addView(repeatSwitch, LinearLayout.LayoutParams(-1, -2))
-            addView(button("تشغيل / متابعة التلاوة") {
-                toggleQuranAudio(surahNumber)
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("إيقاف التلاوة") {
-                stopQuranAudio()
-                Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("تنزيل السورة للاستماع دون إنترنت") {
-                downloadQuranSurah(surahNumber)
-            }, LinearLayout.LayoutParams(-1, -2))
-
-            quranAudioStatusView = TextView(this@MainActivity).apply {
-                text = if (quranAudioLastSurahNumber == surahNumber) quranAudioStatusText else "جاهز للتلاوة"
-                textSize = 12f
-                setTextColor(muted)
-                gravity = Gravity.CENTER
-                setPadding(0, dp(6), 0, dp(3))
-            }
-            addView(quranAudioStatusView, LinearLayout.LayoutParams(-1, -2))
-            line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
-        }
-        gap(8)
-
         val controls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -1499,6 +1441,65 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(nextRow, LinearLayout.LayoutParams(-1, -2))
+
+        gap(8)
+
+        card {
+            line("التلاوة الصوتية للسورة", 17f, gold, true)
+            val prefs = getPreferences(0)
+            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
+            val selectedReciterIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
+            val reciterPicker = Spinner(this@MainActivity).apply {
+                adapter = ArrayAdapter(
+                    this@MainActivity,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    quranReciters.map { it.name }
+                )
+                setSelection(selectedReciterIndex)
+                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        val chosen = quranReciters[position]
+                        if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
+                            prefs.edit().putString("quran_reciter", chosen.edition).apply()
+                            if (quranAudioSurahNumber == surahNumber) playQuranSurah(surahNumber)
+                        }
+                    }
+                }
+            }
+            addView(reciterPicker, LinearLayout.LayoutParams(-1, -2))
+            val repeatSwitch = Switch(this@MainActivity).apply {
+                text = "تكرار السورة بعد انتهائها"
+                setTextColor(cream)
+                isChecked = prefs.getBoolean("quran_repeat", false)
+                quranRepeat = isChecked
+                setOnCheckedChangeListener { _, checked ->
+                    quranRepeat = checked
+                    prefs.edit().putBoolean("quran_repeat", checked).apply()
+                }
+            }
+            addView(repeatSwitch, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تشغيل / متابعة التلاوة") {
+                toggleQuranAudio(surahNumber)
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("إيقاف التلاوة") {
+                stopQuranAudio()
+                Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تنزيل السورة للاستماع دون إنترنت") {
+                downloadQuranSurah(surahNumber)
+            }, LinearLayout.LayoutParams(-1, -2))
+
+            quranAudioStatusView = TextView(this@MainActivity).apply {
+                text = if (quranAudioLastSurahNumber == surahNumber) quranAudioStatusText else "جاهز للتلاوة"
+                textSize = 12f
+                setTextColor(muted)
+                gravity = Gravity.CENTER
+                setPadding(0, dp(6), 0, dp(3))
+            }
+            addView(quranAudioStatusView, LinearLayout.LayoutParams(-1, -2))
+            line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
+        }
         loadQvpMushafPage(pageNumber, surahNumber, focusAyah, mushafContainer)
         mainScroll?.post {
             focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
