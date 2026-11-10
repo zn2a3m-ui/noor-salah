@@ -35,7 +35,7 @@ jobs:
         run: |
           mkdir -p "$HOME/.android"
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
-            keytool -genkeypair -v \
+            keytool -genkeypair -noprompt -v \
               -keystore "$HOME/.android/debug.keystore" \
               -storetype JKS \
               -storepass android \
