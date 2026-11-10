@@ -111,7 +111,7 @@ class MainActivity : Activity(), SensorEventListener {
     private val clockTick = object : Runnable {
         override fun run() { if (page == "home") refreshPrayerCountdown(); clockHandler.postDelayed(this, 30000L) }
     }
-    private var arrow: TextView? = null
+    private var arrow: QiblaCompassView? = null
     private var compassInfo: TextView? = null
     private var countView: TextView? = null
 
@@ -764,54 +764,48 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun qiblaScreen() {
         text("القبلة", 27f, gold, true, Gravity.CENTER)
-        text("اعرف اتجاه بيت الله الحرام أينما كنت", 13f, muted, false, Gravity.CENTER)
+        text("اتجاه دقيق إلى الكعبة المشرفة أينما كنت", 13f, muted, false, Gravity.CENTER)
         gap(14)
         card {
-            line("اتجاه مكة المكرمة", 15f, muted, false, Gravity.CENTER)
-            line("${"%.1f".format(Locale.US, qibla())}°", 31f, gold, true, Gravity.CENTER)
-            val dial = FrameLayout(this@MainActivity).apply {
-                background = GradientDrawable(
-                    GradientDrawable.Orientation.TL_BR,
-                    intArrayOf(Color.rgb(9, 65, 49), Color.rgb(3, 31, 27))
-                ).apply { shape = GradientDrawable.OVAL; setStroke(dp(2), Color.rgb(164, 132, 67)) }
-                elevation = dp(4).toFloat()
+            line("اتجاه مكة المكرمة", 14f, muted, false, Gravity.CENTER)
+            line("${"%.1f".format(Locale.US, qibla())}°", 30f, gold, true, Gravity.CENTER)
+
+            val compassView = QiblaCompassView(this@MainActivity).apply {
+                updateReadings(heading, qibla().toFloat(), hasCompassReading, isLightTheme)
+                elevation = dp(5).toFloat()
             }
-            val compassRing = TextView(this@MainActivity).apply {
-                text = "N\n\nW                     E\n\nS"; textSize = 14f
-                gravity = Gravity.CENTER; setTextColor(mutedOnDark); typeface = Typeface.DEFAULT_BOLD
-            }
-            dial.addView(compassRing, FrameLayout.LayoutParams(-1, -1))
-            val arrowView = TextView(this@MainActivity).apply {
-                text = "↑"; textSize = 76f; gravity = Gravity.CENTER; setTextColor(goldOnDark)
-                rotation = qibla().toFloat() - heading
-                setShadowLayer(dp(5).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
-            }
-            arrow = arrowView
-            dial.addView(arrowView, FrameLayout.LayoutParams(-1, -1))
-            addView(dial, LinearLayout.LayoutParams(dp(250), dp(250)).apply {
-                gravity = Gravity.CENTER; topMargin = dp(12); bottomMargin = dp(14)
+            arrow = compassView
+            addView(compassView, LinearLayout.LayoutParams(dp(286), dp(286)).apply {
+                gravity = Gravity.CENTER
+                topMargin = dp(8)
+                bottomMargin = dp(12)
             })
+
             val infoView = TextView(this@MainActivity).apply {
                 text = when {
                     sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null ->
-                        "مستشعر البوصلة غير متاح على هذا الجهاز"
+                        "مستشعر اتجاه الهاتف غير متاح على هذا الجهاز"
                     hasCompassReading ->
-                        "اتجاه الهاتف عن الشمال الحقيقي: ${"%.0f".format(heading)}°"
-                    else -> "جارٍ قراءة اتجاه الهاتف من البوصلة…"
+                        "الشمال الحقيقي: ${"%.0f".format(Locale.US, heading)}°  •  اتجاه القبلة: ${"%.1f".format(Locale.US, qibla())}°"
+                    else -> "جارٍ تحديد اتجاه الهاتف…"
                 }
-                textSize = 14f; gravity = Gravity.CENTER; setTextColor(cream)
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setTextColor(cream)
+                setPadding(0, dp(4), 0, dp(6))
             }
             compassInfo = infoView
             addView(infoView)
-            line("تُصحّح البوصلة الانحراف المغناطيسي تلقائياً وفق موقعك، وقد تتأثر بالدقة والمعادن حول الهاتف.", 11f, muted, false, Gravity.CENTER)
+            line("تدور الجهات مع حركة الهاتف لتبقى مطابقة للشمال والشرق والجنوب والغرب الحقيقي.", 11f, muted, false, Gravity.CENTER)
+            line("تُصحّح القراءة وفق الانحراف المغناطيسي لموقعك، وقد تتأثر بالمعادن والمغناطيس القريب.", 11f, muted, false, Gravity.CENTER)
         }
         gap(10)
         if (sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null) {
-            text("لا يتوفر مستشعر بوصلة في هذا الجهاز. يظهر اتجاه القبلة الرقمي، لكن السهم لن يتحرك.", 12f, muted, false, Gravity.CENTER)
+            text("لا يتوفر مستشعر اتجاه في هذا الجهاز؛ ستبقى زاوية القبلة الرقمية ظاهرة، لكن اتجاه البوصلة لن يتبع حركة الهاتف.", 12f, muted, false, Gravity.CENTER)
         }
         card {
-            line("معايرة البوصلة", 16f, gold, true)
-            line("أمسك الهاتف أفقياً وحرّكه على شكل رقم 8 إذا لم يستقر المؤشر. أبعده عن المعادن والمغناطيس.", 13f, muted)
+            line("لأفضل دقة", 16f, gold, true)
+            line("أمسك الهاتف أفقياً وحرّكه على شكل رقم 8 لمعايرة المستشعر. أبعده عن المعادن والمغناطيس ومكبرات الصوت.", 13f, muted)
         }
     }
 
@@ -2209,7 +2203,7 @@ class MainActivity : Activity(), SensorEventListener {
         val magneticHeading = (Math.toDegrees(orientation[0].toDouble()).toFloat() + 360f) % 360f
         heading = QiblaCalculator.trueHeading(magneticHeading, magneticDeclination)
         hasCompassReading = true
-        arrow?.rotation = qibla().toFloat() - heading
+        arrow?.updateReadings(heading, qibla().toFloat(), hasCompassReading, isLightTheme)
         val accuracyHint = if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) " • حرّك الهاتف للمعايرة" else ""
         compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°$accuracyHint"
     }
