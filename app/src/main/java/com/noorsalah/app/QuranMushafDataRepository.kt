@@ -69,10 +69,18 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                     }
                 }
                 val page = QvpPage(pageFile.readBytes())
-                val attached = page.attachWords(wordsFile.readBytes())
-                if (attached < 0) {
+                if (page.pageNo != pageNumber || page.nAyahs <= 0 || page.nWords <= 0) {
                     page.close()
-                    throw IOException("The word data for page $pageNumber is invalid.")
+                    throw IOException(
+                        "The downloaded Mushaf page does not match page $pageNumber or has incomplete page data."
+                    )
+                }
+                val attached = page.attachWords(wordsFile.readBytes())
+                if (attached != page.nWords) {
+                    page.close()
+                    throw IOException(
+                        "The word data for page $pageNumber is incomplete ($attached/${page.nWords} words)."
+                    )
                 }
                 page
             }
