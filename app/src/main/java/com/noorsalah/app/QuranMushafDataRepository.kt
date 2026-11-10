@@ -242,7 +242,7 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                     relative.matches(Regex("\\d{3}\\.words\\.json")) ||
                     relative == "atlas.qva" || relative == "atlas.json" ||
                     relative == "ornaments.qvo" || relative == "VERSION.json"
-                if ((type == '\\u0000' || type == '0') && allowed) {
+                if ((type == '\u0000' || type == '0') && allowed) {
                     val output = File(destination, relative)
                     output.parentFile?.mkdirs()
                     BufferedOutputStream(FileOutputStream(output)).use { stream ->
@@ -271,11 +271,11 @@ class QuranMushafDataRepository(context: Context) : Closeable {
     }
 
     private fun tarString(bytes: ByteArray, offset: Int, length: Int): String =
-        String(bytes, offset, length, Charsets.US_ASCII).substringBefore('\\u0000').trim()
+        String(bytes, offset, length, Charsets.US_ASCII).substringBefore('\u0000').trim()
 
     private fun tarOctal(bytes: ByteArray, offset: Int, length: Int): Long {
         val value = String(bytes, offset, length, Charsets.US_ASCII)
-            .trim { it == '\\u0000' || it == ' ' }
+            .trim { it == '\u0000' || it == ' ' }
         return if (value.isEmpty()) 0L else value.toLong(8)
     }
 
