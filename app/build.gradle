@@ -130,8 +130,9 @@ android {
         applicationId 'com.noorsalah.app'
         minSdk 24
         targetSdk 36
-        versionCode 3
+        versionCode 4
         versionName '1.2'
+        manifestPlaceholders = [appLabel: "نور الصلاة - NOOR"]
     }
 
     signingConfigs {
@@ -144,9 +145,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix ".preview"
+            versionNameSuffix "-preview"
+            manifestPlaceholders = [appLabel: "نور الصلاة - معاينة"]
+        }
         release {
             signingConfig signingConfigs.release
             minifyEnabled false
+            manifestPlaceholders = [appLabel: "نور الصلاة - NOOR"]
         }
     }
 
