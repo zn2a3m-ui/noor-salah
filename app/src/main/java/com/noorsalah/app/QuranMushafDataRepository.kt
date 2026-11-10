@@ -90,6 +90,10 @@ class QuranMushafDataRepository(context: Context) : Closeable {
                     main.post { onProgress(100) }
                     return@runCatching
                 }
+                val requiredFreeBytes = ARCHIVE_SIZE + 100L * 1024L * 1024L
+                if (appContext.filesDir.usableSpace < requiredFreeBytes) {
+                    throw IOException("المساحة الفارغة غير كافية. يلزم نحو 150 ميغابايت مؤقتاً لتنزيل صفحات المصحف وفك ضغطها.")
+                }
                 root.mkdirs()
                 val archive = File(appContext.cacheDir, "quran-engine-pages-hafs-kfgqpc.tar.gz")
                 downloadArchive(archive, onProgress)
