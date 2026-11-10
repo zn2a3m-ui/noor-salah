@@ -78,6 +78,7 @@ class MainActivity : Activity(), SensorEventListener {
     private val quranRepository by lazy(LazyThreadSafetyMode.NONE) { QuranRepository(this) }
     private val quranMushafDataRepository by lazy(LazyThreadSafetyMode.NONE) { QuranMushafDataRepository(this) }
     private var quranMushafPage: QvpPage? = null
+    private var quranMushafAtlas: QvpAtlas? = null
     private var quranMushafView: QvpPageView? = null
     private var quranMushafRequestId = 0
     private var quranMushafOfflineStatusView: TextView? = null
@@ -241,6 +242,8 @@ class MainActivity : Activity(), SensorEventListener {
 
     override fun onDestroy() {
         releaseQuranMushafPage()
+        quranMushafAtlas?.close()
+        quranMushafAtlas = null
         quranMushafDataRepository.close()
         super.onDestroy()
     }
@@ -1274,7 +1277,7 @@ class MainActivity : Activity(), SensorEventListener {
             .show()
     }
 
-    private fun quranSurah(surahNumber: Int, focusAyah: Int = 1) {
+    private fun quranSurah(surahNumber: Int, focusAyah: Int = 1, pageOverride: Int? = null) {
         releaseQuranMushafPage()
         if (quranAudioSurahNumber != -1 && quranAudioSurahNumber != surahNumber) stopQuranAudio()
         if (quranAudioLastSurahNumber != -1 && quranAudioLastSurahNumber != surahNumber) {
@@ -1288,7 +1291,8 @@ class MainActivity : Activity(), SensorEventListener {
             return
         }
         val pageNumber = try {
-            quranRepository.pageFor(surahNumber, focusAyah)
+            pageOverride ?: quranMushafAtlas?.pageOf(surahNumber, focusAyah)
+                ?: quranRepository.pageFor(surahNumber, focusAyah)
         } catch (_: Exception) {
             Toast.makeText(this, "تعذّر تحديد صفحة الآية", Toast.LENGTH_SHORT).show()
             return
@@ -1484,13 +1488,13 @@ class MainActivity : Activity(), SensorEventListener {
         }
         nextRow.addView(button("الصفحة السابقة") {
             if (pageNumber > 1) {
-                val location = quranRepository.pageStart(pageNumber - 1)
+                val location = quranPageStart(pageNumber - 1)
                 quranSurah(location.first, location.second)
             }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
         nextRow.addView(button("الصفحة التالية") {
             if (pageNumber < 604) {
-                val location = quranRepository.pageStart(pageNumber + 1)
+                val location = quranPageStart(pageNumber + 1)
                 quranSurah(location.first, location.second)
             }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
@@ -1516,12 +1520,13 @@ class MainActivity : Activity(), SensorEventListener {
         container: LinearLayout
     ) {
         val requestId = quranMushafRequestId
-        quranMushafDataRepository.loadPage(pageNumber) { result ->
-            if (requestId != quranMushafRequestId || isFinishing || isDestroyed) {
-                result.getOrNull()?.close()
-                return@loadPage
-            }
-            result.onSuccess { loaded ->
+        fun loadPageData() {
+            quranMushafDataRepository.loadPage(pageNumber) { result ->
+                if (requestId != quranMushafRequestId || isFinishing || isDestroyed) {
+                    result.getOrNull()?.close()
+                    return@loadPage
+                }
+                result.onSuccess { loaded ->
                 quranMushafView?.page = null
                 quranMushafPage?.close()
                 quranMushafPage = loaded
@@ -1562,6 +1567,13 @@ class MainActivity : Activity(), SensorEventListener {
                 }
 
                 val pageView = QvpPageView(this).apply {
+                    onSwipe = { direction ->
+                        val targetPage = pageNumber + direction
+                        if (targetPage in 1..604) {
+                            val location = quranPageStart(targetPage)
+                            quranSurah(location.first, location.second)
+                        }
+                    }
                     paperColor = if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38)
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
@@ -1592,15 +1604,47 @@ class MainActivity : Activity(), SensorEventListener {
                 val availableWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
                 val pageHeight = (availableWidth * 550f / 345f).roundToInt()
                 container.addView(pageView, LinearLayout.LayoutParams(-1, pageHeight))
-            }.onFailure {
-                Toast.makeText(
-                    this,
-                    "تعذّر تحميل صفحة المصحف الأصلية الآن. بقي النص الاحتياطي ظاهراً؛ تحقق من الإنترنت ثم أعد فتح الصفحة.",
-                    Toast.LENGTH_LONG
-                ).show()
+                }.onFailure {
+                    Toast.makeText(
+                        this,
+                        "تعذّر تحميل صفحة المصحف الأصلية الآن. بقي النص الاحتياطي ظاهراً؛ تحقق من الإنترنت ثم أعد فتح الصفحة.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+
+        val existingAtlas = quranMushafAtlas
+        if (existingAtlas != null) {
+            val atlasPage = existingAtlas.pageOf(surahNumber, focusAyah)
+            if (atlasPage != null && atlasPage != pageNumber) {
+                quranSurah(surahNumber, focusAyah, atlasPage)
+            } else {
+                loadPageData()
+            }
+        } else {
+            quranMushafDataRepository.loadAtlas { atlasResult ->
+                if (requestId != quranMushafRequestId || isFinishing || isDestroyed) {
+                    atlasResult.getOrNull()?.close()
+                    return@loadAtlas
+                }
+                atlasResult.onSuccess { atlas ->
+                    quranMushafAtlas = atlas
+                    val atlasPage = atlas.pageOf(surahNumber, focusAyah)
+                    if (atlasPage != null && atlasPage != pageNumber) {
+                        quranSurah(surahNumber, focusAyah, atlasPage)
+                    } else {
+                        loadPageData()
+                    }
+                }.onFailure {
+                    loadPageData()
+                }
             }
         }
     }
+
+    private fun quranPageStart(pageNumber: Int): Pair<Int, Int> =
+        quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
 
     private fun adjustQuranMushafZoom(zoomIn: Boolean, surahNumber: Int, focusAyah: Int) {
         val view = quranMushafView
