@@ -82,6 +82,13 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranMushafView: QvpPageView? = null
     private var quranMushafRequestId = 0
     private var quranSelectedAyahHighlight = 0
+    private val quranContinuousPages = mutableMapOf<Int, QvpPage>()
+    private val quranContinuousViews = mutableMapOf<Int, QvpPageView>()
+    private val quranContinuousPending = mutableSetOf<Int>()
+    private var quranContinuousFrames: List<FrameLayout> = emptyList()
+    private var quranContinuousCurrentPage = -1
+    private var quranContinuousSelectedPage = -1
+    private var quranContinuousSelectedHighlight = 0
     private var quranMushafOfflineStatusView: TextView? = null
     private var quranMushafOfflineDownloadButton: Button? = null
     private var quranFontSize = 29f
@@ -1315,6 +1322,8 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "تعذّر تحديد صفحة الآية", Toast.LENGTH_SHORT).show()
             return
         }
+        showContinuousQuranReader(surahNumber, focusAyah, pageNumber)
+        return
         val ayahs = try {
             quranRepository.loadPageAyahs(pageNumber)
         } catch (_: Exception) {
@@ -1515,8 +1524,202 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+
+    private fun showContinuousQuranReader(surahNumber: Int, focusAyah: Int, startPage: Int) {
+        releaseQuranMushafPage()
+        val token = quranMushafRequestId
+        quranContinuousCurrentPage = startPage
+        content.removeAllViews()
+        text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
+        content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
+        val pageLabel = TextView(this).apply {
+            text = "صفحة المصحف " + startPage + " من 604"
+            textSize = 14f
+            setTextColor(muted)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(5), 0, dp(5))
+        }
+        content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
+        text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
+        gap(8)
+        val pageWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
+        val estimatedHeight = (pageWidth * 1.42f).roundToInt()
+        val host = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val frames = (1..604).map { number ->
+            FrameLayout(this).apply {
+                setBackgroundColor(if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38))
+                layoutParams = LinearLayout.LayoutParams(-1, estimatedHeight).apply { bottomMargin = dp(10) }
+                contentDescription = "صفحة المصحف " + number
+                host.addView(this)
+            }
+        }
+        quranContinuousFrames = frames
+        content.addView(host, LinearLayout.LayoutParams(-1, -2))
+        card {
+            line("التلاوة الصوتية للسورة", 17f, gold, true)
+            val prefs = getPreferences(0)
+            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
+            val selectedIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
+            val picker = Spinner(this@MainActivity).apply {
+                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, quranReciters.map { it.name })
+                setSelection(selectedIndex)
+                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        val chosen = quranReciters[position]
+                        if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
+                            prefs.edit().putString("quran_reciter", chosen.edition).apply()
+                            if (quranAudioSurahNumber == surahNumber) playQuranSurah(surahNumber)
+                        }
+                    }
+                }
+            }
+            addView(picker, LinearLayout.LayoutParams(-1, -2))
+            val repeatSwitch = Switch(this@MainActivity).apply {
+                text = "تكرار السورة بعد انتهائها"
+                setTextColor(cream)
+                isChecked = prefs.getBoolean("quran_repeat", false)
+                quranRepeat = isChecked
+                setOnCheckedChangeListener { _, checked ->
+                    quranRepeat = checked
+                    prefs.edit().putBoolean("quran_repeat", checked).apply()
+                }
+            }
+            addView(repeatSwitch, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تشغيل / متابعة التلاوة") { toggleQuranAudio(surahNumber) }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("إيقاف التلاوة") {
+                stopQuranAudio()
+                Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تنزيل السورة للاستماع دون إنترنت") { downloadQuranSurah(surahNumber) }, LinearLayout.LayoutParams(-1, -2))
+            quranAudioStatusView = TextView(this@MainActivity).apply {
+                text = if (quranAudioLastSurahNumber == surahNumber) quranAudioStatusText else "جاهز للتلاوة"
+                textSize = 12f
+                setTextColor(muted)
+                gravity = Gravity.CENTER
+                setPadding(0, dp(6), 0, dp(3))
+            }
+            addView(quranAudioStatusView, LinearLayout.LayoutParams(-1, -2))
+            line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
+        }
+        var lastVisiblePage = -1
+        fun refreshWindow(scrollY: Int) {
+            if (token != quranMushafRequestId || isFinishing || isDestroyed) return
+            val localY = (scrollY - host.top).coerceAtLeast(0)
+            val index = frames.indexOfFirst { it.top + it.height > localY }.let { if (it < 0) 603 else it }
+            val visiblePage = index + 1
+            if (visiblePage == lastVisiblePage) return
+            lastVisiblePage = visiblePage
+            quranContinuousCurrentPage = visiblePage
+            pageLabel.text = "صفحة المصحف " + visiblePage + " من 604"
+            val location = quranPageStart(visiblePage)
+            getPreferences(0).edit().putInt("quran_last_surah", location.first).putInt("quran_last_ayah", location.second).apply()
+            for (number in (visiblePage - 1).coerceAtLeast(1)..(visiblePage + 2).coerceAtMost(604)) {
+                loadContinuousQuranPage(number, token)
+            }
+            quranContinuousPages.keys.filter { abs(it - visiblePage) > 3 }.forEach { number ->
+                quranContinuousViews.remove(number)?.page = null
+                quranContinuousPages.remove(number)?.close()
+                frames[number - 1].removeAllViews()
+                if (quranContinuousSelectedPage == number) {
+                    quranContinuousSelectedPage = -1
+                    quranContinuousSelectedHighlight = 0
+                }
+            }
+        }
+        mainScroll?.setOnScrollChangeListener { _, _, y, _, _ -> refreshWindow(y) }
+        mainScroll?.post {
+            if (token != quranMushafRequestId) return@post
+            mainScroll?.scrollTo(0, host.top + frames[startPage - 1].top)
+            refreshWindow(mainScroll?.scrollY ?: 0)
+        }
+    }
+
+    private fun loadContinuousQuranPage(pageNumber: Int, token: Int) {
+        if (pageNumber !in 1..604 || quranContinuousPages.containsKey(pageNumber) || quranContinuousPending.contains(pageNumber)) return
+        quranContinuousPending.add(pageNumber)
+        quranMushafDataRepository.loadPage(pageNumber) { result ->
+            quranContinuousPending.remove(pageNumber)
+            if (token != quranMushafRequestId || isFinishing || isDestroyed || abs(pageNumber - quranContinuousCurrentPage) > 3) {
+                result.getOrNull()?.close()
+                return@loadPage
+            }
+            result.onSuccess { loaded ->
+                val ink = if (isLightTheme) 0x231f20ff.toInt() else 0xe8e4dcff.toInt()
+                loaded.theme(QvpTheme(ink = ink, diacritics = ink, dots = ink, waqf = ink, sifr = ink, ayahMark = ink, numeral = ink, headers = ink))
+                val bookmarks = getPreferences(0).getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
+                bookmarks.forEach { key ->
+                    val parts = key.split(":")
+                    val s = parts.getOrNull(0)?.toIntOrNull()
+                    val a = parts.getOrNull(1)?.toIntOrNull()
+                    if (s != null && a != null && loaded.ayahs.any { it.surah == s && it.ayah == a }) {
+                        loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x238b50a0.toInt()))
+                    }
+                }
+                val pageView = QvpPageView(this).apply {
+                    paperColor = if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38)
+                    padTop = dp(5).toFloat()
+                    padBottom = dp(5).toFloat()
+                    padSide = dp(4).toFloat()
+                    reflowBreaks = QvpBreaks.PRINTED
+                    onWordTap = { word, _ ->
+                        if (quranContinuousSelectedHighlight != 0) quranContinuousPages[quranContinuousSelectedPage]?.removeHighlight(quranContinuousSelectedHighlight)
+                        quranContinuousSelectedPage = pageNumber
+                        quranContinuousSelectedHighlight = loaded.highlight(word.surah.toString() + ":" + word.ayah, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x238b50a0.toInt()))
+                        showQuranAyahAudioActions(word.surah, word.ayah)
+                    }
+                    onDecorationTap = { decoration, _ ->
+                        if (decoration.ayah > 0) {
+                            val name = quranRepository.loadSurahs().getOrNull(decoration.surah - 1)?.name ?: "القرآن الكريم"
+                            showQuranVerseActions(decoration.surah, name, decoration.ayah)
+                        }
+                    }
+                    contentDescription = "صفحة المصحف " + pageNumber
+                    page = loaded
+                }
+                pageView.setOnTouchListener { _, event ->
+                    when (event.actionMasked) {
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            val zoomed = pageView.zoom.step > 0 || pageView.zoom.zoom > 1.01f
+                            pageView.parent?.requestDisallowInterceptTouchEvent(zoomed)
+                        }
+                        android.view.MotionEvent.ACTION_POINTER_DOWN -> pageView.parent?.requestDisallowInterceptTouchEvent(true)
+                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> pageView.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
+                    false
+                }
+                quranContinuousPages[pageNumber] = loaded
+                quranContinuousViews[pageNumber] = pageView
+                val frame = quranContinuousFrames.getOrNull(pageNumber - 1) ?: return@onSuccess
+                frame.removeAllViews()
+                val width = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
+                frame.layoutParams = frame.layoutParams.apply { height = (width * loaded.height / loaded.width).roundToInt() }
+                frame.addView(pageView, FrameLayout.LayoutParams(-1, -1))
+            }.onFailure {
+                quranContinuousFrames.getOrNull(pageNumber - 1)?.let { frame ->
+                    frame.removeAllViews()
+                    frame.addView(TextView(this).apply {
+                        text = "تعذّر تحميل صفحة المصحف " + pageNumber + ". تحقق من الإنترنت ثم أعد المحاولة."
+                        setTextColor(muted)
+                        gravity = Gravity.CENTER
+                    }, FrameLayout.LayoutParams(-1, -1))
+                }
+            }
+        }
+    }
+
     private fun releaseQuranMushafPage() {
         quranMushafRequestId++
+        mainScroll?.setOnScrollChangeListener(null as View.OnScrollChangeListener?)
+        quranContinuousViews.values.forEach { it.page = null }
+        quranContinuousPages.values.forEach { it.close() }
+        quranContinuousViews.clear()
+        quranContinuousPages.clear()
+        quranContinuousPending.clear()
+        quranContinuousFrames = emptyList()
+        quranContinuousCurrentPage = -1
+        quranContinuousSelectedPage = -1
+        quranContinuousSelectedHighlight = 0
         if (quranSelectedAyahHighlight != 0) {
             quranMushafPage?.removeHighlight(quranSelectedAyahHighlight)
             quranSelectedAyahHighlight = 0
