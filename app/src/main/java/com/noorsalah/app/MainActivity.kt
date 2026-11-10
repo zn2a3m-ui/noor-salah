@@ -1289,13 +1289,20 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun showQuranAyahAudioActions(surahNumber: Int, ayahNumber: Int) {
-        val choices = arrayOf("استماع مرة واحدة", "تكرار الآية للحفظ", "إلغاء")
+        val surahName = quranRepository.loadSurahs().getOrNull(surahNumber - 1)?.name ?: "السورة"
+        val choices = arrayOf(
+            "استماع الآية كاملة مرة واحدة",
+            "تكرار الآية للحفظ حتى الإيقاف",
+            "استماع سورة $surahName كاملة من بدايتها",
+            "إلغاء"
+        )
         AlertDialog.Builder(this)
-            .setTitle("الآية $ayahNumber")
+            .setTitle("سورة $surahName • الآية $ayahNumber")
             .setItems(choices) { dialog, which ->
                 when (which) {
                     0 -> playQuranAyah(surahNumber, ayahNumber, false)
                     1 -> playQuranAyah(surahNumber, ayahNumber, true)
+                    2 -> playQuranSurah(surahNumber)
                 }
                 dialog.dismiss()
             }
@@ -1622,8 +1629,7 @@ class MainActivity : Activity(), SensorEventListener {
                 quranContinuousPages.remove(number)?.close()
                 frames[number - 1].removeAllViews()
                 if (quranContinuousSelectedPage == number) {
-                    quranContinuousSelectedPage = -1
-                    quranContinuousSelectedHighlight = 0
+                    clearQuranContinuousSelection()
                 }
             }
         }
@@ -1633,6 +1639,17 @@ class MainActivity : Activity(), SensorEventListener {
             mainScroll?.scrollTo(0, host.top + frames[startPage - 1].top)
             refreshWindow(mainScroll?.scrollY ?: 0)
         }
+    }
+
+    private fun clearQuranContinuousSelection() {
+        val selectedPage = quranContinuousSelectedPage
+        val selectedHighlight = quranContinuousSelectedHighlight
+        if (selectedPage > 0 && selectedHighlight != 0) {
+            quranContinuousPages[selectedPage]?.removeHighlight(selectedHighlight)
+            quranContinuousViews[selectedPage]?.invalidate()
+        }
+        quranContinuousSelectedPage = -1
+        quranContinuousSelectedHighlight = 0
     }
 
     private fun loadContinuousQuranPage(pageNumber: Int, token: Int) {
@@ -1663,9 +1680,13 @@ class MainActivity : Activity(), SensorEventListener {
                     padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.PRINTED
                     onWordTap = { word, _ ->
-                        if (quranContinuousSelectedHighlight != 0) quranContinuousPages[quranContinuousSelectedPage]?.removeHighlight(quranContinuousSelectedHighlight)
+                        clearQuranContinuousSelection()
                         quranContinuousSelectedPage = pageNumber
-                        quranContinuousSelectedHighlight = loaded.highlight(word.surah.toString() + ":" + word.ayah, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x238b50a0.toInt()))
+                        quranContinuousSelectedHighlight = loaded.highlight(
+                            word.surah.toString() + ":" + word.ayah,
+                            QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x66FFD54F.toInt())
+                        )
+                        pageView.invalidate()
                         showQuranAyahAudioActions(word.surah, word.ayah)
                     }
                     onDecorationTap = { decoration, _ ->
@@ -1718,8 +1739,7 @@ class MainActivity : Activity(), SensorEventListener {
         quranContinuousPending.clear()
         quranContinuousFrames = emptyList()
         quranContinuousCurrentPage = -1
-        quranContinuousSelectedPage = -1
-        quranContinuousSelectedHighlight = 0
+        clearQuranContinuousSelection()
         if (quranSelectedAyahHighlight != 0) {
             quranMushafPage?.removeHighlight(quranSelectedAyahHighlight)
             quranSelectedAyahHighlight = 0
