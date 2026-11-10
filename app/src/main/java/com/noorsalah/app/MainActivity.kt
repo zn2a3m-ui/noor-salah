@@ -83,12 +83,13 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranRepeat = false
     private data class QuranReciter(val name: String, val edition: String, val bitrate: Int)
     private val quranReciters = listOf(
+        QuranReciter("ماهر المعيقلي", "ar.mahermuaiqly", 128),
+        QuranReciter("عبدالرحمن السديس", "ar.abdurrahmaansudais", 128),
+        QuranReciter("أحمد بن علي العجمي", "ar.ahmedajamy", 128),
         QuranReciter("مشاري راشد العفاسي", "ar.alafasy", 128),
         QuranReciter("محمود خليل الحصري", "ar.husary", 128),
         QuranReciter("محمد صديق المنشاوي", "ar.minshawi", 128),
-        QuranReciter("عبدالرحمن السديس", "ar.sudais", 192),
-        QuranReciter("أحمد بن علي العجمي", "ar.ahmedajamy", 128),
-        QuranReciter("عبدالباسط عبدالصمد", "ar.abdulbasit", 192)
+        QuranReciter("عبدالباسط عبدالصمد", "ar.abdulbasitmurattal", 128)
     )
     private lateinit var sensorManager: SensorManager
     private var latitude = 31.9539
