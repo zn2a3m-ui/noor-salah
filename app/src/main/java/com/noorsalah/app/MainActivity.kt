@@ -1269,7 +1269,7 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
             val prefs = getPreferences(0)
-            val savedEdition = prefs.getString("quran_reciter", "ar.alafasy") ?: "ar.alafasy"
+            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.alafasy"
             val selectedReciterIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
             val reciterPicker = Spinner(this@MainActivity).apply {
                 adapter = ArrayAdapter(
@@ -1282,7 +1282,7 @@ class MainActivity : Activity(), SensorEventListener {
                     override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
                     override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                         val chosen = quranReciters[position]
-                        if (prefs.getString("quran_reciter", "ar.alafasy") != chosen.edition) {
+                        if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
                             prefs.edit().putString("quran_reciter", chosen.edition).apply()
                             if (quranAudioSurahNumber == surahNumber) playQuranSurah(surahNumber)
                         }
@@ -1345,6 +1345,7 @@ class MainActivity : Activity(), SensorEventListener {
         val savedPrefs = getPreferences(0)
         val savedSurah = savedPrefs.getInt("quran_last_surah", -1)
         val savedAyah = savedPrefs.getInt("quran_last_ayah", -1)
+        val bookmarkedAyahs = savedPrefs.getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
 
         val mushafText = SpannableStringBuilder()
         ayahs.forEach { ayah ->
@@ -1360,7 +1361,11 @@ class MainActivity : Activity(), SensorEventListener {
                 }
 
                 override fun updateDrawState(ds: TextPaint) {
-                    ds.color = if (ayah.surahNumber == savedSurah && ayah.number == savedAyah) Color.rgb(139, 91, 28) else Color.rgb(151, 111, 42)
+                    ds.color = when {
+                        bookmarkedAyahs.contains("${ayah.surahNumber}:${ayah.number}") -> Color.rgb(35, 125, 77)
+                        ayah.surahNumber == savedSurah && ayah.number == savedAyah -> Color.rgb(139, 91, 28)
+                        else -> Color.rgb(151, 111, 42)
+                    }
                     ds.isUnderlineText = false
                     ds.isFakeBoldText = true
                 }
@@ -1374,14 +1379,16 @@ class MainActivity : Activity(), SensorEventListener {
             background = shape(Color.rgb(247, 241, 222), 18, Color.rgb(184, 145, 77))
             elevation = dp(2).toFloat()
         }
-        mushafPage.addView(TextView(this).apply {
-            text = "۞  ${surah.name}  ۞"
-            textSize = 19f
-            setTextColor(Color.rgb(103, 77, 35))
-            typeface = Typeface.create("serif", Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, dp(15))
-        }, LinearLayout.LayoutParams(-1, -2))
+        if (ayahs.firstOrNull()?.number == 1) {
+            mushafPage.addView(TextView(this).apply {
+                text = "۞  ${surah.name}  ۞"
+                textSize = 19f
+                setTextColor(Color.rgb(103, 77, 35))
+                typeface = Typeface.create("serif", Typeface.BOLD)
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(15))
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
         mushafPage.addView(TextView(this).apply {
             text = mushafText
             textSize = quranFontSize
