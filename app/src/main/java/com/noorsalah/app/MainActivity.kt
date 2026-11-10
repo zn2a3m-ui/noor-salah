@@ -1336,7 +1336,7 @@ class MainActivity : Activity(), SensorEventListener {
                 setPadding(0, dp(6), 0, dp(3))
             }
             addView(quranAudioStatusView, LinearLayout.LayoutParams(-1, -2))
-            line("تُبث التلاوة عبر الإنترنت من شبكة Islamic Network؛ يلزم اتصال بالإنترنت. حقوق التسجيل محفوظة للقارئ أو أصحاب الحقوق.", 11f, muted)
+            line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
         }
         gap(8)
 
@@ -1466,7 +1466,7 @@ class MainActivity : Activity(), SensorEventListener {
             val layout = mushafTextView.layout
             if (offset != null && layout != null) {
                 val line = layout.getLineForOffset(offset)
-                val targetY = mushafPage.top + mushafTextView.top + layout.getLineTop(line)
+                val targetY = mushafPage.top + mushafTextView.top + mushafTextView.paddingTop + layout.getLineTop(line)
                 mainScroll?.smoothScrollTo(0, (targetY - dp(24)).coerceAtLeast(0))
             } else {
                 focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
