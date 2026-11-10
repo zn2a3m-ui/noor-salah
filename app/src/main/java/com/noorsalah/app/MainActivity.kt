@@ -2,11 +2,13 @@ package com.noorsalah.app
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.DownloadManager
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Environment
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -35,6 +37,7 @@ import android.net.Uri
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.io.File
 import java.util.concurrent.Executor
 import kotlin.math.*
 
@@ -1305,6 +1308,10 @@ class MainActivity : Activity(), SensorEventListener {
                 stopQuranAudio()
                 Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
             }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("تنزيل السورة للاستماع دون إنترنت") {
+                downloadQuranSurah(surahNumber)
+            }, LinearLayout.LayoutParams(-1, -2))
+
             quranAudioStatusView = TextView(this@MainActivity).apply {
                 text = if (quranAudioLastSurahNumber == surahNumber) quranAudioStatusText else "جاهز للتلاوة"
                 textSize = 12f
@@ -1436,8 +1443,43 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+    private fun quranSurahAudioFile(edition: String, surahNumber: Int): File? {
+        val directory = getExternalFilesDir(Environment.DIRECTORY_MUSIC) ?: return null
+        return File(directory, "noor_quran_${edition}_${surahNumber}.mp3")
+    }
+
+    private fun downloadQuranSurah(surahNumber: Int) {
+        val reciterId = getPreferences(0).getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
+        val reciter = quranReciters.firstOrNull { it.edition == reciterId } ?: quranReciters.first()
+        val target = quranSurahAudioFile(reciter.edition, surahNumber)
+        if (target == null) {
+            Toast.makeText(this, "مساحة التخزين غير متاحة حالياً", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (target.exists() && target.length() > 0L) {
+            Toast.makeText(this, "السورة محفوظة بالفعل للاستماع دون إنترنت", Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val surahName = quranRepository.loadSurahs().getOrNull(surahNumber - 1)?.name ?: "القرآن"
+            val url = "https://cdn.islamic.network/quran/audio-surah/${reciter.bitrate}/${reciter.edition}/$surahNumber.mp3"
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle("تنزيل سورة $surahName")
+                .setDescription("القارئ: ${reciter.name} • نور الصلاة")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(false)
+                .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_MUSIC, target.name)
+            val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            Toast.makeText(this, "بدأ تنزيل سورة $surahName. ستصلك رسالة عند اكتمال التنزيل.", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر بدء التنزيل. تحقق من اتصال الإنترنت.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun playQuranSurah(surahNumber: Int) {
-        val reciterId = getPreferences(0).getString("quran_reciter", "ar.alafasy") ?: "ar.alafasy"
+        val reciterId = getPreferences(0).getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
         val reciter = quranReciters.firstOrNull { it.edition == reciterId } ?: quranReciters.first()
         quranRepeat = getPreferences(0).getBoolean("quran_repeat", false)
         stopQuranAudio()
@@ -1454,8 +1496,13 @@ class MainActivity : Activity(), SensorEventListener {
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
-            val url = "https://cdn.islamic.network/quran/audio-surah/${reciter.bitrate}/${reciter.edition}/$surahNumber.mp3"
-            media.setDataSource(url)
+            val localAudio = quranSurahAudioFile(reciter.edition, surahNumber)
+            if (localAudio != null && localAudio.exists() && localAudio.length() > 0L) {
+                media.setDataSource(localAudio.absolutePath)
+            } else {
+                val url = "https://cdn.islamic.network/quran/audio-surah/${reciter.bitrate}/${reciter.edition}/$surahNumber.mp3"
+                media.setDataSource(url)
+            }
             media.setOnPreparedListener { prepared ->
                 if (quranAudioPlayer === prepared) {
                     quranAudioPreparing = false
