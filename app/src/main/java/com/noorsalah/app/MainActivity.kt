@@ -40,6 +40,7 @@ import java.util.Locale
 import java.io.File
 import java.util.concurrent.Executor
 import kotlin.math.*
+import ws.quran.qvp.*
 
 class MainActivity : Activity(), SensorEventListener {
     private var bg = Color.rgb(5, 31, 26)
@@ -75,6 +76,11 @@ class MainActivity : Activity(), SensorEventListener {
     private lateinit var navigationBar: LinearLayout
     private var mainScroll: ScrollView? = null
     private val quranRepository by lazy(LazyThreadSafetyMode.NONE) { QuranRepository(this) }
+    private val quranMushafDataRepository by lazy(LazyThreadSafetyMode.NONE) { QuranMushafDataRepository(this) }
+    private var quranMushafPage: QvpPage? = null
+    private var quranMushafView: QvpPageView? = null
+    private var quranMushafRequestId = 0
+    private var quranMushafOfflineStatusView: TextView? = null
     private var quranFontSize = 25f
     private var adhanPreviewPlayer: MediaPlayer? = null
     private var quranAudioPlayer: MediaPlayer? = null
@@ -233,6 +239,12 @@ class MainActivity : Activity(), SensorEventListener {
         stopQuranAudio()
     }
 
+    override fun onDestroy() {
+        releaseQuranMushafPage()
+        quranMushafDataRepository.close()
+        super.onDestroy()
+    }
+
     private fun previewAdhan() {
         stopAdhanPreview()
         if (selectedMuezzin.startsWith("تنبيه النظام")) {
@@ -323,6 +335,7 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun showPage(target: String) {
+        releaseQuranMushafPage()
         if (target != "quran") stopQuranAudio()
         page = target
         content.removeAllViews()
@@ -1060,7 +1073,26 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun quran() {
         text("القرآن الكريم", 27f, gold, true, Gravity.CENTER)
-        text("مصحف عثماني موثّق • قراءة دون اتصال بالإنترنت", 13f, muted, false, Gravity.CENTER)
+        text("مصحف المدينة النبوية • رواية حفص عن عاصم", 13f, muted, false, Gravity.CENTER)
+        gap(12)
+
+        card {
+            line("صفحات المصحف الأصلية", 17f, gold, true)
+            val offlineStatus = TextView(this@MainActivity).apply {
+                text = if (quranMushafDataRepository.isFullPackInstalled()) {
+                    "تم حفظ صفحات المصحف الـ604 على الجهاز."
+                } else {
+                    "تُحمّل الصفحة عند فتحها وتُحفظ تلقائياً. للتشغيل دون إنترنت في جميع الصفحات، نزّل الحزمة الكاملة (حوالي 44 ميغابايت، وتحتاج نحو 93 ميغابايت بعد فك الضغط)."
+                }
+                textSize = 12f
+                setTextColor(muted)
+            }
+            quranMushafOfflineStatusView = offlineStatus
+            addView(offlineStatus, LinearLayout.LayoutParams(-1, -2))
+            addView(button(if (quranMushafDataRepository.isFullPackInstalled()) "صفحات المصحف محفوظة دون إنترنت" else "تنزيل صفحات المصحف كاملة دون إنترنت") {
+                downloadFullQuranMushafPack()
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
         gap(12)
 
         val surahs = try {
@@ -1344,15 +1376,11 @@ class MainActivity : Activity(), SensorEventListener {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        controls.addView(button("أصغر") {
-            quranFontSize = (quranFontSize - 2f).coerceAtLeast(18f)
-            getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
-            quranSurah(surahNumber, focusAyah)
+        controls.addView(button("تصغير") {
+            adjustQuranMushafZoom(false, surahNumber, focusAyah)
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
-        controls.addView(button("أكبر") {
-            quranFontSize = (quranFontSize + 2f).coerceAtMost(36f)
-            getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
-            quranSurah(surahNumber, focusAyah)
+        controls.addView(button("تكبير") {
+            adjustQuranMushafZoom(true, surahNumber, focusAyah)
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(controls, LinearLayout.LayoutParams(-1, -2))
         gap(10)
@@ -1438,11 +1466,16 @@ class MainActivity : Activity(), SensorEventListener {
             setPadding(dp(2), dp(5), dp(2), dp(5))
         }
         mushafPage.addView(mushafTextView, LinearLayout.LayoutParams(-1, -2))
-        content.addView(mushafPage, LinearLayout.LayoutParams(-1, -2).apply {
+        val mushafContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        mushafContainer.addView(mushafPage, LinearLayout.LayoutParams(-1, -2))
+        content.addView(mushafContainer, LinearLayout.LayoutParams(-1, -2).apply {
             topMargin = dp(6)
             bottomMargin = dp(12)
         })
-        var focusView: View? = mushafPage
+        var focusView: View? = mushafContainer
 
         val nextRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -1461,17 +1494,164 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
         content.addView(nextRow, LinearLayout.LayoutParams(-1, -2))
+        loadQvpMushafPage(pageNumber, surahNumber, focusAyah, mushafContainer)
         mainScroll?.post {
-            val offset = focusMarkerOffset
-            val layout = mushafTextView.layout
-            if (offset != null && layout != null) {
-                val line = layout.getLineForOffset(offset)
-                val targetY = mushafPage.top + mushafTextView.top + mushafTextView.paddingTop + layout.getLineTop(line)
-                mainScroll?.smoothScrollTo(0, (targetY - dp(24)).coerceAtLeast(0))
-            } else {
-                focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
+            focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
+        }
+    }
+
+    private fun releaseQuranMushafPage() {
+        quranMushafRequestId++
+        quranMushafView?.page = null
+        quranMushafView = null
+        quranMushafPage?.close()
+        quranMushafPage = null
+    }
+
+    private fun loadQvpMushafPage(
+        pageNumber: Int,
+        surahNumber: Int,
+        focusAyah: Int,
+        container: LinearLayout
+    ) {
+        val requestId = quranMushafRequestId
+        quranMushafDataRepository.loadPage(pageNumber) { result ->
+            if (requestId != quranMushafRequestId || isFinishing || isDestroyed) {
+                result.getOrNull()?.close()
+                return@loadPage
+            }
+            result.onSuccess { loaded ->
+                quranMushafView?.page = null
+                quranMushafPage?.close()
+                quranMushafPage = loaded
+
+                val ink = if (isLightTheme) 0x231f20ff.toInt() else 0xe8e4dcff.toInt()
+                loaded.theme(QvpTheme(
+                    ink = ink,
+                    diacritics = ink,
+                    dots = ink,
+                    waqf = ink,
+                    sifr = ink,
+                    ayahMark = ink,
+                    numeral = ink,
+                    headers = ink
+                ))
+
+                val bookmarkStyle = QvpHighlightStyle(
+                    mode = HighlightMode.BAND,
+                    band = 0x238b50a0.toInt()
+                )
+                val currentStyle = QvpHighlightStyle(
+                    mode = HighlightMode.BAND,
+                    band = 0xd6a32690.toInt()
+                )
+                val savedBookmarks = getPreferences(0)
+                    .getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
+                savedBookmarks.forEach { key ->
+                    val parts = key.split(":")
+                    val savedSurah = parts.getOrNull(0)?.toIntOrNull()
+                    val savedAyah = parts.getOrNull(1)?.toIntOrNull()
+                    if (savedSurah != null && savedAyah != null &&
+                        loaded.ayahs.any { it.surah == savedSurah && it.ayah == savedAyah }) {
+                        loaded.highlight("$savedSurah:$savedAyah", bookmarkStyle)
+                    }
+                }
+                if (loaded.ayahs.any { it.surah == surahNumber && it.ayah == focusAyah }) {
+                    loaded.highlight("$surahNumber:$focusAyah", currentStyle)
+                }
+
+                val pageView = QvpPageView(this).apply {
+                    paperColor = if (isLightTheme) Color.rgb(247, 241, 222) else Color.rgb(30, 33, 38)
+                    padTop = dp(5).toFloat()
+                    padBottom = dp(5).toFloat()
+                    padSide = dp(4).toFloat()
+                    reflowBreaks = QvpBreaks.PRINTED
+                    onDecorationTap = { decoration, _ ->
+                        if (decoration.ayah > 0) {
+                            val name = quranRepository.loadSurahs()
+                                .getOrNull(decoration.surah - 1)?.name ?: "القرآن الكريم"
+                            showQuranVerseActions(decoration.surah, name, decoration.ayah)
+                        }
+                    }
+                    contentDescription = "صفحة المصحف $pageNumber"
+                    page = loaded
+                }
+                quranMushafView = pageView
+                container.removeAllViews()
+                val availableWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
+                val pageHeight = (availableWidth * 550f / 345f).roundToInt()
+                container.addView(pageView, LinearLayout.LayoutParams(-1, pageHeight))
+            }.onFailure {
+                Toast.makeText(
+                    this,
+                    "تعذّر تحميل صفحة المصحف الأصلية الآن. بقي النص الاحتياطي ظاهراً؛ تحقق من الإنترنت ثم أعد فتح الصفحة.",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
+    }
+
+    private fun adjustQuranMushafZoom(zoomIn: Boolean, surahNumber: Int, focusAyah: Int) {
+        val view = quranMushafView
+        val steps = view?.zoomSteps
+        if (view != null && steps != null && steps.isNotEmpty()) {
+            val next = (view.zoom.step + if (zoomIn) 1 else -1).coerceIn(0, steps.lastIndex)
+            view.zoomToStep(next)
+            return
+        }
+        quranFontSize = if (zoomIn) {
+            (quranFontSize + 2f).coerceAtMost(36f)
+        } else {
+            (quranFontSize - 2f).coerceAtLeast(18f)
+        }
+        getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
+        quranSurah(surahNumber, focusAyah)
+    }
+
+    private fun downloadFullQuranMushafPack() {
+        val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progress = 0
+        }
+        val status = TextView(this).apply {
+            text = "جارٍ تجهيز تنزيل صفحات المصحف…"
+            textSize = 14f
+            setTextColor(cream)
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(10), dp(18), dp(10))
+            addView(status, LinearLayout.LayoutParams(-1, -2))
+            addView(progress, LinearLayout.LayoutParams(-1, dp(24)))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("حفظ المصحف للعمل دون إنترنت")
+            .setView(panel)
+            .setNegativeButton("إخفاء", null)
+            .create()
+        dialog.setCancelable(false)
+        dialog.show()
+        quranMushafDataRepository.downloadFullPack(
+            onProgress = { percent ->
+                progress.progress = percent
+                status.text = "تنزيل وفحص صفحات المصحف: $percent٪"
+            },
+            callback = { result ->
+                if (isFinishing || isDestroyed) return@downloadFullPack
+                if (dialog.isShowing) dialog.dismiss()
+                result.onSuccess {
+                    quranMushafOfflineStatusView?.text = "تم حفظ صفحات المصحف الـ604 على الجهاز."
+                    Toast.makeText(this, "اكتمل حفظ المصحف. أصبح متاحاً دون إنترنت.", Toast.LENGTH_LONG).show()
+                }.onFailure { error ->
+                    Toast.makeText(
+                        this,
+                        error.message ?: "تعذّر تنزيل صفحات المصحف. حاول مرة أخرى.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        )
     }
 
     private fun playQuranAyah(surahNumber: Int, ayahNumber: Int, repeat: Boolean) {
