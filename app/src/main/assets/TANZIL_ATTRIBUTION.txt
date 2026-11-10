@@ -11,8 +11,8 @@ The Quran text is distributed verbatim. Its contents must not be changed.
 The original publisher notice is retained inside tanzil-uthmani-1.1.txt.
 This application links to https://tanzil.net so users can follow publisher updates.
 
-The build downloads the text from a pinned mirror commit and verifies the
-publisher-verified SHA-256 before packaging:
+The build downloads the text from a pinned source-mirror commit and verifies
+the SHA-256 recorded for that exact source file before packaging:
 ac0724796cbbda0f4801470fbbd11d0f3c5802067bae0493466d0128b0c667af
 
 Quran structure metadata
