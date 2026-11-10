@@ -1254,29 +1254,50 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun showQuranVerseActions(surahNumber: Int, surahName: String, ayahNumber: Int) {
-        val choices = arrayOf(
-            "حفظ علامة مرجعية",
-            "حفظ موضع متابعة القراءة",
-            "إلغاء"
-        )
+        val prefs = getPreferences(0)
+        val bookmarkKey = "$surahNumber:$ayahNumber"
+        val isBookmarked = prefs.getStringSet("quran_bookmarks_v1", emptySet())
+            ?.contains(bookmarkKey) == true
+        val choices = if (isBookmarked) {
+            arrayOf(
+                "إزالة العلامة المرجعية",
+                "حفظ موضع متابعة القراءة",
+                "إلغاء"
+            )
+        } else {
+            arrayOf(
+                "حفظ علامة مرجعية",
+                "حفظ موضع متابعة القراءة",
+                "إلغاء"
+            )
+        }
         AlertDialog.Builder(this)
             .setTitle("سورة $surahName • الآية $ayahNumber")
             .setItems(choices) { dialog, which ->
                 when (which) {
                     0 -> {
-                        val prefs = getPreferences(0)
                         val bookmarks = prefs.getStringSet("quran_bookmarks_v1", emptySet())
                             ?.toMutableSet() ?: mutableSetOf()
-                        bookmarks.add("$surahNumber:$ayahNumber")
-                        prefs.edit()
-                            .putStringSet("quran_bookmarks_v1", bookmarks)
-                            .putInt("quran_last_surah", surahNumber)
-                            .putInt("quran_last_ayah", ayahNumber)
-                            .apply()
-                        Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
+                        if (isBookmarked) {
+                            bookmarks.remove(bookmarkKey)
+                            prefs.edit()
+                                .putStringSet("quran_bookmarks_v1", bookmarks)
+                                .apply()
+                            refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
+                            Toast.makeText(this, "تمت إزالة العلامة المرجعية", Toast.LENGTH_SHORT).show()
+                        } else {
+                            bookmarks.add(bookmarkKey)
+                            prefs.edit()
+                                .putStringSet("quran_bookmarks_v1", bookmarks)
+                                .putInt("quran_last_surah", surahNumber)
+                                .putInt("quran_last_ayah", ayahNumber)
+                                .apply()
+                            refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
+                            Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
+                        }
                     }
                     1 -> {
-                        getPreferences(0).edit()
+                        prefs.edit()
                             .putInt("quran_last_surah", surahNumber)
                             .putInt("quran_last_ayah", ayahNumber)
                             .apply()
@@ -1286,6 +1307,20 @@ class MainActivity : Activity(), SensorEventListener {
                 dialog.dismiss()
             }
             .show()
+    }
+
+    private fun refreshContinuousQuranPageForAyah(surahNumber: Int, ayahNumber: Int) {
+        val pageNumber = quranRepository.pageFor(surahNumber, ayahNumber)
+        if (pageNumber !in 1..604 || !quranContinuousPages.containsKey(pageNumber)) return
+        if (quranContinuousSelectedPage == pageNumber) {
+            clearQuranContinuousSelection()
+        }
+        val page = quranContinuousPages.remove(pageNumber) ?: return
+        val pageView = quranContinuousViews.remove(pageNumber)
+        pageView?.page = null
+        page.close()
+        quranContinuousFrames.getOrNull(pageNumber - 1)?.removeAllViews()
+        loadContinuousQuranPage(pageNumber, quranMushafRequestId)
     }
 
     private fun showQuranAyahAudioActions(surahNumber: Int, ayahNumber: Int) {
