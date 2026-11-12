@@ -802,8 +802,8 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun qiblaScreen() {
-        text("بوصلة القبلة", 27f, gold, true, Gravity.CENTER)
-        text("وجهتك إلى الكعبة المشرفة", 13f, muted, false, Gravity.CENTER)
+        text("تحديد القبلة", 27f, gold, true, Gravity.CENTER)
+        text("اتجاه دقيق نحو الكعبة المشرفة", 13f, muted, false, Gravity.CENTER)
         gap(14)
 
         val instrument = LinearLayout(this).apply {
@@ -821,7 +821,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
 
         val eyebrow = TextView(this).apply {
-            text = "مكة المكرمة  •  اتجاه القبلة"
+            text = "⌖  الموقع الحالي  •  $cityName"
             textSize = 12f
             letterSpacing = .12f
             gravity = Gravity.CENTER
@@ -842,7 +842,7 @@ class MainActivity : Activity(), SensorEventListener {
         instrument.addView(degree, LinearLayout.LayoutParams(-1, -2))
 
         val degreeCaption = TextView(this).apply {
-            text = "زاوية القبلة من الشمال الحقيقي"
+            text = "اتجاه القبلة"
             textSize = 10.5f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(173, 190, 174))
@@ -864,7 +864,7 @@ class MainActivity : Activity(), SensorEventListener {
                 sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null ->
                     "مستشعر اتجاه الهاتف غير متاح على هذا الجهاز"
                 hasCompassReading ->
-                    "الشمال الحقيقي ${"%.0f".format(Locale.US, heading)}°  •  القبلة ${"%.1f".format(Locale.US, qibla())}°"
+                    "أنت متجه نحو القبلة  •  أدر الهاتف حتى يستقيم السهم مع اتجاه القبلة"
                 else -> "جارٍ تحديد اتجاه الهاتف… حرّكه على شكل 8 للمعايرة"
             }
             textSize = 12f
@@ -888,7 +888,7 @@ class MainActivity : Activity(), SensorEventListener {
             setPadding(dp(3), dp(13), dp(3), 0)
         }
         val locationLabel = TextView(this).apply {
-            text = "⌖  $cityName"
+            text = "الموقع: $cityName"
             textSize = 11f
             setTextColor(Color.rgb(199, 205, 177))
             gravity = Gravity.CENTER_VERTICAL
