@@ -2896,7 +2896,17 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }
         gap(10)
-        card { line("حول التطبيق", 18f, gold, true); line("نور الصلاة • الإصدار 1.2", 14f, cream); line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted) }
+        card {
+            line("حول التطبيق", 18f, gold, true)
+            line("نور الصلاة • الإصدار 1.2", 14f, cream)
+            line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted)
+        }
+        gap(10)
+        card {
+            line("إهداء وصدقة جارية", 18f, gold, true)
+            line("هذا التطبيق صدقة جارية عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق.", 14f, cream)
+            line("نسأل الله أن يتغمده بواسع رحمته، وأن يجعل كل قراءة وذكر ودعاء في ميزان حسناته.", 13f, muted)
+        }
     }
 
     private fun sectionHeading(title: String) {
