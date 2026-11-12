@@ -112,11 +112,11 @@ class QiblaCompassView(context: Context) : View(context) {
         canvas.save()
         canvas.rotate(-heading)
         drawCompassRose(canvas, radius, gold, paleGold, muted, faint)
-        drawQiblaMarker(canvas, radius, gold, paleGold)
+        if (hasReading) drawQiblaMarker(canvas, radius, gold, paleGold, dark)
         canvas.restore()
 
-        // The pointer is independent of the rose and always indicates Qibla.
-        drawQiblaPointer(canvas, radius, gold, paleGold, dark)
+        // Never show a directional pointer until the device provides a valid heading.
+        if (hasReading) drawQiblaPointer(canvas, radius, gold, paleGold, dark)
         drawCenterMedallion(canvas, radius, gold, paleGold, dark)
 
         canvas.restore()
@@ -171,6 +171,42 @@ class QiblaCompassView(context: Context) : View(context) {
         canvas.drawCircle(0f, 0f, radius * 0.59f, detailPaint)
         canvas.drawCircle(0f, 0f, radius * 0.555f, detailPaint)
 
+        // Discreet degree labels between the cardinal directions.
+        textPaint.color = muted
+        textPaint.textSize = radius * 0.043f
+        for (degree in 30..330 step 30) {
+            if (degree % 90 == 0) continue
+            val angle = Math.toRadians(degree.toDouble() - 90.0)
+            val labelRadius = radius * 0.705f
+            val x = cos(angle).toFloat() * labelRadius
+            val y = sin(angle).toFloat() * labelRadius - (textPaint.ascent() + textPaint.descent()) / 2f
+            canvas.drawText(degree.toString(), x, y, textPaint)
+        }
+
+        // Eight-point Islamic geometric star, kept subtle so it never obscures the pointer.
+        val starPath = Path()
+        for (point in 0 until 16) {
+            val angle = Math.toRadians(point * 22.5 - 90.0)
+            val starRadius = radius * if (point % 2 == 0) 0.445f else 0.385f
+            val x = cos(angle).toFloat() * starRadius
+            val y = sin(angle).toFloat() * starRadius
+            if (point == 0) starPath.moveTo(x, y) else starPath.lineTo(x, y)
+        }
+        starPath.close()
+        detailPaint.color = faint
+        detailPaint.strokeWidth = 0.8f * density
+        canvas.drawPath(starPath, detailPaint)
+        for (point in 0 until 8) {
+            val angle = Math.toRadians(point * 45.0 - 90.0)
+            val inner = radius * 0.31f
+            val outer = radius * 0.385f
+            canvas.drawLine(
+                cos(angle).toFloat() * inner, sin(angle).toFloat() * inner,
+                cos(angle).toFloat() * outer, sin(angle).toFloat() * outer,
+                detailPaint
+            )
+        }
+
         val northStar = Path().apply {
             moveTo(0f, -radius * 0.49f)
             lineTo(radius * 0.045f, -radius * 0.39f)
@@ -182,25 +218,41 @@ class QiblaCompassView(context: Context) : View(context) {
         canvas.drawPath(northStar, centerPaint)
     }
 
-    private fun drawQiblaMarker(canvas: Canvas, radius: Float, gold: Int, paleGold: Int) {
+    private fun drawQiblaMarker(
+        canvas: Canvas,
+        radius: Float,
+        gold: Int,
+        paleGold: Int,
+        dark: Boolean
+    ) {
         val angle = Math.toRadians(qiblaBearing.toDouble() - 90.0)
-        val r = radius * 0.91f
+        val r = radius * 0.905f
         val x = cos(angle).toFloat() * r
         val y = sin(angle).toFloat() * r
         canvas.save()
         canvas.translate(x, y)
         canvas.rotate(qiblaBearing)
-        centerPaint.color = gold
-        val marker = Path().apply {
-            moveTo(0f, -7f * density)
-            lineTo(5f * density, 0f)
-            lineTo(0f, 7f * density)
-            lineTo(-5f * density, 0f)
-            close()
+        val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = gold
+            alpha = 48
         }
-        canvas.drawPath(marker, centerPaint)
-        centerPaint.color = paleGold
-        canvas.drawCircle(0f, 0f, 1.5f * density, centerPaint)
+        canvas.drawCircle(0f, 0f, 12f * density, halo)
+        centerPaint.color = if (dark) Color.rgb(8, 22, 19) else Color.rgb(250, 248, 237)
+        canvas.drawRoundRect(
+            -7f * density, -8f * density, 7f * density, 8f * density,
+            2f * density, 2f * density, centerPaint
+        )
+        centerPaint.color = gold
+        canvas.drawRect(-7f * density, -2f * density, 7f * density, 1f * density, centerPaint)
+        canvas.drawRect(-7f * density, -6f * density, 7f * density, -4f * density, centerPaint)
+        canvas.drawRect(-7f * density, 5f * density, 7f * density, 7f * density, centerPaint)
+        ringPaint.color = paleGold
+        ringPaint.alpha = 245
+        ringPaint.strokeWidth = 1.1f * density
+        canvas.drawRoundRect(
+            -7f * density, -8f * density, 7f * density, 8f * density,
+            2f * density, 2f * density, ringPaint
+        )
         canvas.restore()
     }
 
