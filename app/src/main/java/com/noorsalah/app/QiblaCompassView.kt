@@ -85,14 +85,17 @@ class QiblaCompassView(context: Context) : View(context) {
                 if (i % 10 == 0) 1.8f * density else 1.05f * density, fill)
         }
 
+        // The degree ring follows the handset, while the cardinal directions stay
+        // anchored to the real-world frame so N remains at the top.
         canvas.save()
         canvas.rotate(-heading)
         drawGraduations(canvas, radius, gold, faint)
-        drawCardinalOrnaments(canvas, radius, bright, pale, faint)
-        drawRose(canvas, radius, gold, bright, faint)
+        drawDegreeNumbers(canvas, radius, bright)
         if (hasReading) drawKaabaBearing(canvas, radius, gold, bright, dark)
         canvas.restore()
 
+        drawCardinalOrnaments(canvas, radius, bright, pale, faint)
+        drawRose(canvas, radius, gold, bright, faint)
         if (hasReading) drawQiblaNeedle(canvas, radius, gold, bright, dark)
         drawHub(canvas, radius, gold, bright, dark)
         if (!hasReading) {
@@ -123,6 +126,19 @@ class QiblaCompassView(context: Context) : View(context) {
             val rr = r * .715f
             canvas.drawText(degree.toString(), cos(a).toFloat() * rr,
                 sin(a).toFloat() * rr - (label.ascent() + label.descent()) / 2f, label)
+        }
+    }
+
+    private fun drawDegreeNumbers(canvas: Canvas, r: Float, bright: Int) {
+        label.color = bright
+        label.textSize = r * .047f
+        for (degree in 0 until 360 step 30) {
+            val a = Math.toRadians(degree - 90.0)
+            val rr = r * .91f
+            val x = cos(a).toFloat() * rr
+            val y = sin(a).toFloat() * rr
+            canvas.drawText(degree.toString(), x,
+                y - (label.ascent() + label.descent()) / 2f, label)
         }
     }
 
