@@ -560,6 +560,12 @@ class MainActivity : Activity(), SensorEventListener {
             line("سبحان الله العظيم", 12f, muted, false, Gravity.CENTER)
         }
         text("قد تختلف الحسابات الفلكية دقيقة أو دقيقتين عن أذان المسجد؛ ويُعتمد إعلان وزارة الأوقاف للمناسبات المرتبطة بالرؤية.", 11f, muted, false, Gravity.CENTER)
+        gap(12)
+        card {
+            line("صدقة جارية", 14f, gold, true, Gravity.CENTER)
+            line("عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق", 14f, cream, true, Gravity.CENTER)
+            line("نسأل الله أن يتغمده بواسع رحمته، وأن يجعل كل قراءة وذكر ودعاء في ميزان حسناته.", 12f, muted, false, Gravity.CENTER)
+        }
     }
 
     private fun localUmmAlQuraDate(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? {
@@ -2900,12 +2906,6 @@ class MainActivity : Activity(), SensorEventListener {
             line("حول التطبيق", 18f, gold, true)
             line("نور الصلاة • الإصدار 1.2", 14f, cream)
             line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted)
-        }
-        gap(10)
-        card {
-            line("إهداء وصدقة جارية", 18f, gold, true)
-            line("هذا التطبيق صدقة جارية عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق.", 14f, cream)
-            line("نسأل الله أن يتغمده بواسع رحمته، وأن يجعل كل قراءة وذكر ودعاء في ميزان حسناته.", 13f, muted)
         }
     }
 
