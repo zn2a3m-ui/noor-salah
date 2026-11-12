@@ -802,50 +802,142 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun qiblaScreen() {
-        text("القبلة", 27f, gold, true, Gravity.CENTER)
-        text("اتجاه دقيق إلى الكعبة المشرفة أينما كنت", 13f, muted, false, Gravity.CENTER)
+        text("بوصلة القبلة", 27f, gold, true, Gravity.CENTER)
+        text("وجهتك إلى الكعبة المشرفة", 13f, muted, false, Gravity.CENTER)
         gap(14)
-        card {
-            line("اتجاه مكة المكرمة", 14f, muted, false, Gravity.CENTER)
-            line("${"%.1f".format(Locale.US, qibla())}°", 30f, gold, true, Gravity.CENTER)
 
-            val compassView = QiblaCompassView(this@MainActivity).apply {
-                updateReadings(heading, qibla().toFloat(), hasCompassReading, isLightTheme)
-                elevation = dp(5).toFloat()
+        val instrument = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(12), dp(18), dp(12), dp(17))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(Color.rgb(11, 55, 43), Color.rgb(3, 28, 24), Color.rgb(2, 22, 20))
+            ).apply {
+                cornerRadius = dp(28).toFloat()
+                setStroke(dp(1), Color.rgb(166, 129, 65))
             }
-            arrow = compassView
-            addView(compassView, LinearLayout.LayoutParams(dp(286), dp(286)).apply {
-                gravity = Gravity.CENTER
-                topMargin = dp(8)
-                bottomMargin = dp(12)
-            })
+            elevation = dp(7).toFloat()
+        }
 
-            val infoView = TextView(this@MainActivity).apply {
-                text = when {
-                    sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null ->
-                        "مستشعر اتجاه الهاتف غير متاح على هذا الجهاز"
-                    hasCompassReading ->
-                        "الشمال الحقيقي: ${"%.0f".format(Locale.US, heading)}°  •  اتجاه القبلة: ${"%.1f".format(Locale.US, qibla())}°"
-                    else -> "جارٍ تحديد اتجاه الهاتف…"
-                }
-                textSize = 13f
-                gravity = Gravity.CENTER
-                setTextColor(cream)
-                setPadding(0, dp(4), 0, dp(6))
+        val eyebrow = TextView(this).apply {
+            text = "مكة المكرمة  •  اتجاه القبلة"
+            textSize = 12f
+            letterSpacing = .12f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(219, 190, 127))
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        instrument.addView(eyebrow, LinearLayout.LayoutParams(-1, -2))
+
+        val degree = TextView(this).apply {
+            text = \"${"%.1f".format(Locale.US, qibla())}°\"
+            textSize = 34f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(248, 222, 166))
+            typeface = Typeface.create("serif", Typeface.BOLD)
+            setShadowLayer(dp(8).toFloat(), 0f, dp(2).toFloat(), Color.argb(90, 220, 181, 99))
+            setPadding(0, dp(3), 0, dp(1))
+        }
+        instrument.addView(degree, LinearLayout.LayoutParams(-1, -2))
+
+        val degreeCaption = TextView(this).apply {
+            text = "زاوية القبلة من الشمال الحقيقي"
+            textSize = 10.5f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(173, 190, 174))
+        }
+        instrument.addView(degreeCaption, LinearLayout.LayoutParams(-1, -2))
+
+        val compassView = QiblaCompassView(this).apply {
+            updateReadings(heading, qibla().toFloat(), hasCompassReading, isLightTheme)
+        }
+        arrow = compassView
+        instrument.addView(compassView, LinearLayout.LayoutParams(dp(310), dp(310)).apply {
+            gravity = Gravity.CENTER
+            topMargin = dp(5)
+            bottomMargin = dp(4)
+        })
+
+        val infoView = TextView(this).apply {
+            text = when {
+                sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null ->
+                    "مستشعر اتجاه الهاتف غير متاح على هذا الجهاز"
+                hasCompassReading ->
+                    "الشمال الحقيقي \"${"%.0f".format(Locale.US, heading)}°  •  القبلة \"${"%.1f".format(Locale.US, qibla())}°"
+                else -> "جارٍ تحديد اتجاه الهاتف… حرّكه على شكل 8 للمعايرة"
             }
-            compassInfo = infoView
-            addView(infoView)
-            line("تدور الجهات مع حركة الهاتف لتبقى مطابقة للشمال والشرق والجنوب والغرب الحقيقي.", 11f, muted, false, Gravity.CENTER)
-            line("تُصحّح القراءة وفق الانحراف المغناطيسي لموقعك، وقد تتأثر بالمعادن والمغناطيس القريب.", 11f, muted, false, Gravity.CENTER)
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(238, 222, 185))
+            setPadding(dp(9), dp(9), dp(9), dp(9))
+            background = GradientDrawable().apply {
+                setColor(Color.argb(100, 0, 14, 12))
+                cornerRadius = dp(14).toFloat()
+                setStroke(dp(1), Color.argb(105, 214, 177, 105))
+            }
         }
-        gap(10)
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null) {
-            text("لا يتوفر مستشعر اتجاه في هذا الجهاز؛ ستبقى زاوية القبلة الرقمية ظاهرة، لكن اتجاه البوصلة لن يتبع حركة الهاتف.", 12f, muted, false, Gravity.CENTER)
+        compassInfo = infoView
+        instrument.addView(infoView, LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(3)
+        })
+
+        val locationRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(3), dp(13), dp(3), 0)
         }
-        card {
-            line("لأفضل دقة", 16f, gold, true)
-            line("أمسك الهاتف أفقياً وحرّكه على شكل رقم 8 لمعايرة المستشعر. أبعده عن المعادن والمغناطيس ومكبرات الصوت.", 13f, muted)
+        val locationLabel = TextView(this).apply {
+            text = "⌖  $cityName"
+            textSize = 11f
+            setTextColor(Color.rgb(199, 205, 177))
+            gravity = Gravity.CENTER_VERTICAL
         }
+        locationRow.addView(locationLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        val refreshLocation = TextView(this).apply {
+            text = "تحديث الموقع"
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.rgb(245, 215, 151))
+            gravity = Gravity.CENTER
+            setPadding(dp(10), dp(7), dp(10), dp(7))
+            background = GradientDrawable().apply {
+                setColor(Color.argb(35, 226, 190, 115))
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), Color.argb(135, 220, 181, 99))
+            }
+            setOnClickListener { requestLocation(true) }
+        }
+        locationRow.addView(refreshLocation, LinearLayout.LayoutParams(-2, -2))
+        content.addView(instrument, LinearLayout.LayoutParams(-1, -2))
+        instrument.addView(locationRow, LinearLayout.LayoutParams(-1, -2))
+
+        gap(12)
+        val guidance = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            background = GradientDrawable().apply {
+                setColor(if (isLightTheme) Color.rgb(255, 255, 255) else Color.rgb(10, 42, 34))
+                cornerRadius = dp(19).toFloat()
+                setStroke(dp(1), if (isLightTheme) Color.rgb(207, 190, 146) else Color.rgb(74, 104, 76))
+            }
+        }
+        val guideTitle = TextView(this).apply {
+            text = "لأفضل دقة"
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(gold)
+        }
+        guidance.addView(guideTitle)
+        val guideBody = TextView(this).apply {
+            text = "أمسك الهاتف أفقيًا وحرّكه على شكل رقم 8 لمعايرة المستشعر. أبعده عن المعادن والمغناطيس ومكبرات الصوت. تدور تدريجات البوصلة مع الهاتف، بينما يشير السهم إلى اتجاه القبلة."
+            textSize = 12f
+            setTextColor(muted)
+            setLineSpacing(dp(3).toFloat(), 1f)
+            setPadding(0, dp(5), 0, 0)
+        }
+        guidance.addView(guideBody)
+        content.addView(guidance, LinearLayout.LayoutParams(-1, -2))
     }
 
     private fun azkar() {
