@@ -40,6 +40,11 @@
             android:exported="false"/>
 
         <receiver
+            android:name=".DedicationReminderReceiver"
+            android:enabled="true"
+            android:exported="false"/>
+
+        <receiver
             android:name=".PrayerRescheduleReceiver"
             android:enabled="true"
             android:exported="false">
