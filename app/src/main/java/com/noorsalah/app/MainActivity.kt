@@ -3072,10 +3072,14 @@ class MainActivity : Activity(), SensorEventListener {
         SensorManager.getOrientation(remapped, orientation)
         val magneticHeading = (Math.toDegrees(orientation[0].toDouble()).toFloat() + 360f) % 360f
         heading = QiblaCalculator.trueHeading(magneticHeading, magneticDeclination)
-        hasCompassReading = true
+        hasCompassReading = event.accuracy != SensorManager.SENSOR_STATUS_UNRELIABLE
         arrow?.updateReadings(heading, qibla().toFloat(), hasCompassReading, isLightTheme)
-        val accuracyHint = if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) " • حرّك الهاتف للمعايرة" else ""
-        compassInfo?.text = "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°$accuracyHint"
+        compassInfo?.text = if (hasCompassReading) {
+            val accuracyHint = if (event.accuracy == SensorManager.SENSOR_STATUS_ACCURACY_LOW) " • دقة منخفضة، حرّك الهاتف للمعايرة" else ""
+            "القبلة ${"%.1f".format(Locale.US, qibla())}°  •  الشمال الحقيقي ${"%.0f".format(heading)}°$accuracyHint"
+        } else {
+            "قراءة البوصلة غير موثوقة حاليًا • حرّك الهاتف على شكل 8 للمعايرة"
+        }
     }
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
