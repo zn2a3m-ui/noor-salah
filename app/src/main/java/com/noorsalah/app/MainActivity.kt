@@ -831,7 +831,7 @@ class MainActivity : Activity(), SensorEventListener {
         instrument.addView(eyebrow, LinearLayout.LayoutParams(-1, -2))
 
         val degree = TextView(this).apply {
-            text = \"${"%.1f".format(Locale.US, qibla())}°\"
+            text = "${"%.1f".format(Locale.US, qibla())}°"
             textSize = 34f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(248, 222, 166))
@@ -864,7 +864,7 @@ class MainActivity : Activity(), SensorEventListener {
                 sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null ->
                     "مستشعر اتجاه الهاتف غير متاح على هذا الجهاز"
                 hasCompassReading ->
-                    "الشمال الحقيقي \"${"%.0f".format(Locale.US, heading)}°  •  القبلة \"${"%.1f".format(Locale.US, qibla())}°"
+                    "الشمال الحقيقي "${"%.0f".format(Locale.US, heading)}°  •  القبلة "${"%.1f".format(Locale.US, qibla())}°"
                 else -> "جارٍ تحديد اتجاه الهاتف… حرّكه على شكل 8 للمعايرة"
             }
             textSize = 12f
