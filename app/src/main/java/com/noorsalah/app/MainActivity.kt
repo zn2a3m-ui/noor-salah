@@ -218,6 +218,7 @@ class MainActivity : Activity(), SensorEventListener {
         requestLocation()
         PrayerAlarmScheduler.createChannel(this)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        DedicationReminderScheduler.scheduleNext(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
             PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
@@ -231,6 +232,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         clockHandler.post(clockTick)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        DedicationReminderScheduler.scheduleNext(this)
         PrayerWidgetProvider.updateAll(this)
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
             PrayerWidgetProvider.updateAll(this)
@@ -381,10 +383,35 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+    private fun dedicationDuaForToday(): String {
+        val duas = listOf(
+            "اللهم اغفر له وارحمه، واعفُ عنه وأكرم نزله.",
+            "اللهم آنس وحشته، ونوّر قبره، واجعل الجنة داره.",
+            "اللهم ارفع درجته في المهديين، واخلفه في عقبه في الغابرين.",
+            "اللهم اجعل ما قدّمه من خير في ميزان حسناته، وتجاوز عن تقصيره.",
+            "اللهم أبدله داراً خيراً من داره، وأهلاً خيراً من أهله.",
+            "اللهم افسح له في قبره مدّ بصره، واجعله روضة من رياض الجنة.",
+            "اللهم اجزه عن الإحسان إحساناً، وعن الإساءة عفواً وغفراناً.",
+            "اللهم اجمعه بمن يحب في جنات النعيم برحمتك يا أرحم الراحمين.",
+            "اللهم اسقه من حوض نبيك شربة هنيئة لا يظمأ بعدها أبداً.",
+            "اللهم اجعل قبره نوراً وسكينة، واجعل مقامه في الفردوس الأعلى.",
+            "اللهم ارحمه رحمةً تطمئن بها روحه، وترفع بها درجته.",
+            "اللهم تقبّل صالح عمله، واغفر له، واجعل ذكراه باباً للدعاء والخير."
+        )
+        val day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
+        return duas[(day - 1) % duas.size]
+    }
+
     private fun home() {
         text("☾  نور الصلاة", 28f, gold, true, Gravity.CENTER)
         text("رفيقك إلى الصلاة والذكر", 13f, muted, false, Gravity.CENTER)
         gap(16)
+        card {
+            line("صدقة جارية", 14f, gold, true, Gravity.CENTER)
+            line("عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق", 14f, cream, true, Gravity.CENTER)
+            line(dedicationDuaForToday(), 13f, muted, false, Gravity.CENTER)
+        }
+        gap(12)
         card {
             line("⌖  $cityName", 13f, muted, false, Gravity.CENTER)
             line(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 15f, cream, true, Gravity.CENTER)
@@ -560,12 +587,6 @@ class MainActivity : Activity(), SensorEventListener {
             line("سبحان الله العظيم", 12f, muted, false, Gravity.CENTER)
         }
         text("قد تختلف الحسابات الفلكية دقيقة أو دقيقتين عن أذان المسجد؛ ويُعتمد إعلان وزارة الأوقاف للمناسبات المرتبطة بالرؤية.", 11f, muted, false, Gravity.CENTER)
-        gap(12)
-        card {
-            line("صدقة جارية", 14f, gold, true, Gravity.CENTER)
-            line("عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق", 14f, cream, true, Gravity.CENTER)
-            line("نسأل الله أن يتغمده بواسع رحمته، وأن يجعل كل قراءة وذكر ودعاء في ميزان حسناته.", 12f, muted, false, Gravity.CENTER)
-        }
     }
 
     private fun localUmmAlQuraDate(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? {
@@ -2664,6 +2685,26 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 addView(toggle, LinearLayout.LayoutParams(-1, -2))
             }
+            val dedicationToggle = Switch(this@MainActivity).apply {
+                text = "تذكير يومي بالدعاء للمرحوم"
+                setTextColor(cream)
+                isChecked = getPreferences(0).getBoolean("dedication_reminder_enabled", true)
+                setOnCheckedChangeListener { _, enabled ->
+                    getPreferences(0).edit().putBoolean("dedication_reminder_enabled", enabled).apply()
+                    if (enabled) {
+                        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            requestPrayerNotificationPermission()
+                        } else {
+                            DedicationReminderScheduler.scheduleNext(this@MainActivity)
+                        }
+                    } else {
+                        DedicationReminderScheduler.cancel(this@MainActivity)
+                    }
+                }
+            }
+            addView(dedicationToggle, LinearLayout.LayoutParams(-1, -2))
+            line("يصل تذكير يومي الساعة 9:00 صباحاً بدعاء متجدد، ويمكنك إيقافه من هنا.", 12f, muted)
             addView(button("تفعيل صلاحية الإشعارات") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
             addView(button("السماح بالتنبيه الدقيق في وقته") { requestExactAlarmPermission() }, LinearLayout.LayoutParams(-1, -2))
         }
@@ -3112,7 +3153,8 @@ class MainActivity : Activity(), SensorEventListener {
         if (requestCode == 100 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) requestLocation(true)
         if (requestCode == 200 && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
             PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
-            Toast.makeText(this, "تم تفعيل تنبيهات الصلاة", Toast.LENGTH_SHORT).show()
+            DedicationReminderScheduler.scheduleNext(this)
+            Toast.makeText(this, "تم تفعيل الإشعارات", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -3122,7 +3164,8 @@ class MainActivity : Activity(), SensorEventListener {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 200)
         } else {
             PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
-            Toast.makeText(this, "تمت جدولة تنبيهات الصلاة لليوم والغد", Toast.LENGTH_LONG).show()
+            DedicationReminderScheduler.scheduleNext(this)
+            Toast.makeText(this, "تم تفعيل جدولة الإشعارات", Toast.LENGTH_LONG).show()
         }
     }
 
