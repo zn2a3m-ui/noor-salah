@@ -1,0 +1,23 @@
+Noor Salah — Adhkar visual assets
+===================================
+
+Photographs are loaded on first use and cached locally by the app. All selected photos are offered for free use by their respective platforms under the listed licenses.
+
+Pexels photographs — Pexels License (https://www.pexels.com/license/):
+- Morning valley: Zetong Li, https://www.pexels.com/photo/a-sunrise-over-a-valley-with-fog-and-mist-16837430/
+- Prayer beads: neslihan, https://www.pexels.com/photo/display-of-tasbih-prayer-beads-15923886/
+- Green prayer beads: RDNE Stock project, https://www.pexels.com/photo/person-holding-prayer-beads-8217650/
+- Prayer room: Muhlis Baysal, https://www.pexels.com/photo/serene-interior-with-traditional-prayer-rugs-32243031/
+- Dawn bedroom: Erik Schereder, https://www.pexels.com/photo/sunlight-coming-from-the-window-13009039/
+
+Unsplash photographs — Unsplash License (https://unsplash.com/license/):
+- Mosque at twilight with crescent: Mathieu Gauzy, https://unsplash.com/photos/mosque-silhouette-against-a-twilight-sky-with-crescent-moon-8zIFUsxLszY
+- Mosque interior: Alim, https://unsplash.com/photos/interior-of-a-mosque-with-prayer-mats-and-a-pulpit-d-5DD66coac
+- Kaaba: Sam Riz, https://unsplash.com/photos/kaaba-at-masjid-al-haram-in-mecca-ceNCWYqL8DY
+- Quran and prayer beads: Ali Burhan, https://unsplash.com/photos/quran-with-prayer-beads-on-green-2HgHr60mWVo
+
+Typography:
+- Amiri Regular — Google Fonts / Amiri Project, SIL Open Font License 1.1.
+  https://github.com/google/fonts/tree/main/ofl/amiri
+- Cairo — Google Fonts / Cairo Project, SIL Open Font License 1.1.
+  https://github.com/google/fonts/tree/main/ofl/cairo
