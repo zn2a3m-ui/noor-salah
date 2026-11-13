@@ -55,14 +55,14 @@ class MainActivity : Activity(), SensorEventListener {
     private val mutedOnDark = Color.rgb(184, 199, 184)
 
     private fun applyThemeColors() {
-        isLightTheme = getPreferences(0).getString("app_theme", "dark") == "light"
+        isLightTheme = getPreferences(0).getString("app_theme", "light") == "light"
         if (isLightTheme) {
-            bg = Color.rgb(246, 249, 245)
-            panel = Color.rgb(255, 255, 255)
-            panelAlt = Color.rgb(233, 241, 234)
-            gold = Color.rgb(151, 111, 42)
-            cream = Color.rgb(29, 48, 39)
-            muted = Color.rgb(98, 116, 102)
+            bg = Color.rgb(247, 243, 232)
+            panel = Color.rgb(255, 252, 245)
+            panelAlt = Color.rgb(238, 232, 218)
+            gold = Color.rgb(166, 127, 62)
+            cream = Color.rgb(38, 58, 48)
+            muted = Color.rgb(118, 121, 105)
         } else {
             bg = Color.rgb(5, 31, 26)
             panel = Color.rgb(15, 45, 36)
@@ -183,7 +183,7 @@ class MainActivity : Activity(), SensorEventListener {
         val nav = LinearLayout(this).apply {
             gravity = Gravity.CENTER; orientation = LinearLayout.HORIZONTAL
             setPadding(dp(7), dp(7), dp(7), dp(7))
-            background = shape(Color.rgb(7, 39, 32), 22, Color.rgb(42, 91, 72))
+            background = shape(if (isLightTheme) panel else Color.rgb(7, 39, 32), 22, if (isLightTheme) Color.rgb(218, 207, 181) else Color.rgb(42, 91, 72))
             elevation = dp(10).toFloat()
         }
         listOf(Triple("⌂", "الرئيسية", "home"), Triple("◉", "القبلة", "qibla"),
@@ -376,10 +376,10 @@ class MainActivity : Activity(), SensorEventListener {
             val selected = cell.tag == if (page == "calendar") "home" else page
             val glyph = cell.getChildAt(0) as? TextView
             val label = cell.getChildAt(1) as? TextView
-            glyph?.setTextColor(if (selected) goldOnDark else mutedOnDark)
-            label?.setTextColor(if (selected) goldOnDark else mutedOnDark)
+            glyph?.setTextColor(if (selected) gold else muted)
+            label?.setTextColor(if (selected) gold else muted)
             label?.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-            cell.background = if (selected) shape(Color.rgb(20, 67, 49), 15, Color.rgb(89, 127, 82)) else null
+            cell.background = if (selected) shape(if (isLightTheme) Color.rgb(224, 235, 222) else Color.rgb(20, 67, 49), 15, if (isLightTheme) Color.rgb(185, 199, 165) else Color.rgb(89, 127, 82)) else null
         }
     }
 
@@ -1015,7 +1015,7 @@ class MainActivity : Activity(), SensorEventListener {
                 val item = LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(13), dp(12), dp(13), dp(12))
-                    background = shape(panel, 15, Color.rgb(42, 91, 72))
+                    background = shape(panel, 17, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(42, 91, 72))
                     setOnClickListener {
                         val prefs = getPreferences(0)
                         prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
@@ -1057,9 +1057,9 @@ class MainActivity : Activity(), SensorEventListener {
                     getPreferences(0).edit().putString("azkar_category", label).apply()
                     categoryButtons.forEach { (name, view) ->
                         val active = name == selectedCategory
-                        view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
-                            if (active) goldOnDark else Color.rgb(48, 99, 75))
-                        view.setTextColor(if (active) goldOnDark else cream)
+                        view.background = shape(if (active) (if (isLightTheme) Color.rgb(222, 235, 219) else Color.rgb(25, 91, 64)) else panelAlt, 18,
+                            if (active) gold else if (isLightTheme) Color.rgb(220, 209, 185) else Color.rgb(48, 99, 75))
+                        view.setTextColor(if (active) (if (isLightTheme) Color.rgb(35, 77, 59) else goldOnDark) else cream)
                     }
                     renderCategory()
                 }
@@ -1069,9 +1069,9 @@ class MainActivity : Activity(), SensorEventListener {
         }
         categoryButtons.forEach { (name, view) ->
             val active = name == selectedCategory
-            view.background = shape(if (active) Color.rgb(25, 91, 64) else panelAlt, 18,
-                if (active) goldOnDark else Color.rgb(48, 99, 75))
-            view.setTextColor(if (active) goldOnDark else cream)
+            view.background = shape(if (active) (if (isLightTheme) Color.rgb(222, 235, 219) else Color.rgb(25, 91, 64)) else panelAlt, 18,
+                if (active) gold else if (isLightTheme) Color.rgb(220, 209, 185) else Color.rgb(48, 99, 75))
+            view.setTextColor(if (active) (if (isLightTheme) Color.rgb(35, 77, 59) else goldOnDark) else cream)
         }
         val categoryScroll = HorizontalScrollView(this@MainActivity).apply {
             isHorizontalScrollBarEnabled = false
@@ -2599,7 +2599,7 @@ class MainActivity : Activity(), SensorEventListener {
                     override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
                     override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                         val selectedTheme = if (position == 1) "light" else "dark"
-                        val currentTheme = getPreferences(0).getString("app_theme", "dark") ?: "dark"
+                        val currentTheme = getPreferences(0).getString("app_theme", "light") ?: "light"
                         if (selectedTheme != currentTheme) {
                             getPreferences(0).edit()
                                 .putString("app_theme", selectedTheme)
@@ -2969,7 +2969,7 @@ class MainActivity : Activity(), SensorEventListener {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(17), dp(16), dp(17), dp(16))
-            background = shape(Color.rgb(10, 48, 39), 20, Color.rgb(39, 87, 67))
+            background = shape(panel, 20, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(39, 87, 67))
             elevation = dp(2).toFloat()
             block()
         }
@@ -2990,11 +2990,12 @@ class MainActivity : Activity(), SensorEventListener {
     private fun gap(h: Int) { content.addView(View(this), LinearLayout.LayoutParams(1, dp(h))) }
     private fun button(label: String, action: () -> Unit) = Button(this@MainActivity).apply {
         text = label; textSize = 14f; isAllCaps = false
-        setTextColor(Color.rgb(4, 35, 29))
+        setTextColor(Color.WHITE)
         typeface = Typeface.DEFAULT_BOLD
         background = GradientDrawable(
             GradientDrawable.Orientation.LEFT_RIGHT,
-            intArrayOf(Color.rgb(236, 207, 139), Color.rgb(207, 164, 83))
+            if (isLightTheme) intArrayOf(Color.rgb(37, 83, 65), Color.rgb(27, 66, 53))
+            else intArrayOf(Color.rgb(236, 207, 139), Color.rgb(207, 164, 83))
         ).apply { cornerRadius = dp(15).toFloat() }
         elevation = dp(2).toFloat()
         setPadding(dp(14), dp(5), dp(14), dp(5))
