@@ -347,7 +347,11 @@ class MainActivity : Activity(), SensorEventListener {
             PrayerAlarmScheduler.createChannel(this)
             Toast.makeText(this, "تم حفظ ملف الأذان المخصص", Toast.LENGTH_SHORT).show()
             showPage("settings")
-        } catch (_: Exception) {            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()        }    }
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun showPage(target: String) {
         releaseQuranMushafPage()
         if (target != "quran") stopQuranAudio()
@@ -695,8 +699,11 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
             line(if (firstHijri != null) "${firstHijri.monthArabic} ${firstHijri.year} هـ" else "بيانات الشهر الهجري عند توفر المصدر", 14f, muted, false, Gravity.CENTER)
-            val header = LinearLayout(this@MainActivity).apply {                orientation = LinearLayout.HORIZONTAL                gravity = Gravity.CENTER_VERTICAL
-            }            header.addView(button("السابق") { changeCalendarMonth(-1) }, LinearLayout.LayoutParams(0, -2, 1f))
+            val header = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            header.addView(button("السابق") { changeCalendarMonth(-1) }, LinearLayout.LayoutParams(0, -2, 1f))
             val monthTitle = TextView(this@MainActivity).apply {
                 text = title
                 textSize = 17f
@@ -960,125 +967,7 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(guidance, LinearLayout.LayoutParams(-1, -2))
     }
 
-    private fun azkarLanding() {
-        val title = TextView(this).apply {
-            text = "الأذكار والتسبيح"
-            textSize = 27f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(cream)
-            setPadding(0, dp(8), 0, dp(4))
-        }
-        content.addView(title, LinearLayout.LayoutParams(-1, -2))
-        val subtitle = TextView(this).apply {
-            text = "اختر وردك، وابدأ يومك بذكر الله"
-            textSize = 13f
-            gravity = Gravity.CENTER
-            setTextColor(muted)
-            setPadding(0, 0, 0, dp(18))
-        }
-        content.addView(subtitle, LinearLayout.LayoutParams(-1, -2))
-
-        val sections = listOf(
-            Triple("الصباح", "🌅", "أذكار بداية اليوم"),
-            Triple("المساء", "🌙", "أذكار المساء والليل"),
-            Triple("بعد الصلاة", "🕌", "الأذكار عقب الفريضة"),
-            Triple("النوم", "🌌", "أذكار ما قبل النوم"),
-            Triple("الاستيقاظ", "☀️", "الحمد عند الاستيقاظ"),
-            Triple("الاستغفار", "🤲", "أذكار الاستغفار"),
-            Triple("الصلاة على النبي", "ﷺ", "الصلاة والسلام عليه"),
-            Triple("أذكار يومية", "📿", "أذكار وأوراد يومية"),
-            Triple("أدعية", "✨", "أدعية من القرآن والسنة")
-        )
-        sections.chunked(2).forEachIndexed { rowIndex, pair ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
-            }
-            pair.forEach { section ->
-                val tile = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER
-                    setPadding(dp(10), dp(17), dp(10), dp(17))
-                    background = GradientDrawable(
-                        GradientDrawable.Orientation.TL_BR,
-                        if (isLightTheme) intArrayOf(Color.rgb(255, 253, 246), Color.rgb(237, 231, 215))
-                        else intArrayOf(Color.rgb(20, 65, 49), Color.rgb(8, 39, 31))
-                    ).apply {
-                        cornerRadius = dp(21).toFloat()
-                        setStroke(dp(1), if (isLightTheme) Color.rgb(213, 198, 166) else Color.rgb(91, 119, 82))
-                    }
-                    elevation = dp(2).toFloat()
-                    isClickable = true
-                    isFocusable = true
-                    contentDescription = "فتح قسم ${section.first}"
-                    setOnClickListener {
-                        getPreferences(0).edit()
-                            .putString("azkar_category", section.first)
-                            .putBoolean("azkar_category_open", true)
-                            .apply()
-                        showPage("azkar")
-                    }
-                }
-                tile.addView(TextView(this).apply {
-                    text = section.second
-                    textSize = 29f
-                    gravity = Gravity.CENTER
-                    setTextColor(if (isLightTheme) Color.rgb(112, 91, 54) else gold)
-                })
-                tile.addView(TextView(this).apply {
-                    text = section.first
-                    textSize = 15f
-                    typeface = Typeface.DEFAULT_BOLD
-                    gravity = Gravity.CENTER
-                    setTextColor(cream)
-                    setPadding(0, dp(7), 0, dp(3))
-                })
-                tile.addView(TextView(this).apply {
-                    text = section.third
-                    textSize = 10f
-                    gravity = Gravity.CENTER
-                    setTextColor(muted)
-                })
-                row.addView(tile, LinearLayout.LayoutParams(0, dp(142), 1f).apply {
-                    if (row.childCount == 1) marginStart = dp(7)                    else marginEnd = dp(7)                })
-            }            if (pair.size == 1) {
-                row.addView(View(this), LinearLayout.LayoutParams(0, dp(142), 1f))
-            }            content.addView(row, LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = dp(10)
-            })
-        }
-
-        val favorites = getPreferences(0).getStringSet("azkar_favorites", emptySet())?.size ?: 0
-        val recent = getPreferences(0).getString("azkar_recent", "")?.lines()?.count { it.isNotBlank() } ?: 0
-        val summary = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            background = shape(panel, 18, if (isLightTheme) Color.rgb(218, 207, 181) else Color.rgb(48, 91, 69))
-            setPadding(dp(12), dp(13), dp(12), dp(13))
-        }
-        listOf("☆  المفضلة  $favorites", "◷  آخر ما قرأت  $recent").forEachIndexed { index, value ->
-            summary.addView(TextView(this).apply {
-                text = value
-                textSize = 12f
-                gravity = Gravity.CENTER
-                setTextColor(cream)
-            }, LinearLayout.LayoutParams(0, -2, 1f))
-        }
-        content.addView(summary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(5) })
-    }
-
     private fun azkar() {
-        val azkarPreferences = getPreferences(0)
-        if (!azkarPreferences.getBoolean("azkar_category_open", false)) {
-            azkarLanding()
-            return
-        }
-        content.addView(button("‹  جميع أقسام الأذكار") {
-            azkarPreferences.edit().putBoolean("azkar_category_open", false).apply()
-            showPage("azkar")
-        }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         // Dedicated azkar visual identity: emerald, warm ivory and restrained gold.
         val azkarHero = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.VERTICAL
@@ -1392,9 +1281,11 @@ class MainActivity : Activity(), SensorEventListener {
                 text = when (filter) { "الكل" -> "▦  الكل"; "المفضلة" -> "☆  المفضلة"; else -> "◷  الأخيرة" }
                 textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))
                 setOnClickListener {
-                    selectedFilter = filter                    filterButtons.forEach { (name, view) ->
+                    selectedFilter = filter
+                    filterButtons.forEach { (name, view) ->
                         val active = name == selectedFilter
-                        view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)                        view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
+                        view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
+                        view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
                     }
                     renderCategory()
                 }
@@ -1738,12 +1629,16 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
             }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("توثيق مصدر صفحات المصحف وبياناتها") {                try {                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")))
+            addView(button("توثيق مصدر صفحات المصحف وبياناتها") {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")))
                 } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()                }
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
+                }
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("شروط ترخيص بيانات الصفحات") {
-                try {                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/LICENSE")))
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/LICENSE")))
                 } catch (_: Exception) {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
@@ -2089,10 +1984,12 @@ class MainActivity : Activity(), SensorEventListener {
             gravity = Gravity.CENTER
             setPadding(0, dp(5), 0, dp(5))
         }
-        content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))        text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
+        content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
+        text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
         gap(8)
         card {
-            line("التلاوة الصوتية للسورة", 17f, gold, true)            val prefs = getPreferences(0)
+            line("التلاوة الصوتية للسورة", 17f, gold, true)
+            val prefs = getPreferences(0)
             val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
             val selectedIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
             val picker = Spinner(this@MainActivity).apply {
@@ -2100,7 +1997,8 @@ class MainActivity : Activity(), SensorEventListener {
                 setSelection(selectedIndex)
                 onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                     override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {                        val chosen = quranReciters[position]
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        val chosen = quranReciters[position]
                         if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
                             prefs.edit().putString("quran_reciter", chosen.edition).apply()
                             if (quranAudioQueueReciter != null) playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
@@ -2432,16 +2330,20 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                     onDecorationTap = { decoration, _ ->
                         if (decoration.ayah > 0) {
-                            val name = quranRepository.loadSurahs()                                .getOrNull(decoration.surah - 1)?.name ?: "القرآن الكريم"
+                            val name = quranRepository.loadSurahs()
+                                .getOrNull(decoration.surah - 1)?.name ?: "القرآن الكريم"
                             showQuranVerseActions(decoration.surah, name, decoration.ayah)
-                        }                    }
+                        }
+                    }
                     contentDescription = "صفحة المصحف $pageNumber"
                     page = loaded
-                }                pageView.setOnTouchListener { _, event ->
+                }
+                pageView.setOnTouchListener { _, event ->
                     when (event.actionMasked) {
                         android.view.MotionEvent.ACTION_DOWN -> {
                             val zoomed = pageView.zoom.step > 0 || pageView.zoom.zoom > 1.01f
-                            pageView.parent?.requestDisallowInterceptTouchEvent(zoomed)                        }
+                            pageView.parent?.requestDisallowInterceptTouchEvent(zoomed)
+                        }
                         android.view.MotionEvent.ACTION_POINTER_DOWN ->
                             pageView.parent?.requestDisallowInterceptTouchEvent(true)
                         android.view.MotionEvent.ACTION_UP,
@@ -2496,6 +2398,7 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun quranPageStart(pageNumber: Int): Pair<Int, Int> =
         quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
+
     private fun adjustQuranMushafZoom(zoomIn: Boolean, surahNumber: Int, focusAyah: Int) {
         val view = quranMushafView
         val steps = view?.zoomSteps
@@ -2778,19 +2681,23 @@ class MainActivity : Activity(), SensorEventListener {
                 }
             }
             media.setOnCompletionListener { completed ->
-                if (quranAudioPlayer !== completed) return@setOnCompletionListener                if (quranAudioQueueIndex < quranAudioQueue.lastIndex) {
+                if (quranAudioPlayer !== completed) return@setOnCompletionListener
+                if (quranAudioQueueIndex < quranAudioQueue.lastIndex) {
                     quranAudioQueueIndex++
                     playCurrentQuranQueueAyah()
-                } else if (quranRepeat) {                    quranAudioQueueIndex = 0
+                } else if (quranRepeat) {
+                    quranAudioQueueIndex = 0
                     playCurrentQuranQueueAyah()
                 } else {
                     releaseQuranAudioPlayer()
-                    quranAudioQueue = emptyList()                    quranAudioQueueReciter = null
+                    quranAudioQueue = emptyList()
+                    quranAudioQueueReciter = null
                     setQuranAudioStatus(if (quranAudioQueueEndGlobal == 6236) "انتهت التلاوة المتتابعة حتى نهاية القرآن الكريم" else "انتهت تلاوة السورة")
                 }
             }
             media.setOnErrorListener { failed, _, _ ->
-                if (quranAudioPlayer === failed) {                    releaseQuranAudioPlayer()
+                if (quranAudioPlayer === failed) {
+                    releaseQuranAudioPlayer()
                     quranAudioQueue = emptyList()
                     quranAudioQueueReciter = null
                     setQuranAudioStatus("تعذّر تحميل الآية $currentAyah من سورة $surahName")
@@ -2890,7 +2797,8 @@ class MainActivity : Activity(), SensorEventListener {
         text("نتائج البحث", 25f, gold, true, Gravity.CENTER)
         text("الكلمة: $query", 13f, muted, false, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
-        if (results.isEmpty()) {            text("لا توجد نتائج مطابقة. جرّب كتابة جزء آخر من الآية.", 14f, muted, false, Gravity.CENTER)
+        if (results.isEmpty()) {
+            text("لا توجد نتائج مطابقة. جرّب كتابة جزء آخر من الآية.", 14f, muted, false, Gravity.CENTER)
         } else {
             text("عدد النتائج المعروضة: ${results.size}", 12f, muted)
             results.forEach { result ->
@@ -3124,7 +3032,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(volumeSlider, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختبار تنبيه الأذان الآن") {
-                if (android.os.Build.VERSION.SDK_INT  >= 33 &&
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     requestPrayerNotificationPermission()
                 } else {
@@ -3140,7 +3048,8 @@ class MainActivity : Activity(), SensorEventListener {
             line("تسجيلان صوتيان مرخّصان CC0، ويمكنك استيراد تسجيلك الخاص من الهاتف. الملف المخصص يبقى على جهازك ولا يُرفع إلى أي خدمة، ولا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
             line("يعمل تسجيل الأذان كاملاً في الخلفية عند تفعيل التنبيهات والسماح بصلاحيات الإشعارات والمنبهات. ويمكن إيقافه من إشعار الأذان.", 12f, muted)
             line("يمكنك ضبط مستوى تسجيل الأذان من هنا. ويظل مستوى صوت المنبه العام في الهاتف مؤثراً أيضاً.", 11f, muted)
-        }        gap(10)
+        }
+        gap(10)
         card {
             line("المدينة", 18f, gold, true)
             line(cityName, 14f, cream)
@@ -3288,6 +3197,7 @@ class MainActivity : Activity(), SensorEventListener {
             line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted)
         }
     }
+
     private fun sectionHeading(title: String) {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -3486,10 +3396,12 @@ class MainActivity : Activity(), SensorEventListener {
         val hasCoarse = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!hasFine && !hasCoarse) {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 100)
-            return        }
+            return
+        }
         try {
             val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val enabledProviders = lm.getProviders(true)            val lastKnown = enabledProviders.mapNotNull { provider ->
+            val enabledProviders = lm.getProviders(true)
+            val lastKnown = enabledProviders.mapNotNull { provider ->
                 try { lm.getLastKnownLocation(provider) } catch (_: SecurityException) { null }
             }.maxByOrNull { it.time }
 
