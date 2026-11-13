@@ -357,7 +357,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (target != "quran") stopQuranAudio()
         page = target
         content.removeAllViews()
-        navigationBar.visibility = if (target == "azkar_detail") View.GONE else View.VISIBLE
+        navigationBar.visibility = if (target == "azkar" || target == "azkar_detail") View.GONE else View.VISIBLE
         updateNavigationSelection()
         when (target) {
             "home" -> home()
