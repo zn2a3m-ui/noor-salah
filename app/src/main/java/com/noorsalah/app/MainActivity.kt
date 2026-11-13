@@ -1225,11 +1225,27 @@ class MainActivity : Activity(), SensorEventListener {
                     text = entry.title; textSize = 18f; gravity = Gravity.CENTER
                     setTextColor(gold); typeface = azkarTypeface("Cairo")
                 })
-                panelCard.addView(TextView(this@MainActivity).apply {
+                val dhikrText = TextView(this@MainActivity).apply {
                     text = entry.body; textSize = 23f; gravity = Gravity.CENTER
                     setTextColor(cream); typeface = azkarTypeface("Amiri-Regular")
                     setLineSpacing(dp(9).toFloat(), 1.12f); setPadding(0, dp(25), 0, dp(25))
-                })
+                    isClickable = true
+                    isFocusable = true
+                    contentDescription = "اضغط على نص الذكر لاحتساب قراءة"
+                    setOnClickListener {
+                        if (current < entry.times) {
+                            current++
+                            azkarPrefs.edit().putInt(key, current).apply()
+                            if (current >= entry.times) {
+                                morningIndex++
+                                azkarPrefs.edit().putInt("morning_sequence_index", morningIndex).apply()
+                                Toast.makeText(this@MainActivity, "اكتمل الذكر • التالي", Toast.LENGTH_SHORT).show()
+                            }
+                            renderCategory()
+                        }
+                    }
+                }
+                panelCard.addView(dhikrText)
                 panelCard.addView(TextView(this@MainActivity).apply {
                     text = "المصدر والتخريج: " + entry.source
                     textSize = 11f; gravity = Gravity.CENTER; setTextColor(muted)
@@ -1240,16 +1256,6 @@ class MainActivity : Activity(), SensorEventListener {
                     setPadding(0, dp(12), 0, dp(5))
                 }
                 panelCard.addView(countLabel)
-                panelCard.addView(button("اضغط بعد قراءة الذكر  •  +1") {
-                    if (current < entry.times) current++
-                    azkarPrefs.edit().putInt(key, current).apply()
-                    if (current >= entry.times) {
-                        morningIndex++
-                        azkarPrefs.edit().putInt("morning_sequence_index", morningIndex).apply()
-                        Toast.makeText(this@MainActivity, "اكتمل الذكر • التالي", Toast.LENGTH_SHORT).show()
-                    }
-                    renderCategory()
-                }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
                 val navigation = LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
                 }
