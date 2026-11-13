@@ -240,10 +240,10 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
     override fun onBackPressed() {
-        if (page != "home") {
-            showPage("home")
-        } else {
-            super.onBackPressed()
+        when (page) {
+            "azkar_detail" -> showPage("azkar")
+            "home" -> super.onBackPressed()
+            else -> showPage("home")
         }
     }
 
@@ -357,11 +357,12 @@ class MainActivity : Activity(), SensorEventListener {
         if (target != "quran") stopQuranAudio()
         page = target
         content.removeAllViews()
+        navigationBar.visibility = if (target == "azkar_detail") View.GONE else View.VISIBLE
         updateNavigationSelection()
         when (target) {
             "home" -> home()
             "qibla" -> qiblaScreen()
-            "azkar" -> azkar()
+            "azkar", "azkar_detail" -> azkar()
             "quran" -> quran()
             "calendar" -> hijriCalendar()
             "settings" -> settings()
@@ -373,7 +374,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (!::navigationBar.isInitialized) return
         for (i in 0 until navigationBar.childCount) {
             val cell = navigationBar.getChildAt(i) as? LinearLayout ?: continue
-            val selected = cell.tag == if (page == "calendar") "home" else page
+            val selected = cell.tag == when (page) { "calendar" -> "home"; "azkar_detail" -> "azkar"; else -> page }
             val glyph = cell.getChildAt(0) as? TextView
             val label = cell.getChildAt(1) as? TextView
             glyph?.setTextColor(if (selected) gold else muted)
@@ -1056,6 +1057,7 @@ class MainActivity : Activity(), SensorEventListener {
 
     private fun azkar() {
         ensureAzkarFonts()
+        val isCategoryDetail = page == "azkar_detail"
         // Dedicated azkar visual identity: emerald, warm ivory and restrained gold.
         val azkarHero = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.VERTICAL
@@ -1091,8 +1093,10 @@ class MainActivity : Activity(), SensorEventListener {
             setTextColor(Color.rgb(226, 215, 188))
             setPadding(0, dp(7), 0, 0)
         })
-        content.addView(azkarHero, LinearLayout.LayoutParams(-1, -2))
-        gap(16)
+        if (!isCategoryDetail) {
+            content.addView(azkarHero, LinearLayout.LayoutParams(-1, -2))
+            gap(16)
+        }
         var selectedCategory = getPreferences(0).getString("azkar_category", "الصباح") ?: "الصباح"
         var selectedFilter = "الكل"
         val azkarPrefs = getPreferences(0)
@@ -1181,7 +1185,7 @@ class MainActivity : Activity(), SensorEventListener {
             MorningItem("beneficial-knowledge", "اللهم إني أسألك علماً نافعاً", "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا", 1, "ابن ماجه 925 • عمل اليوم والليلة لابن السني 54"),
             MorningItem("istighfar-100", "أستغفر الله وأتوب إليه", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", 100, "صحيح البخاري 6307 • صحيح مسلم 2702")
         )
-        var morningFlowActive = false
+        var morningFlowActive = isCategoryDetail && selectedCategory == "الصباح"
         var morningIndex = azkarPrefs.getInt("morning_sequence_index", 0).coerceIn(0, morningItems.size)
         fun renderCategory() {
             categoryContent.removeAllViews()
@@ -1485,8 +1489,8 @@ class MainActivity : Activity(), SensorEventListener {
                         }
                         selectedFilter = "الكل"
                         getPreferences(0).edit().putString("azkar_category", label).apply()
-                        updateCategoryTiles()
-                        renderCategory()
+                        getPreferences(0).edit().putString("azkar_category", label).apply()
+                        showPage("azkar_detail")
                     }
                 }
                 val photo = ImageView(this@MainActivity).apply {
@@ -1521,9 +1525,10 @@ class MainActivity : Activity(), SensorEventListener {
             categoryGrid.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
         updateCategoryTiles()
-        content.addView(categoryGrid, LinearLayout.LayoutParams(-1, -2))
-        gap(10)
-        val filterStrip = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        if (!isCategoryDetail) {
+            content.addView(categoryGrid, LinearLayout.LayoutParams(-1, -2))
+            gap(10)
+            val filterStrip = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val filterButtons = linkedMapOf<String, TextView>()
         listOf("الكل", "المفضلة", "الأخيرة").forEach { filter ->
             val chip = TextView(this@MainActivity).apply {
@@ -1547,12 +1552,29 @@ class MainActivity : Activity(), SensorEventListener {
             view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
             view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
         }
-        content.addView(filterStrip, LinearLayout.LayoutParams(-1, -2))
-        gap(13)
+            content.addView(filterStrip, LinearLayout.LayoutParams(-1, -2))
+        }
+        if (isCategoryDetail) {
+            content.addView(button("رجوع إلى أبواب الأذكار") {
+                showPage("azkar")
+            }, LinearLayout.LayoutParams(-1, -2))
+            val detailTitle = TextView(this@MainActivity).apply {
+                text = selectedCategory
+                textSize = 25f
+                gravity = Gravity.CENTER
+                setTextColor(gold)
+                typeface = azkarTypeface("Cairo")
+                setPadding(0, dp(16), 0, dp(12))
+            }
+            content.addView(detailTitle, LinearLayout.LayoutParams(-1, -2))
+        } else {
+            gap(13)
+        }
         renderCategory()
         content.addView(categoryContent)
-        gap(8)
-        card {
+        if (!isCategoryDetail) {
+            gap(8)
+            card {
             line("مسبحة الأذكار", 18f, if (isLightTheme) Color.rgb(143, 104, 43) else gold, true, Gravity.CENTER)
             gap(5)
             line("اختر ذكرك وابدأ بالتسبيح", 12f, muted, false, Gravity.CENTER)
@@ -1700,7 +1722,8 @@ class MainActivity : Activity(), SensorEventListener {
             line("اللهم صل وسلم على نبينا محمد", 17f, cream)
             line("سبحان الله والحمد لله ولا إله إلا الله والله أكبر", 17f, cream)
         }
-        text("الأذكار المعروضة مختارات أولية؛ سيُستكمل فهرس أذكار الصباح والمساء وما بعد الصلاة مع توثيق النصوص والمصادر.", 12f, muted)
+            text("الأذكار المعروضة مختارات أولية؛ سيُستكمل فهرس أذكار الصباح والمساء وما بعد الصلاة مع توثيق النصوص والمصادر.", 12f, muted)
+        }
     }
 
     private fun quran() {
