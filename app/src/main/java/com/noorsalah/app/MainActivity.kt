@@ -347,8 +347,7 @@ class MainActivity : Activity(), SensorEventListener {
             PrayerAlarmScheduler.createChannel(this)
             Toast.makeText(this, "تم حفظ ملف الأذان المخصص", Toast.LENGTH_SHORT).show()
             showPage("settings")
-        } catch (_: Exception) {
-            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -397,7 +396,8 @@ class MainActivity : Activity(), SensorEventListener {
             "اللهم اجعل قبره نوراً وسكينة، واجعل مقامه في الفردوس الأعلى.",
             "اللهم ارحمه رحمةً تطمئن بها روحه، وترفع بها درجته.",
             "اللهم تقبّل صالح عمله، واغفر له، واجعل ذكراه باباً للدعاء والخير."
-        )        val day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
+        )
+        val day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
         return duas[(day - 1) % duas.size]
     }
 
@@ -697,8 +697,7 @@ class MainActivity : Activity(), SensorEventListener {
 
         card {
             line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
-            line(if (firstHijri != null) "${firstHijri.monthArabic} ${firstHijri.year} هـ" else "بيانات الشهر الهجري عند توفر المصدر", 14f, muted, false, Gravity.CENTER)
-            val header = LinearLayout(this@MainActivity).apply {
+            line(if (firstHijri != null) "${firstHijri.monthArabic} ${firstHijri.year} هـ" else "بيانات الشهر الهجري عند توفر المصدر", 14f, muted, false, Gravity.CENTER)            val header = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
             }
@@ -796,7 +795,8 @@ class MainActivity : Activity(), SensorEventListener {
                 line("${selectedHijri.day} ${selectedHijri.monthArabic} ${selectedHijri.year} هـ", 16f, gold, true)
                 if (selectedHijri.basis == "umm-al-qura") {
                     line("بحسب تقويم أم القرى • قد يختلف عن إعلان الرؤية المحلية", 11f, muted)
-                }                if (selectedHijri.basis == "local-umm-al-qura") {
+                }
+                if (selectedHijri.basis == "local-umm-al-qura") {
                     line("تقويم أم القرى محسوب محلياً؛ قد يختلف عن إعلان رؤية الهلال في بلدك.", 11f, muted)
                 }
                 hijriEvent(selectedHijri)?.let { line(it, 14f, cream, true) }
@@ -1047,8 +1047,7 @@ class MainActivity : Activity(), SensorEventListener {
                     setTextColor(muted)
                 })
                 row.addView(tile, LinearLayout.LayoutParams(0, dp(142), 1f).apply {
-                    if (row.childCount == 1) marginStart = dp(7)
-                    else marginEnd = dp(7)
+                    if (row.childCount == 1) marginStart = dp(7)                    else marginEnd = dp(7)
                 })
             }
             if (pair.size == 1) {
@@ -1317,7 +1316,8 @@ class MainActivity : Activity(), SensorEventListener {
                     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("الذكر", phrase))
                     Toast.makeText(this@MainActivity, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
-                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })                actions.addView(actionChip("مشاركة") {
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
+                actions.addView(actionChip("مشاركة") {
                     val shareText = "$phrase\n\nالمصدر: $sourceText"
                     val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText) }
                     startActivity(Intent.createChooser(send, "مشاركة الذكر"))
@@ -1397,8 +1397,7 @@ class MainActivity : Activity(), SensorEventListener {
         val filterButtons = linkedMapOf<String, TextView>()
         listOf("الكل", "المفضلة", "الأخيرة").forEach { filter ->
             val chip = TextView(this@MainActivity).apply {
-                text = when (filter) { "الكل" -> "▦  الكل"; "المفضلة" -> "☆  المفضلة"; else -> "◷  الأخيرة" }
-                textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))
+                text = when (filter) { "الكل" -> "▦  الكل"; "المفضلة" -> "☆  المفضلة"; else -> "◷  الأخيرة" }                textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))
                 setOnClickListener {
                     selectedFilter = filter
                     filterButtons.forEach { (name, view) ->
@@ -1716,7 +1715,8 @@ class MainActivity : Activity(), SensorEventListener {
                 textSize = 11f
                 setTextColor(muted)
             })
-            row.addView(number, LinearLayout.LayoutParams(dp(48), -2))            row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(number, LinearLayout.LayoutParams(dp(48), -2))
+            row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
             content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
         }
 
@@ -1747,8 +1747,7 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
                 }
             }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("توثيق مصدر صفحات المصحف وبياناتها") {
-                try {
+            addView(button("توثيق مصدر صفحات المصحف وبياناتها") {                try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")))
                 } catch (_: Exception) {
                     Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
@@ -2097,8 +2096,7 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         val pageLabel = TextView(this).apply {
             text = "قراءة متواصلة في المصحف"
-            textSize = 14f
-            setTextColor(muted)
+            textSize = 14f            setTextColor(muted)
             gravity = Gravity.CENTER
             setPadding(0, dp(5), 0, dp(5))
         }
@@ -2447,8 +2445,7 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                     onDecorationTap = { decoration, _ ->
                         if (decoration.ayah > 0) {
-                            val name = quranRepository.loadSurahs()
-                                .getOrNull(decoration.surah - 1)?.name ?: "القرآن الكريم"
+                            val name = quranRepository.loadSurahs()                                .getOrNull(decoration.surah - 1)?.name ?: "القرآن الكريم"
                             showQuranVerseActions(decoration.surah, name, decoration.ayah)
                         }
                     }
@@ -2797,8 +2794,7 @@ class MainActivity : Activity(), SensorEventListener {
                 }
             }
             media.setOnCompletionListener { completed ->
-                if (quranAudioPlayer !== completed) return@setOnCompletionListener
-                if (quranAudioQueueIndex < quranAudioQueue.lastIndex) {
+                if (quranAudioPlayer !== completed) return@setOnCompletionListener                if (quranAudioQueueIndex < quranAudioQueue.lastIndex) {
                     quranAudioQueueIndex++
                     playCurrentQuranQueueAyah()
                 } else if (quranRepeat) {
@@ -3147,8 +3143,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(volumeSlider, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختبار تنبيه الأذان الآن") {
-                if (android.os.Build.VERSION.SDK_INT >= 33 &&
-                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     requestPrayerNotificationPermission()
                 } else {
                     val testIntent = Intent(this@MainActivity, PrayerAlarmReceiver::class.java).apply {
@@ -3497,8 +3492,7 @@ class MainActivity : Activity(), SensorEventListener {
             PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
-        if (page == "home" || page == "settings" || page == "calendar") showPage(page)
-    }
+        if (page == "home" || page == "settings" || page == "calendar") showPage(page)    }
 
     private fun requestLocation(forceGps: Boolean = false) {
         if (locationMode == "manual" && !forceGps) return
