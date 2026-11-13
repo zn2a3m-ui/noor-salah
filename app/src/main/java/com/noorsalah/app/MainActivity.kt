@@ -1009,7 +1009,7 @@ class MainActivity : Activity(), SensorEventListener {
         var selectedFilter = "الكل"
         val azkarPrefs = getPreferences(0)
         val favoritePhrases = azkarPrefs.getStringSet("azkar_favorites", emptySet())?.toMutableSet() ?: mutableSetOf()
-        val recentPhrases = azkarPrefs.getString("azkar_recent", "")?.split("\\n")?.filter { it.isNotBlank() }?.toMutableList() ?: mutableListOf()
+        val recentPhrases = azkarPrefs.getString("azkar_recent", "")?.split("\n")?.filter { it.isNotBlank() }?.toMutableList() ?: mutableListOf()
         val categoryItems = linkedMapOf(
             "الصباح" to listOf("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ", "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ"),
             "المساء" to listOf("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ", "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ", "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ"),
@@ -1094,7 +1094,7 @@ class MainActivity : Activity(), SensorEventListener {
                     setOnClickListener {
                         recentPhrases.remove(phrase); recentPhrases.add(0, phrase)
                         while (recentPhrases.size > 30) recentPhrases.removeAt(recentPhrases.lastIndex)
-                        azkarPrefs.edit().putString("azkar_recent", recentPhrases.joinToString("\\n")).apply()
+                        azkarPrefs.edit().putString("azkar_recent", recentPhrases.joinToString("\n")).apply()
                         showDhikrDetails(phrase, azkarSources[phrase] ?: "المصدر قيد المراجعة والتوثيق", azkarRepetitions[phrase])
                     }
                 }
@@ -1199,7 +1199,7 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this@MainActivity, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
                 actions.addView(actionChip("مشاركة") {
-                    val shareText = "$phrase\\n\\nالمصدر: $sourceText"
+                    val shareText = "$phrase\n\nالمصدر: $sourceText"
                     val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText) }
                     startActivity(Intent.createChooser(send, "مشاركة الذكر"))
                 }, LinearLayout.LayoutParams(0, -2, 1f))
@@ -3200,7 +3200,7 @@ class MainActivity : Activity(), SensorEventListener {
         }
         panelView.addView(textView, LinearLayout.LayoutParams(-1, -2))
         val sourceView = TextView(this).apply {
-            text = "المصدر: $source" + (repetition?.let { "\\nالعدد الوارد: $it" } ?: "")
+            text = "المصدر: $source" + (repetition?.let { "\nالعدد الوارد: $it" } ?: "")
             textSize = 13f
             setTextColor(muted)
             gravity = Gravity.CENTER
