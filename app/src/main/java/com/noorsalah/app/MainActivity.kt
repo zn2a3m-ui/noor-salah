@@ -1527,8 +1527,7 @@ class MainActivity : Activity(), SensorEventListener {
         updateCategoryTiles()
         if (!isCategoryDetail) {
             content.addView(categoryGrid, LinearLayout.LayoutParams(-1, -2))
-            gap(10)
-            val filterStrip = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        }
         val filterButtons = linkedMapOf<String, TextView>()
         listOf("الكل", "المفضلة", "الأخيرة").forEach { filter ->
             val chip = TextView(this@MainActivity).apply {
@@ -1552,7 +1551,6 @@ class MainActivity : Activity(), SensorEventListener {
             view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
             view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
         }
-            content.addView(filterStrip, LinearLayout.LayoutParams(-1, -2))
         }
         if (isCategoryDetail) {
             content.addView(button("رجوع إلى أبواب الأذكار") {
@@ -1570,9 +1568,11 @@ class MainActivity : Activity(), SensorEventListener {
         } else {
             gap(13)
         }
-        renderCategory()
-        content.addView(categoryContent)
-        if (!isCategoryDetail) {
+        if (isCategoryDetail) {
+            renderCategory()
+            content.addView(categoryContent)
+        }
+        if (false) {
             gap(8)
             card {
             line("مسبحة الأذكار", 18f, if (isLightTheme) Color.rgb(143, 104, 43) else gold, true, Gravity.CENTER)
