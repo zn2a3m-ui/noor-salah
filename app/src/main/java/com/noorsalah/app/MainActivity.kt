@@ -1006,6 +1006,10 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(azkarHero, LinearLayout.LayoutParams(-1, -2))
         gap(16)
         var selectedCategory = getPreferences(0).getString("azkar_category", "الصباح") ?: "الصباح"
+        var selectedFilter = "الكل"
+        val azkarPrefs = getPreferences(0)
+        val favoritePhrases = azkarPrefs.getStringSet("azkar_favorites", emptySet())?.toMutableSet() ?: mutableSetOf()
+        val recentPhrases = azkarPrefs.getString("azkar_recent", "")?.split("\\n")?.filter { it.isNotBlank() }?.toMutableList() ?: mutableListOf()
         val categoryItems = linkedMapOf(
             "الصباح" to listOf("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ", "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ"),
             "المساء" to listOf("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ", "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ", "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ"),
@@ -1065,7 +1069,13 @@ class MainActivity : Activity(), SensorEventListener {
 
         fun renderCategory() {
             categoryContent.removeAllViews()
-            categoryItems[selectedCategory]?.forEachIndexed { index, phrase ->
+            val categoryPhrases = categoryItems[selectedCategory].orEmpty()
+            val visiblePhrases = when (selectedFilter) {
+                "المفضلة" -> categoryPhrases.filter { it in favoritePhrases }
+                "الأخيرة" -> recentPhrases.filter { it in categoryPhrases }
+                else -> categoryPhrases
+            }
+            visiblePhrases.forEachIndexed { index, phrase ->
                 val item = LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(19), dp(17), dp(19), dp(17))
@@ -1081,7 +1091,12 @@ class MainActivity : Activity(), SensorEventListener {
                     elevation = dp(if (phrase == selectedDhikr) 3 else 1).toFloat()
                     isClickable = true
                     contentDescription = "ذكر ${index + 1}: $phrase"
-                    setOnClickListener { selectDhikrForTasbeeh(phrase) }
+                    setOnClickListener {
+                        recentPhrases.remove(phrase); recentPhrases.add(0, phrase)
+                        while (recentPhrases.size > 30) recentPhrases.removeAt(recentPhrases.lastIndex)
+                        azkarPrefs.edit().putString("azkar_recent", recentPhrases.joinToString("\\n")).apply()
+                        showDhikrDetails(phrase, azkarSources[phrase] ?: "المصدر قيد المراجعة والتوثيق", azkarRepetitions[phrase])
+                    }
                 }
 
                 val cardHeader = LinearLayout(this@MainActivity).apply {
@@ -1162,6 +1177,33 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 footer.addView(actionLabel)
                 item.addView(footer)
+                val actions = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, dp(12), 0, 0)
+                }
+                fun actionChip(label: String, active: Boolean = false, action: () -> Unit): TextView = TextView(this@MainActivity).apply {
+                    text = label; textSize = 11f; gravity = Gravity.CENTER
+                    setTextColor(if (active) Color.rgb(157, 119, 55) else if (isLightTheme) Color.rgb(54, 76, 61) else cream)
+                    setPadding(dp(10), dp(8), dp(10), dp(8))
+                    background = shape(if (isLightTheme) Color.rgb(239, 234, 220) else Color.rgb(26, 67, 51), 18)
+                    setOnClickListener { action() }
+                }
+                actions.addView(actionChip(if (phrase in favoritePhrases) "★ محفوظ" else "☆ المفضلة", phrase in favoritePhrases) {
+                    if (!favoritePhrases.add(phrase)) favoritePhrases.remove(phrase)
+                    azkarPrefs.edit().putStringSet("azkar_favorites", favoritePhrases.toSet()).apply()
+                    renderCategory()
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
+                actions.addView(actionChip("نسخ") {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("الذكر", phrase))
+                    Toast.makeText(this@MainActivity, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
+                actions.addView(actionChip("مشاركة") {
+                    val shareText = "$phrase\\n\\nالمصدر: $sourceText"
+                    val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText) }
+                    startActivity(Intent.createChooser(send, "مشاركة الذكر"))
+                }, LinearLayout.LayoutParams(0, -2, 1f))
+                item.addView(actions)
                 categoryContent.addView(item, LinearLayout.LayoutParams(-1, -2).apply {
                     bottomMargin = dp(11)
                 })
@@ -1216,9 +1258,43 @@ class MainActivity : Activity(), SensorEventListener {
         }
         content.addView(categoryHeading, LinearLayout.LayoutParams(-1, -2))
         content.addView(categoryScroll, LinearLayout.LayoutParams(-1, -2))
+        gap(10)
+        val filterStrip = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; layoutDirection = View.LAYOUT_DIRECTION_RTL }
+        val filterButtons = linkedMapOf<String, TextView>()
+        listOf("الكل", "المفضلة", "الأخيرة").forEach { filter ->
+            val chip = TextView(this@MainActivity).apply {
+                text = when (filter) { "الكل" -> "▦  الكل"; "المفضلة" -> "☆  المفضلة"; else -> "◷  الأخيرة" }
+                textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))
+                setOnClickListener {
+                    selectedFilter = filter
+                    filterButtons.forEach { (name, view) ->
+                        val active = name == selectedFilter
+                        view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
+                        view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
+                    }
+                    renderCategory()
+                }
+            }
+            filterButtons[filter] = chip
+            filterStrip.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
+        }
+        filterButtons.forEach { (name, view) ->
+            val active = name == selectedFilter
+            view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
+            view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
+        }
+        content.addView(filterStrip, LinearLayout.LayoutParams(-1, -2))
         gap(13)
         renderCategory()
         content.addView(categoryContent)
+        if (categoryContent.childCount == 0) {
+            val emptyState = TextView(this@MainActivity).apply {
+                text = if (selectedFilter == "المفضلة") "لم تضف أذكاراً إلى المفضلة بعد" else "ستظهر هنا الأذكار التي قرأتها مؤخراً"
+                textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted); setPadding(dp(16), dp(28), dp(16), dp(28))
+                background = shape(panel, 18)
+            }
+            content.addView(emptyState, LinearLayout.LayoutParams(-1, -2))
+        }
         gap(8)
         card {
             line("مسبحة الأذكار", 18f, if (isLightTheme) Color.rgb(143, 104, 43) else gold, true, Gravity.CENTER)
