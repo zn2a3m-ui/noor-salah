@@ -174,7 +174,7 @@ class MainActivity : Activity(), SensorEventListener {
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
         timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
         selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
-        quranFontSize = getPreferences(0).getFloat("quran_font_size", 29f).coerceIn(24f, 36f)
+        quranFontSize = getPreferences(0).getFloat("quran_font_size", 32f).coerceIn(26f, 42f)
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
@@ -1672,6 +1672,14 @@ class MainActivity : Activity(), SensorEventListener {
             addView(button("متابعة من آخر موضع") {
                 quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
             }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("قراءة بخط كبير ومريح") {
+                prefs.edit().putString("quran_reading_mode", "text").apply()
+                quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
+            }, LinearLayout.LayoutParams(-1, -2))
+            addView(button("عرض صفحات المصحف الأصلية") {
+                prefs.edit().putString("quran_reading_mode", "mushaf").apply()
+                quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
+            }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
 
@@ -1938,7 +1946,16 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "تعذّر تحديد صفحة الآية", Toast.LENGTH_SHORT).show()
             return
         }
-        showContinuousQuranReader(surahNumber, focusAyah, pageNumber)
+        getPreferences(0).edit()
+            .putInt("quran_last_surah", surahNumber)
+            .putInt("quran_last_ayah", focusAyah)
+            .apply()
+        val readingMode = getPreferences(0).getString("quran_reading_mode", "text") ?: "text"
+        if (readingMode == "text") {
+            showQuranTextReader(surahNumber, focusAyah)
+        } else {
+            showContinuousQuranReader(surahNumber, focusAyah, pageNumber)
+        }
         return
         val ayahs = try {
             quranRepository.loadPageAyahs(pageNumber)
@@ -2141,6 +2158,164 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
 
+    /**
+     * Large-type, verse-by-verse reading mode. The source text remains the
+     * verified Tanzil asset; only presentation and interaction are changed.
+     */
+    private fun showQuranTextReader(surahNumber: Int, focusAyah: Int) {
+        releaseQuranMushafPage()
+        val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1) ?: return
+        val ayahs = try {
+            quranRepository.loadAyahs(surahNumber)
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر تحميل آيات السورة من النص الموثّق", Toast.LENGTH_LONG).show()
+            return
+        }
+        quranFontSize = getPreferences(0).getFloat("quran_font_size", 32f).coerceIn(26f, 42f)
+        getPreferences(0).edit()
+            .putInt("quran_last_surah", surahNumber)
+            .putInt("quran_last_ayah", focusAyah.coerceIn(1, surah.ayahCount))
+            .apply()
+
+        content.removeAllViews()
+        text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
+        content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
+        text("قراءة مريحة • رواية حفص عن عاصم", 13f, muted, false, Gravity.CENTER)
+        gap(7)
+
+        card {
+            line("سورة ${surah.name}", 21f, gold, true, Gravity.CENTER)
+            line("${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}", 12f, muted, false, Gravity.CENTER)
+            val modeRow = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            modeRow.addView(button("صفحات المصحف") {
+                getPreferences(0).edit().putString("quran_reading_mode", "mushaf").apply()
+                quranSurah(surahNumber, focusAyah)
+            }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
+            modeRow.addView(button("تشغيل السورة") {
+                toggleQuranAudio(surahNumber)
+            }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
+            addView(modeRow, LinearLayout.LayoutParams(-1, -2))
+            val sizeRow = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            val sizeLabel = TextView(this@MainActivity).apply {
+                text = "حجم الخط ${quranFontSize.toInt()}"
+                textSize = 13f
+                setTextColor(cream)
+                gravity = Gravity.CENTER
+            }
+            sizeRow.addView(button("−") {
+                quranFontSize = (quranFontSize - 2f).coerceAtLeast(26f)
+                getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
+                showQuranTextReader(surahNumber, focusAyah)
+            }, LinearLayout.LayoutParams(dp(64), -2))
+            sizeRow.addView(sizeLabel, LinearLayout.LayoutParams(0, -2, 1f))
+            sizeRow.addView(button("+") {
+                quranFontSize = (quranFontSize + 2f).coerceAtMost(42f)
+                getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
+                showQuranTextReader(surahNumber, focusAyah)
+            }, LinearLayout.LayoutParams(dp(64), -2))
+            addView(sizeRow, LinearLayout.LayoutParams(-1, -2))
+            line("اضغط على نص الآية للاستماع، أو على رقمها لإضافة علامة مرجعية أو إزالتها.", 12f, muted, false, Gravity.CENTER)
+        }
+
+        if (surahNumber != 1 && surahNumber != 9) {
+            val basmala = quranRepository.loadAyahs(1).first().text
+            val basmalaView = TextView(this).apply {
+                text = basmala
+                textSize = quranFontSize
+                setTextColor(Color.rgb(48, 59, 47))
+                typeface = Typeface.create("serif", Typeface.NORMAL)
+                gravity = Gravity.CENTER
+                textDirection = View.TEXT_DIRECTION_RTL
+                setLineSpacing(dp(8).toFloat(), 1.18f)
+                setPadding(dp(8), dp(14), dp(8), dp(14))
+                background = shape(Color.rgb(250, 247, 237), 16, Color.rgb(218, 207, 181))
+            }
+            content.addView(basmalaView, LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(8)
+            })
+        }
+
+        val savedBookmarks = getPreferences(0).getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
+        var selectedRow: View? = null
+        var focusRow: View? = null
+        ayahs.forEach { ayah ->
+            val key = "${ayah.surahNumber}:${ayah.number}"
+            val bookmarked = savedBookmarks.contains(key)
+            val isFocus = ayah.number == focusAyah
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutDirection = View.LAYOUT_DIRECTION_LTR
+                setPadding(dp(10), dp(10), dp(10), dp(10))
+                background = shape(
+                    if (isFocus) Color.rgb(231, 241, 226) else Color.rgb(250, 247, 237),
+                    15,
+                    if (isFocus) Color.rgb(111, 151, 105) else Color.rgb(224, 215, 194)
+                )
+                contentDescription = "سورة ${surah.name}، الآية ${ayah.number}"
+            }
+            val number = TextView(this).apply {
+                text = if (bookmarked) "★" else ayah.number.toString()
+                textSize = 13f
+                setTextColor(if (bookmarked) Color.rgb(35, 125, 77) else Color.rgb(120, 91, 43))
+                gravity = Gravity.CENTER
+                background = shape(Color.rgb(239, 232, 215), 11, Color.rgb(210, 195, 161))
+                setOnClickListener {
+                    showQuranVerseActions(ayah.surahNumber, surah.name, ayah.number)
+                }
+            }
+            row.addView(number, LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginEnd = dp(10) })
+            val verse = TextView(this).apply {
+                text = ayah.text
+                textSize = quranFontSize
+                setTextColor(Color.rgb(40, 45, 37))
+                typeface = Typeface.create("serif", Typeface.NORMAL)
+                gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
+                textDirection = View.TEXT_DIRECTION_RTL
+                setLineSpacing(dp(10).toFloat(), 1.22f)
+                setPadding(dp(4), dp(3), dp(4), dp(3))
+                setOnClickListener {
+                    getPreferences(0).edit()
+                        .putInt("quran_last_surah", surahNumber)
+                        .putInt("quran_last_ayah", ayah.number)
+                        .apply()
+                    selectedRow?.background = shape(Color.rgb(250, 247, 237), 15, Color.rgb(224, 215, 194))
+                    row.background = shape(Color.rgb(231, 241, 226), 15, Color.rgb(111, 151, 105))
+                    selectedRow = row
+                    showQuranAyahAudioActions(surahNumber, ayah.number)
+                }
+            }
+            row.addView(verse, LinearLayout.LayoutParams(0, -2, 1f))
+            content.addView(row, LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = dp(8)
+            })
+            if (isFocus) focusRow = row
+            if (isFocus) selectedRow = row
+        }
+
+        val navigation = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        navigation.addView(button("السورة السابقة") {
+            if (surahNumber > 1) quranSurah(surahNumber - 1, 1)
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
+        navigation.addView(button("السورة التالية") {
+            if (surahNumber < 114) quranSurah(surahNumber + 1, 1)
+        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
+        content.addView(navigation, LinearLayout.LayoutParams(-1, -2))
+        focusRow?.let { target ->
+            mainScroll?.post { mainScroll?.smoothScrollTo(0, target.top) }
+        }
+    }
+
     private fun showContinuousQuranReader(surahNumber: Int, focusAyah: Int, startPage: Int) {
         releaseQuranMushafPage()
         val token = quranMushafRequestId
@@ -2157,6 +2332,10 @@ class MainActivity : Activity(), SensorEventListener {
         }
         content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
         text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
+        content.addView(button("قراءة الآيات بخط كبير ومريح") {
+            getPreferences(0).edit().putString("quran_reading_mode", "text").apply()
+            showQuranTextReader(surahNumber, focusAyah)
+        }, LinearLayout.LayoutParams(-1, -2))
         gap(8)
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
