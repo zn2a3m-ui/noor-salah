@@ -1182,7 +1182,7 @@ class MainActivity : Activity(), SensorEventListener {
             MorningItem("istighfar-100", "أستغفر الله وأتوب إليه", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", 100, "صحيح البخاري 6307 • صحيح مسلم 2702")
         )
         var morningFlowActive = false
-        var morningIndex = azkarPrefs.getInt("morning_sequence_index", 0).coerceIn(0, morningItems.lastIndex)
+        var morningIndex = azkarPrefs.getInt("morning_sequence_index", 0).coerceIn(0, morningItems.size)
         fun renderCategory() {
             categoryContent.removeAllViews()
             if (selectedCategory == "الصباح" && morningFlowActive) {
