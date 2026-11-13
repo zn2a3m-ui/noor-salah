@@ -407,6 +407,7 @@ class MainActivity : Activity(), SensorEventListener {
         val selectedCalendar = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
         val gregorian = SimpleDateFormat("d MMM yyyy", Locale("ar")).format(Date(selectedDateMillis))
         val hijri = hijriDateForCalendar(selectedCalendar)
+        text("☾  نور الصلاة", 28f, gold, true, Gravity.CENTER)
         val dateHeader = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -415,20 +416,27 @@ class MainActivity : Activity(), SensorEventListener {
         }
         val hijriLabel = TextView(this@MainActivity).apply {
             text = hijri?.let { "${it.day} ${it.monthArabic} ${it.year} هـ" } ?: ""
-            textSize = 11f; setTextColor(gold); gravity = Gravity.CENTER
-            setPadding(dp(5), dp(5), dp(5), dp(5))
+            textSize = 10f; setTextColor(gold); gravity = Gravity.CENTER
+            setPadding(dp(2), dp(5), dp(2), dp(5))
+        }
+        val taglineLabel = TextView(this@MainActivity).apply {
+            text = "رفيقك إلى الصلاة والذكر"
+            textSize = 11f; setTextColor(muted); gravity = Gravity.CENTER
+            setPadding(dp(2), dp(5), dp(2), dp(5))
+            maxLines = 1
         }
         val gregorianLabel = TextView(this@MainActivity).apply {
             text = gregorian
-            textSize = 11f; setTextColor(cream); gravity = Gravity.CENTER
-            setPadding(dp(5), dp(5), dp(5), dp(5))
+            textSize = 10f; setTextColor(cream); gravity = Gravity.CENTER
+            setPadding(dp(2), dp(5), dp(2), dp(5))
+            maxLines = 1
         }
+        // LTR container: Hijri on the left, tagline centered, Gregorian on the right.
         dateHeader.addView(hijriLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        dateHeader.addView(taglineLabel, LinearLayout.LayoutParams(0, -2, 1.35f))
         dateHeader.addView(gregorianLabel, LinearLayout.LayoutParams(0, -2, 1f))
         content.addView(dateHeader, LinearLayout.LayoutParams(-1, -2))
-        text("☾  نور الصلاة", 28f, gold, true, Gravity.CENTER)
-        text("رفيقك إلى الصلاة والذكر", 13f, muted, false, Gravity.CENTER)
-        gap(12)
+        gap(8)
         card {
             line("صدقة جارية", 14f, gold, true, Gravity.CENTER)
             line("عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق", 14f, cream, true, Gravity.CENTER)
@@ -556,10 +564,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }
         gap(5)
-        val quickTitle = TextView(this@MainActivity).apply {
-            text = "مساحتك الإيمانية"; textSize = 19f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
-        }
-        content.addView(quickTitle); gap(8)
+        // Keep all shortcut tiles and their click actions; omit only the section heading.
         val quickGrid = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
         val quickRows = listOf(
             listOf(Triple("◉", "اتجاه القبلة", "qibla"), Triple("▤", "القرآن الكريم", "quran")),
