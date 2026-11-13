@@ -967,7 +967,95 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(guidance, LinearLayout.LayoutParams(-1, -2))
     }
 
+    private var azkarFontsRequested = false
+
+    private fun downloadAzkarFile(url: String, target: File): Boolean {
+        if (target.exists() && target.length() > 1024L) return true
+        return try {
+            target.parentFile?.mkdirs()
+            val temporary = File(target.parentFile, target.name + ".part")
+            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = 12000
+            connection.readTimeout = 18000
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "NoorSalah-Android/1.2")
+            try {
+                if (connection.responseCode !in 200..299) return false
+                connection.inputStream.use { input ->
+                    temporary.outputStream().use { output -> input.copyTo(output) }
+                }
+            } finally {
+                connection.disconnect()
+            }
+            if (temporary.length() <= 1024L) {
+                temporary.delete()
+                false
+            } else {
+                if (target.exists()) target.delete()
+                temporary.renameTo(target)
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun loadAzkarPhoto(view: ImageView, cacheName: String, url: String) {
+        view.tag = url
+        val photoFile = File(cacheDir, "azkar-photos/$cacheName.jpg")
+        fun applyCachedPhoto() {
+            val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+            val bitmap = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath, options)
+            if (bitmap != null && view.tag == url) view.setImageBitmap(bitmap)
+        }
+        if (photoFile.exists() && photoFile.length() > 1024L) {
+            applyCachedPhoto()
+            return
+        }
+        Thread {
+            if (downloadAzkarFile(url, photoFile)) {
+                val options = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+                val bitmap = android.graphics.BitmapFactory.decodeFile(photoFile.absolutePath, options)
+                if (bitmap != null) runOnUiThread {
+                    if (!isFinishing && view.tag == url) view.setImageBitmap(bitmap)
+                }
+            }
+        }.start()
+    }
+
+    private fun azkarTypeface(fontName: String): Typeface {
+        val fontFile = File(cacheDir, "azkar-fonts/$fontName.ttf")
+        return try {
+            if (fontFile.exists() && fontFile.length() > 1024L) Typeface.createFromFile(fontFile)
+            else Typeface.create(if (fontName == "Amiri-Regular") "serif" else "sans-serif", Typeface.NORMAL)
+        } catch (_: Exception) {
+            Typeface.DEFAULT
+        }
+    }
+
+    private fun ensureAzkarFonts() {
+        val amiriFile = File(cacheDir, "azkar-fonts/Amiri-Regular.ttf")
+        val cairoFile = File(cacheDir, "azkar-fonts/Cairo.ttf")
+        if ((amiriFile.exists() && amiriFile.length() > 1024L) &&
+            (cairoFile.exists() && cairoFile.length() > 1024L)) return
+        if (azkarFontsRequested) return
+        azkarFontsRequested = true
+        Thread {
+            val amiriReady = downloadAzkarFile(
+                "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf",
+                amiriFile
+            )
+            val cairoReady = downloadAzkarFile(
+                "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf",
+                cairoFile
+            )
+            if (amiriReady || cairoReady) runOnUiThread {
+                if (!isFinishing && page == "azkar") showPage("azkar")
+            }
+        }.start()
+    }
+
     private fun azkar() {
+        ensureAzkarFonts()
         // Dedicated azkar visual identity: emerald, warm ivory and restrained gold.
         val azkarHero = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.VERTICAL
@@ -993,7 +1081,7 @@ class MainActivity : Activity(), SensorEventListener {
             text = "الأذكار والتسبيح"
             textSize = 25f
             gravity = Gravity.CENTER
-            typeface = Typeface.DEFAULT_BOLD
+            typeface = azkarTypeface("Cairo")
             setTextColor(Color.rgb(255, 250, 237))
         })
         azkarHero.addView(TextView(this@MainActivity).apply {
@@ -1137,7 +1225,7 @@ class MainActivity : Activity(), SensorEventListener {
                     textSize = 20f
                     setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
                     gravity = Gravity.CENTER
-                    typeface = Typeface.create("serif", Typeface.NORMAL)
+                    typeface = azkarTypeface("Amiri-Regular")
                     setLineSpacing(dp(7).toFloat(), 1.08f)
                     setPadding(dp(4), dp(17), dp(4), dp(15))
                 }
@@ -1224,55 +1312,105 @@ class MainActivity : Activity(), SensorEventListener {
                 categoryContent.addView(emptyState, LinearLayout.LayoutParams(-1, -2))
             }
         }
-        val categoryButtons = linkedMapOf<String, TextView>()
-        categoryItems.keys.toList().forEach { label ->
-            val chip = TextView(this@MainActivity).apply {
-                text = label; textSize = 12f; gravity = Gravity.CENTER
-                setTextColor(if (isLightTheme) Color.rgb(48, 65, 53) else cream)
-                setPadding(dp(13), dp(11), dp(13), dp(11))
-                setOnClickListener {
-                    selectedCategory = label
-                    getPreferences(0).edit().putString("azkar_category", label).apply()
-                    categoryButtons.forEach { (name, view) ->
-                        val active = name == selectedCategory
-                        view.background = shape(if (active) (if (isLightTheme) Color.rgb(222, 235, 219) else Color.rgb(25, 91, 64)) else panelAlt, 18,
-                            if (active) gold else if (isLightTheme) Color.rgb(220, 209, 185) else Color.rgb(48, 99, 75))
-                        view.setTextColor(if (active) (if (isLightTheme) Color.rgb(35, 77, 59) else goldOnDark) else cream)
-                    }
-                    renderCategory()
+        val categoryPhotoData = linkedMapOf(
+            "الصباح" to Triple("morning", "https://images.pexels.com/photos/16837430/pexels-photo-16837430.jpeg?auto=compress&cs=tinysrgb&w=900", "بداية يومك بذكر الله"),
+            "المساء" to Triple("moon", "https://images.unsplash.com/photo-1760727742792-ac9b8bc29d64?auto=format&fit=crop&w=900&q=80", "سكينة المساء والليل"),
+            "بعد الصلاة" to Triple("mosque", "https://images.unsplash.com/photo-1768152859503-084ed0e5507d?auto=format&fit=crop&w=900&q=80", "أذكار دبر الصلوات"),
+            "النوم" to Triple("prayer-room", "https://images.pexels.com/photos/32243031/pexels-photo-32243031.jpeg?auto=compress&cs=tinysrgb&w=900", "أذكار ما قبل النوم"),
+            "الاستيقاظ" to Triple("dawn-room", "https://images.pexels.com/photos/13009039/pexels-photo-13009039.jpeg?auto=compress&cs=tinysrgb&w=900", "حمد الله عند الاستيقاظ"),
+            "الاستغفار" to Triple("green-beads", "https://images.pexels.com/photos/8217650/pexels-photo-8217650.jpeg?auto=compress&cs=tinysrgb&w=900", "استغفار وتجديد التوبة"),
+            "الصلاة على النبي" to Triple("kaaba", "https://images.unsplash.com/photo-1693590614566-1d3ea9ef32f7?auto=format&fit=crop&w=900&q=80", "الصلاة والسلام عليه ﷺ"),
+            "أذكار يومية" to Triple("tasbih", "https://images.pexels.com/photos/15923886/pexels-photo-15923886.jpeg?auto=compress&cs=tinysrgb&w=900", "أوراد يومية متنوعة"),
+            "أدعية" to Triple("quran-beads", "https://images.unsplash.com/photo-1616422840391-fa670d4b2ae7?auto=format&fit=crop&w=900&q=80", "أدعية من القرآن والسنة")
+        )
+        val categoryTiles = linkedMapOf<String, FrameLayout>()
+        fun updateCategoryTiles() {
+            categoryTiles.forEach { (name, tile) ->
+                val active = name == selectedCategory
+                tile.background = GradientDrawable().apply {
+                    cornerRadius = dp(18).toFloat()
+                    setColor(Color.TRANSPARENT)
+                    setStroke(dp(if (active) 2 else 1), if (active) gold else
+                        if (isLightTheme) Color.rgb(211, 195, 160) else Color.rgb(62, 104, 81))
                 }
+                tile.elevation = dp(if (active) 4 else 2).toFloat()
             }
-            categoryButtons[label] = chip
-            categoryStrip.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(6) })
-        }
-        categoryButtons.forEach { (name, view) ->
-            val active = name == selectedCategory
-            view.background = shape(if (active) (if (isLightTheme) Color.rgb(222, 235, 219) else Color.rgb(25, 91, 64)) else panelAlt, 18,
-                if (active) gold else if (isLightTheme) Color.rgb(220, 209, 185) else Color.rgb(48, 99, 75))
-            view.setTextColor(if (active) (if (isLightTheme) Color.rgb(35, 77, 59) else goldOnDark) else cream)
-        }
-        val categoryScroll = HorizontalScrollView(this@MainActivity).apply {
-            isHorizontalScrollBarEnabled = false
-            addView(categoryStrip, android.view.ViewGroup.LayoutParams(-2, -2))
         }
         val categoryHeading = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(2), dp(3), dp(2), dp(9))
+            setPadding(dp(2), dp(3), dp(2), dp(10))
             addView(TextView(this@MainActivity).apply {
                 text = "أقسام الأذكار"
-                textSize = 17f
-                typeface = Typeface.DEFAULT_BOLD
+                textSize = 18f
+                typeface = azkarTypeface("Cairo")
                 setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
             })
             addView(TextView(this@MainActivity).apply {
-                text = "اختر القسم لتظهر أذكاره ومصادرها"
+                text = "اختر وردك من الأقسام المصوّرة"
                 textSize = 11f
+                typeface = azkarTypeface("Cairo")
                 setTextColor(muted)
                 setPadding(0, dp(3), 0, 0)
             })
         }
         content.addView(categoryHeading, LinearLayout.LayoutParams(-1, -2))
-        content.addView(categoryScroll, LinearLayout.LayoutParams(-1, -2))
+        val categoryGrid = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+        }
+        categoryPhotoData.keys.toList().chunked(2).forEach { labels ->
+            val row = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+            }
+            labels.forEach { label ->
+                val photoData = categoryPhotoData.getValue(label)
+                val tile = FrameLayout(this@MainActivity).apply {
+                    isClickable = true
+                    isFocusable = true
+                    clipToOutline = true
+                    contentDescription = "فتح قسم $label"
+                    background = shape(panelAlt, 18)
+                    setOnClickListener {
+                        selectedCategory = label
+                        getPreferences(0).edit().putString("azkar_category", label).apply()
+                        updateCategoryTiles()
+                        renderCategory()
+                    }
+                }
+                val photo = ImageView(this@MainActivity).apply {
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    setBackgroundColor(if (isLightTheme) Color.rgb(215, 207, 185) else Color.rgb(18, 54, 43))
+                }
+                loadAzkarPhoto(photo, photoData.first, photoData.second)
+                tile.addView(photo, FrameLayout.LayoutParams(-1, -1))
+                val labelOverlay = TextView(this@MainActivity).apply {
+                    text = label + "\n" + photoData.third
+                    textSize = 13f
+                    typeface = azkarTypeface("Cairo")
+                    gravity = Gravity.CENTER
+                    setTextColor(Color.WHITE)
+                    setPadding(dp(5), dp(7), dp(5), dp(7))
+                    background = GradientDrawable(
+                        GradientDrawable.Orientation.TOP_BOTTOM,
+                        intArrayOf(Color.TRANSPARENT, Color.argb(218, 4, 28, 22))
+                    )
+                }
+                tile.addView(labelOverlay, FrameLayout.LayoutParams(-1, dp(52), Gravity.BOTTOM))
+                categoryTiles[label] = tile
+                row.addView(tile, LinearLayout.LayoutParams(0, dp(124), 1f).apply {
+                    marginStart = dp(5)
+                    marginEnd = dp(5)
+                    bottomMargin = dp(10)
+                })
+            }
+            if (labels.size == 1) {
+                row.addView(View(this@MainActivity), LinearLayout.LayoutParams(0, dp(124), 1f))
+            }
+            categoryGrid.addView(row, LinearLayout.LayoutParams(-1, -2))
+        }
+        updateCategoryTiles()
+        content.addView(categoryGrid, LinearLayout.LayoutParams(-1, -2))
         gap(10)
         val filterStrip = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; layoutDirection = View.LAYOUT_DIRECTION_RTL }
         val filterButtons = linkedMapOf<String, TextView>()
