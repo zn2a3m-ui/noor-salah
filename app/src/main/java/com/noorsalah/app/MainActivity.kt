@@ -3183,6 +3183,54 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(row, LinearLayout.LayoutParams(-1, -2))
     }
 
+    private fun showDhikrDetails(phrase: String, source: String, repetition: String?) {
+        val panelView = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            setPadding(dp(20), dp(12), dp(20), dp(8))
+        }
+        val textView = TextView(this).apply {
+            text = phrase
+            textSize = 23f
+            gravity = Gravity.CENTER
+            setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
+            typeface = Typeface.create("serif", Typeface.NORMAL)
+            setLineSpacing(dp(7).toFloat(), 1.08f)
+            setPadding(0, dp(12), 0, dp(18))
+        }
+        panelView.addView(textView, LinearLayout.LayoutParams(-1, -2))
+        val sourceView = TextView(this).apply {
+            text = "المصدر: $source" + (repetition?.let { "\\nالعدد الوارد: $it" } ?: "")
+            textSize = 13f
+            setTextColor(muted)
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        panelView.addView(sourceView, LinearLayout.LayoutParams(-1, -2))
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("تفاصيل الذكر")
+            .setView(panelView)
+            .setPositiveButton("استخدمه في المسبحة") { _, _ ->
+                val prefs = getPreferences(0)
+                prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
+                selectedDhikr = phrase
+                count = prefs.getInt("tasbeeh_count_$phrase", 0)
+                prefs.edit().putString("selected_dhikr", phrase).putInt("tasbeeh", count).apply()
+                showPage("azkar")
+            }
+            .setNeutralButton("نسخ", null)
+            .setNegativeButton("إغلاق", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("الذكر", phrase))
+                Toast.makeText(this, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
+    }
+
     private fun card(block: LinearLayout.() -> Unit) {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
