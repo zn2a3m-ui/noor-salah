@@ -1039,53 +1039,122 @@ class MainActivity : Activity(), SensorEventListener {
             "اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى" to "صحيح مسلم"
         )
         val categoryStrip = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
         }
         val categoryContent = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
+
+        fun selectDhikrForTasbeeh(phrase: String) {
+            val prefs = getPreferences(0)
+            prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
+            selectedDhikr = phrase
+            count = prefs.getInt("tasbeeh_count_$phrase", 0)
+            prefs.edit().putString("selected_dhikr", phrase).putInt("tasbeeh", count).apply()
+            showPage("azkar")
+        }
+
         fun renderCategory() {
             categoryContent.removeAllViews()
-            categoryItems[selectedCategory]?.forEach { phrase ->
+            categoryItems[selectedCategory]?.forEachIndexed { index, phrase ->
                 val item = LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.VERTICAL
-                    setPadding(dp(18), dp(17), dp(18), dp(17))
-                    background = shape(if (isLightTheme) Color.rgb(255, 252, 245) else panel, 19,
-                        if (isLightTheme) Color.rgb(218, 204, 174) else Color.rgb(58, 112, 86))
-                    elevation = dp(1).toFloat()
-                    setOnClickListener {
-                        val prefs = getPreferences(0)
-                        prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
-                        selectedDhikr = phrase
-                        count = prefs.getInt("tasbeeh_count_$phrase", 0)
-                        prefs.edit().putString("selected_dhikr", phrase).putInt("tasbeeh", count).apply()
-                        showPage("azkar")
+                    setPadding(dp(19), dp(17), dp(19), dp(17))
+                    background = GradientDrawable(
+                        GradientDrawable.Orientation.TL_BR,
+                        if (isLightTheme) intArrayOf(Color.rgb(255, 253, 247), Color.rgb(247, 241, 226))
+                        else intArrayOf(Color.rgb(18, 52, 41), Color.rgb(12, 42, 34))
+                    ).apply {
+                        cornerRadius = dp(21).toFloat()
+                        setStroke(dp(1), if (phrase == selectedDhikr) gold else
+                            if (isLightTheme) Color.rgb(225, 215, 192) else Color.rgb(54, 99, 77))
                     }
+                    elevation = dp(if (phrase == selectedDhikr) 3 else 1).toFloat()
+                    isClickable = true
+                    contentDescription = "ذكر ${index + 1}: $phrase"
+                    setOnClickListener { selectDhikrForTasbeeh(phrase) }
                 }
-                val phraseView = TextView(this@MainActivity).apply {
-                    text = phrase; textSize = 18f; setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
+
+                val cardHeader = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                val ornament = TextView(this@MainActivity).apply {
+                    text = "۞"
+                    textSize = 20f
                     gravity = Gravity.CENTER
-                    typeface = Typeface.create("sans-serif", Typeface.NORMAL)
-                    setLineSpacing(dp(5).toFloat(), 1.08f)
+                    setTextColor(if (isLightTheme) Color.rgb(157, 119, 55) else gold)
+                    background = shape(if (isLightTheme) Color.rgb(239, 231, 211) else Color.rgb(28, 75, 56), 14)
+                    setPadding(dp(9), dp(4), dp(9), dp(4))
                 }
-                val hintView = TextView(this@MainActivity).apply {
-                    text = if (phrase == selectedDhikr) "الذكر المحدد للمسبحة" else "اضغط لاستخدامه في المسبحة"
+                val categoryLabel = TextView(this@MainActivity).apply {
+                    text = " $selectedCategory  •  الذكر ${index + 1}"
                     textSize = 11f
-                    setTextColor(if (phrase == selectedDhikr) (if (isLightTheme) Color.rgb(143, 104, 43) else gold) else muted)
-                    gravity = Gravity.CENTER
-                    setPadding(0, dp(5), 0, 0)
+                    setTextColor(muted)
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(8), 0, 0, 0)
                 }
-                item.addView(phraseView); item.addView(hintView)
-                azkarSources[phrase]?.let { source ->
-                    val sourceView = TextView(this@MainActivity).apply {
-                        text = "المصدر: $source"
-                        textSize = 11f
-                        setTextColor(muted)
-                        gravity = Gravity.CENTER
-                        setPadding(0, dp(5), 0, 0)
+                cardHeader.addView(ornament)
+                cardHeader.addView(categoryLabel, LinearLayout.LayoutParams(0, -2, 1f))
+                if (phrase == selectedDhikr) {
+                    val selectedTag = TextView(this@MainActivity).apply {
+                        text = "محدد"
+                        textSize = 10f
+                        setTextColor(if (isLightTheme) Color.rgb(116, 83, 34) else Color.rgb(255, 226, 166))
+                        background = shape(if (isLightTheme) Color.rgb(239, 229, 202) else Color.rgb(47, 83, 57), 30)
+                        setPadding(dp(10), dp(5), dp(10), dp(5))
                     }
-                    item.addView(sourceView)
+                    cardHeader.addView(selectedTag)
                 }
-                categoryContent.addView(item, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
+                item.addView(cardHeader)
+
+                val phraseView = TextView(this@MainActivity).apply {
+                    text = phrase
+                    textSize = 20f
+                    setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
+                    gravity = Gravity.CENTER
+                    typeface = Typeface.create("serif", Typeface.NORMAL)
+                    setLineSpacing(dp(7).toFloat(), 1.08f)
+                    setPadding(dp(4), dp(17), dp(4), dp(15))
+                }
+                item.addView(phraseView)
+
+                val divider = View(this@MainActivity).apply {
+                    background = GradientDrawable().apply {
+                        setColor(if (isLightTheme) Color.rgb(196, 164, 103) else Color.rgb(177, 143, 77))
+                        cornerRadius = dp(2).toFloat()
+                    }
+                }
+                item.addView(divider, LinearLayout.LayoutParams(dp(42), dp(2)).apply { gravity = Gravity.CENTER })
+
+                val footer = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, dp(11), 0, 0)
+                }
+                val sourceText = azkarSources[phrase] ?: "المصدر قيد المراجعة والتوثيق"
+                val sourceView = TextView(this@MainActivity).apply {
+                    text = "المصدر: $sourceText"
+                    textSize = 10f
+                    setTextColor(muted)
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                footer.addView(sourceView, LinearLayout.LayoutParams(0, -2, 1f))
+                val actionLabel = TextView(this@MainActivity).apply {
+                    text = if (phrase == selectedDhikr) "ذكر المسبحة ✓" else "استخدمه في المسبحة  ←"
+                    textSize = 10f
+                    typeface = Typeface.DEFAULT_BOLD
+                    setTextColor(if (isLightTheme) Color.rgb(35, 83, 62) else Color.rgb(231, 207, 151))
+                    gravity = Gravity.CENTER
+                    setPadding(dp(10), dp(7), dp(10), dp(7))
+                    background = shape(if (isLightTheme) Color.rgb(229, 237, 222) else Color.rgb(27, 75, 54), 30)
+                    setOnClickListener { selectDhikrForTasbeeh(phrase) }
+                }
+                footer.addView(actionLabel)
+                item.addView(footer)
+                categoryContent.addView(item, LinearLayout.LayoutParams(-1, -2).apply {
+                    bottomMargin = dp(11)
+                })
             }
         }
         val categoryButtons = linkedMapOf<String, TextView>()
@@ -1119,8 +1188,25 @@ class MainActivity : Activity(), SensorEventListener {
             isHorizontalScrollBarEnabled = false
             addView(categoryStrip, android.view.ViewGroup.LayoutParams(-2, -2))
         }
+        val categoryHeading = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(2), dp(3), dp(2), dp(9))
+            addView(TextView(this@MainActivity).apply {
+                text = "أقسام الأذكار"
+                textSize = 17f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = "اختر القسم لتظهر أذكاره ومصادرها"
+                textSize = 11f
+                setTextColor(muted)
+                setPadding(0, dp(3), 0, 0)
+            })
+        }
+        content.addView(categoryHeading, LinearLayout.LayoutParams(-1, -2))
         content.addView(categoryScroll, LinearLayout.LayoutParams(-1, -2))
-        gap(10)
+        gap(13)
         renderCategory()
         content.addView(categoryContent)
         gap(8)
