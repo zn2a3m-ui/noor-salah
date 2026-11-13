@@ -1254,7 +1254,6 @@ class MainActivity : Activity(), SensorEventListener {
                 MorningItem("dua-forgiveness", "دعاء المغفرة", "اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظُلْمًا كَثِيرًا، وَلَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ، فَاغْفِرْ لِي مَغْفِرَةً مِنْ عِنْدِكَ وَارْحَمْنِي، إِنَّكَ أَنْتَ الْغَفُورُ الرَّحِيمُ", 0, "صحيح البخاري 834 • صحيح مسلم 2705")
             )
         )
-        var morningFlowActive = isCategoryDetail
         fun renderCategory() {
             categoryContent.removeAllViews()
             if (isCategoryDetail) {
@@ -1575,10 +1574,6 @@ class MainActivity : Activity(), SensorEventListener {
                     background = shape(panelAlt, 18)
                     setOnClickListener {
                         selectedCategory = label
-                        morningFlowActive = label == "الصباح"
-                        if (morningFlowActive) {
-                            morningIndex = azkarPrefs.getInt("morning_sequence_index", 0).coerceIn(0, morningItems.lastIndex)
-                        }
                         selectedFilter = "الكل"
                         getPreferences(0).edit().putString("azkar_category", label).apply()
                         showPage("azkar_detail")
