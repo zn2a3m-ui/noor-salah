@@ -1864,6 +1864,9 @@ class MainActivity : Activity(), SensorEventListener {
                                 .putStringSet("quran_bookmarks_v1", bookmarks)
                                 .apply()
                             refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
+                            if (getPreferences(0).getString("quran_reading_mode", "text") == "text") {
+                                showQuranTextReader(surahNumber, ayahNumber)
+                            }
                             Toast.makeText(this, "تمت إزالة العلامة المرجعية", Toast.LENGTH_SHORT).show()
                         } else {
                             bookmarks.add(bookmarkKey)
@@ -1873,6 +1876,9 @@ class MainActivity : Activity(), SensorEventListener {
                                 .putInt("quran_last_ayah", ayahNumber)
                                 .apply()
                             refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
+                            if (getPreferences(0).getString("quran_reading_mode", "text") == "text") {
+                                showQuranTextReader(surahNumber, ayahNumber)
+                            }
                             Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -2198,6 +2204,23 @@ class MainActivity : Activity(), SensorEventListener {
                 toggleQuranAudio(surahNumber)
             }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
             addView(modeRow, LinearLayout.LayoutParams(-1, -2))
+            addView(button("اختيار القارئ") {
+                val prefs = getPreferences(0)
+                val selected = prefs.getString("quran_reciter", "ar.mahermuaiqly")
+                val selectedIndex = quranReciters.indexOfFirst { it.edition == selected }.coerceAtLeast(0)
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("اختر القارئ")
+                    .setSingleChoiceItems(quranReciters.map { it.name }.toTypedArray(), selectedIndex) { dialog, which ->
+                        val chosen = quranReciters[which]
+                        prefs.edit().putString("quran_reciter", chosen.edition).apply()
+                        if (quranAudioQueueReciter != null) {
+                            playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
+                        }
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("إلغاء", null)
+                    .show()
+            }, LinearLayout.LayoutParams(-1, -2))
             val sizeRow = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
@@ -3126,6 +3149,7 @@ class MainActivity : Activity(), SensorEventListener {
                 } else {
                     try {
                         val location = quranPageStart(pageNumber)
+                        getPreferences(0).edit().putString("quran_reading_mode", "mushaf").apply()
                         quranSurah(location.first, location.second, pageNumber)
                     } catch (_: Exception) {
                         Toast.makeText(this, "تعذّر الانتقال إلى الصفحة", Toast.LENGTH_SHORT).show()
