@@ -1489,7 +1489,6 @@ class MainActivity : Activity(), SensorEventListener {
                         }
                         selectedFilter = "الكل"
                         getPreferences(0).edit().putString("azkar_category", label).apply()
-                        getPreferences(0).edit().putString("azkar_category", label).apply()
                         showPage("azkar_detail")
                     }
                 }
@@ -1527,30 +1526,6 @@ class MainActivity : Activity(), SensorEventListener {
         updateCategoryTiles()
         if (!isCategoryDetail) {
             content.addView(categoryGrid, LinearLayout.LayoutParams(-1, -2))
-        }
-        val filterButtons = linkedMapOf<String, TextView>()
-        listOf("الكل", "المفضلة", "الأخيرة").forEach { filter ->
-            val chip = TextView(this@MainActivity).apply {
-                text = when (filter) { "الكل" -> "▦  الكل"; "المفضلة" -> "☆  المفضلة"; else -> "◷  الأخيرة" }
-                textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))
-                setOnClickListener {
-                    selectedFilter = filter
-                    filterButtons.forEach { (name, view) ->
-                        val active = name == selectedFilter
-                        view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
-                        view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
-                    }
-                    renderCategory()
-                }
-            }
-            filterButtons[filter] = chip
-            filterStrip.addView(chip, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
-        }
-        filterButtons.forEach { (name, view) ->
-            val active = name == selectedFilter
-            view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
-            view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
-        }
         }
         if (isCategoryDetail) {
             content.addView(button("رجوع إلى أبواب الأذكار") {
