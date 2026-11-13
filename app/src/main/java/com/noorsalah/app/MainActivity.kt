@@ -1250,6 +1250,10 @@ class MainActivity : Activity(), SensorEventListener {
                 MorningItem("dua-forgiveness", "دعاء المغفرة", "اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظُلْمًا كَثِيرًا، وَلَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ، فَاغْفِرْ لِي مَغْفِرَةً مِنْ عِنْدِكَ وَارْحَمْنِي، إِنَّكَ أَنْتَ الْغَفُورُ الرَّحِيمُ", 0, "صحيح البخاري 834 • صحيح مسلم 2705")
             )
         )
+        if (!azkarPrefs.getBoolean("azkar_sequences_v2_initialized", false)) {
+            azkarPrefs.edit().putInt("morning_sequence_index", 0)
+                .putBoolean("azkar_sequences_v2_initialized", true).apply()
+        }
         fun renderCategory() {
             categoryContent.removeAllViews()
             if (isCategoryDetail) {
@@ -1282,6 +1286,12 @@ class MainActivity : Activity(), SensorEventListener {
                 val entry = items[sequenceIndex]
                 val key = if (selectedCategory == "الصباح") "morning_count_${entry.id}" else "azkar_count_${selectedCategory}_${entry.id}"
                 var current = azkarPrefs.getInt(key, 0).coerceIn(0, if (entry.times > 0) entry.times else Int.MAX_VALUE)
+                if (entry.times > 0 && current >= entry.times) {
+                    sequenceIndex++
+                    azkarPrefs.edit().putInt(indexKey, sequenceIndex).apply()
+                    renderCategory()
+                    return
+                }
                 val completedItems = items.count { it.times > 0 && azkarPrefs.getInt(if (selectedCategory == "الصباح") "morning_count_${it.id}" else "azkar_count_${selectedCategory}_${it.id}", 0) >= it.times }
                 categoryContent.addView(TextView(this@MainActivity).apply {
                     text = "$selectedCategory  •  الذكر ${sequenceIndex + 1} من ${items.size}\nاكتمل ${completedItems} من ${items.count { it.times > 0 }} أذكار محددة العدد"
@@ -1298,7 +1308,7 @@ class MainActivity : Activity(), SensorEventListener {
                     setTextColor(gold); typeface = azkarTypeface("Cairo")
                 })
                 val remainingLabel = TextView(this@MainActivity).apply {
-                    text = if (entry.times > 0) "المتبقي: ${(entry.times - current).coerceAtLeast(0)} من ${entry.times}" else "لا يوجد عدد محدد لهذا الذكر"
+                    text = if (entry.times > 0) "تم: $current من ${entry.times}  •  المتبقي: ${(entry.times - current).coerceAtLeast(0)}" else "لا يوجد عدد محدد لهذا الذكر"
                     textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted); setPadding(0, dp(10), 0, dp(8))
                 }
                 panelCard.addView(remainingLabel)
