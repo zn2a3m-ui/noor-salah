@@ -968,9 +968,43 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun azkar() {
-        text("الأذكار والتسبيح", 27f, gold, true, Gravity.CENTER)
-        text("لحظات ذكر تطمئن بها القلوب", 13f, muted, false, Gravity.CENTER)
-        gap(12)
+        // Dedicated azkar visual identity: emerald, warm ivory and restrained gold.
+        val azkarHero = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(20), dp(22), dp(20), dp(22))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                if (isLightTheme) intArrayOf(Color.rgb(28, 79, 59), Color.rgb(12, 54, 42))
+                else intArrayOf(Color.rgb(18, 75, 55), Color.rgb(5, 31, 26))
+            ).apply {
+                cornerRadius = dp(22).toFloat()
+                setStroke(dp(1), Color.rgb(183, 149, 83))
+            }
+            elevation = dp(3).toFloat()
+        }
+        azkarHero.addView(TextView(this@MainActivity).apply {
+            text = "✦"
+            textSize = 22f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(222, 185, 105))
+        })
+        azkarHero.addView(TextView(this@MainActivity).apply {
+            text = "الأذكار والتسبيح"
+            textSize = 25f
+            gravity = Gravity.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.rgb(255, 250, 237))
+        })
+        azkarHero.addView(TextView(this@MainActivity).apply {
+            text = "نورٌ للقلب وسكينةٌ للنفس"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(226, 215, 188))
+            setPadding(0, dp(7), 0, 0)
+        })
+        content.addView(azkarHero, LinearLayout.LayoutParams(-1, -2))
+        gap(16)
         var selectedCategory = getPreferences(0).getString("azkar_category", "الصباح") ?: "الصباح"
         val categoryItems = linkedMapOf(
             "الصباح" to listOf("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ", "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا", "رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ نَبِيًّا", "سُبْحَانَ اللهِ وَبِحَمْدِهِ"),
@@ -1014,8 +1048,10 @@ class MainActivity : Activity(), SensorEventListener {
             categoryItems[selectedCategory]?.forEach { phrase ->
                 val item = LinearLayout(this@MainActivity).apply {
                     orientation = LinearLayout.VERTICAL
-                    setPadding(dp(13), dp(12), dp(13), dp(12))
-                    background = shape(panel, 17, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(42, 91, 72))
+                    setPadding(dp(18), dp(17), dp(18), dp(17))
+                    background = shape(if (isLightTheme) Color.rgb(255, 252, 245) else panel, 19,
+                        if (isLightTheme) Color.rgb(218, 204, 174) else Color.rgb(58, 112, 86))
+                    elevation = dp(1).toFloat()
                     setOnClickListener {
                         val prefs = getPreferences(0)
                         prefs.edit().putInt("tasbeeh_count_$selectedDhikr", count).apply()
@@ -1026,18 +1062,23 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 }
                 val phraseView = TextView(this@MainActivity).apply {
-                    text = phrase; textSize = 17f; setTextColor(cream); gravity = Gravity.CENTER
+                    text = phrase; textSize = 18f; setTextColor(if (isLightTheme) Color.rgb(38, 58, 48) else cream)
+                    gravity = Gravity.CENTER
+                    typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                    setLineSpacing(dp(5).toFloat(), 1.08f)
                 }
                 val hintView = TextView(this@MainActivity).apply {
                     text = if (phrase == selectedDhikr) "الذكر المحدد للمسبحة" else "اضغط لاستخدامه في المسبحة"
-                    textSize = 11f; setTextColor(if (phrase == selectedDhikr) gold else muted); gravity = Gravity.CENTER
+                    textSize = 11f
+                    setTextColor(if (phrase == selectedDhikr) (if (isLightTheme) Color.rgb(143, 104, 43) else gold) else muted)
+                    gravity = Gravity.CENTER
                     setPadding(0, dp(5), 0, 0)
                 }
                 item.addView(phraseView); item.addView(hintView)
                 azkarSources[phrase]?.let { source ->
                     val sourceView = TextView(this@MainActivity).apply {
                         text = "المصدر: $source"
-                        textSize = 10f
+                        textSize = 11f
                         setTextColor(muted)
                         gravity = Gravity.CENTER
                         setPadding(0, dp(5), 0, 0)
@@ -1050,8 +1091,9 @@ class MainActivity : Activity(), SensorEventListener {
         val categoryButtons = linkedMapOf<String, TextView>()
         categoryItems.keys.toList().forEach { label ->
             val chip = TextView(this@MainActivity).apply {
-                text = label; textSize = 11f; gravity = Gravity.CENTER
-                setTextColor(cream); setPadding(dp(8), dp(10), dp(8), dp(10))
+                text = label; textSize = 12f; gravity = Gravity.CENTER
+                setTextColor(if (isLightTheme) Color.rgb(48, 65, 53) else cream)
+                setPadding(dp(13), dp(11), dp(13), dp(11))
                 setOnClickListener {
                     selectedCategory = label
                     getPreferences(0).edit().putString("azkar_category", label).apply()
@@ -1083,7 +1125,10 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(categoryContent)
         gap(8)
         card {
-            line("الذكر الحالي", 15f, muted, false, Gravity.CENTER)
+            line("مسبحة الأذكار", 18f, if (isLightTheme) Color.rgb(143, 104, 43) else gold, true, Gravity.CENTER)
+            gap(5)
+            line("اختر ذكرك وابدأ بالتسبيح", 12f, muted, false, Gravity.CENTER)
+            gap(8)
             val dhikrText = TextView(this@MainActivity).apply {
                 text = selectedDhikr; textSize = 21f; gravity = Gravity.CENTER
                 setTextColor(cream); typeface = Typeface.DEFAULT_BOLD
@@ -1110,7 +1155,8 @@ class MainActivity : Activity(), SensorEventListener {
             val counterShell = FrameLayout(this@MainActivity).apply {
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
-                    intArrayOf(Color.rgb(14, 82, 58), Color.rgb(5, 39, 32))
+                    if (isLightTheme) intArrayOf(Color.rgb(31, 91, 65), Color.rgb(10, 55, 41))
+                    else intArrayOf(Color.rgb(14, 82, 58), Color.rgb(5, 39, 32))
                 ).apply {
                     shape = GradientDrawable.OVAL
                     setStroke(dp(2), Color.rgb(177, 143, 77))
@@ -1119,7 +1165,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             val counter = TextView(this@MainActivity).apply {
                 text = count.toString(); textSize = 45f; gravity = Gravity.CENTER
-                setTextColor(goldOnDark); typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+                setTextColor(Color.rgb(242, 211, 145)); typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
             }
             countView = counter
             counterShell.addView(counter, FrameLayout.LayoutParams(-1, -1))
