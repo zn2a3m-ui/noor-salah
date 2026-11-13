@@ -1321,7 +1321,7 @@ class MainActivity : Activity(), SensorEventListener {
             "الاستغفار" to Triple("green-beads", "https://images.pexels.com/photos/8217650/pexels-photo-8217650.jpeg?auto=compress&cs=tinysrgb&w=900", "استغفار وتجديد التوبة"),
             "الصلاة على النبي" to Triple("kaaba", "https://images.unsplash.com/photo-1693590614566-1d3ea9ef32f7?auto=format&fit=crop&w=900&q=80", "الصلاة والسلام عليه ﷺ"),
             "أذكار يومية" to Triple("tasbih", "https://images.pexels.com/photos/15923886/pexels-photo-15923886.jpeg?auto=compress&cs=tinysrgb&w=900", "أوراد يومية متنوعة"),
-            "أدعية" to Triple("quran-beads", "https://images.unsplash.com/photo-1616422840391-fa670d4b2ae7?auto=format&fit=crop&w=900&q=80", "أدعية من القرآن والسنة")
+            "أدعية" to Triple("quran-beads", "https://images.pexels.com/photos/40352602/pexels-photo-40352602.jpeg?auto=compress&cs=tinysrgb&w=900", "أدعية من القرآن والسنة")
         )
         val categoryTiles = linkedMapOf<String, FrameLayout>()
         fun updateCategoryTiles() {
