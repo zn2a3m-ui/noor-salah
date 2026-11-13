@@ -1185,34 +1185,111 @@ class MainActivity : Activity(), SensorEventListener {
             MorningItem("beneficial-knowledge", "اللهم إني أسألك علماً نافعاً", "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا", 1, "ابن ماجه 925 • عمل اليوم والليلة لابن السني 54"),
             MorningItem("istighfar-100", "أستغفر الله وأتوب إليه", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", 100, "صحيح البخاري 6307 • صحيح مسلم 2702")
         )
-        var morningFlowActive = isCategoryDetail && selectedCategory == "الصباح"
-        var morningIndex = azkarPrefs.getInt("morning_sequence_index", 0).coerceIn(0, morningItems.size)
+        val categorySequences = mapOf(
+            "الصباح" to morningItems,
+            "المساء" to listOf(
+                MorningItem("ayat-kursi", "آية الكرسي", morningItems[0].body, 1, "البقرة: 255 • فضلها في أذكار المساء: أبو داود 5079"),
+                MorningItem("ikhlas", "سورة الإخلاص", morningItems[1].body, 3, "أبو داود 5082 • الترمذي 3575"),
+                MorningItem("falaq", "سورة الفلق", morningItems[2].body, 3, "أبو داود 5082 • الترمذي 3575"),
+                MorningItem("nas", "سورة الناس", morningItems[3].body, 3, "أبو داود 5082 • الترمذي 3575"),
+                MorningItem("evening-kingdom", "أمسينا وأمسى الملك لله", "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ", 1, "صحيح مسلم 2723"),
+                MorningItem("evening-bika", "اللهم بك أمسينا", "اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ", 1, "أبو داود 5068 • الترمذي 3391"),
+                MorningItem("evening-sayyid", "سيد الاستغفار", morningItems.first { it.id == "sayyid-istighfar" }.body, 1, "صحيح البخاري 6306"),
+                MorningItem("evening-witness", "اللهم إني أمسيت أشهدك", "اللَّهُمَّ إِنِّي أَمْسَيْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ وَجَمِيعَ خَلْقِكَ، أَنَّكَ أَنْتَ اللَّهُ لَا إِلَهَ إِلَّا أَنْتَ وَحْدَكَ لَا شَرِيكَ لَكَ، وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ", 4, "أبو داود 5069 • ورد بلفظ المساء"),
+                MorningItem("evening-blessing", "اللهم ما أمسى بي من نعمة", "اللَّهُمَّ مَا أَمْسَى بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ، فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ", 1, "أبو داود 5073 • يقال صباحاً ومساءً"),
+                MorningItem("evening-wellbeing", "اللهم عافني في بدني", morningItems.first { it.id == "wellbeing" }.body, 3, "أبو داود 5090 • أحمد"),
+                MorningItem("evening-afw", "دعاء العفو والعافية", morningItems.first { it.id == "afw-afiyah" }.body, 1, "أبو داود 5074 • ابن ماجه 3871"),
+                MorningItem("evening-knower", "دعاء الاستعاذة من شر النفس", morningItems.first { it.id == "knower-unseen" }.body, 1, "أبو داود 5067 • الترمذي 3392"),
+                MorningItem("evening-protection", "بسم الله الذي لا يضر", morningItems.first { it.id == "protection-name" }.body, 3, "أبو داود 5088 • الترمذي 3388"),
+                MorningItem("evening-raditu", "رضيت بالله رباً", morningItems.first { it.id == "raditu" }.body, 3, "أبو داود 5072 • الترمذي 3389"),
+                MorningItem("evening-hayy", "يا حي يا قيوم برحمتك أستغيث", morningItems.first { it.id == "hayy-qayyum" }.body, 1, "الحاكم • حسنه بعض أهل العلم"),
+                MorningItem("evening-fitrah", "أمسينا على فطرة الإسلام", "أَمْسَيْنَا عَلَى فِطْرَةِ الْإِسْلَامِ، وَعَلَى كَلِمَةِ الْإِخْلَاصِ، وَعَلَى دِينِ نَبِيِّنَا مُحَمَّدٍ ﷺ، وَعَلَى مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ", 1, "مسند أحمد • ورد بلفظ المساء"),
+                MorningItem("evening-tasbih", "سبحان الله وبحمده", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", 100, "صحيح مسلم 2692 • ورد مئة مرة في اليوم")
+            ),
+            "بعد الصلاة" to listOf(
+                MorningItem("post-istighfar", "الاستغفار", "أَسْتَغْفِرُ اللَّهَ", 3, "صحيح مسلم 591"),
+                MorningItem("post-salam", "اللهم أنت السلام", "اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ ذَا الْجَلَالِ وَالْإِكْرَامِ", 1, "صحيح مسلم 591"),
+                MorningItem("post-tasbih", "التسبيح", "سُبْحَانَ اللَّهِ", 33, "صحيح مسلم 597"),
+                MorningItem("post-tahmid", "التحميد", "الْحَمْدُ لِلَّهِ", 33, "صحيح مسلم 597"),
+                MorningItem("post-takbir", "التكبير", "اللَّهُ أَكْبَرُ", 33, "صحيح مسلم 597"),
+                MorningItem("post-tahlil", "خاتمة الذكر بعد الصلاة", "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ", 1, "صحيح البخاري 844 • صحيح مسلم 593"),
+                MorningItem("post-muawwidhat", "المعوذات بعد الصلاة", "قُلْ هُوَ اللَّهُ أَحَدٌ • قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ • قُلْ أَعُوذُ بِرَبِّ النَّاسِ", 1, "أبو داود 1523 • الترمذي 2903؛ يقرأ بعد الصلاة")
+            ),
+            "النوم" to listOf(
+                MorningItem("sleep-ayat", "آية الكرسي", morningItems[0].body, 1, "صحيح البخاري 2311"),
+                MorningItem("sleep-baqara", "آخر آيتين من سورة البقرة", "آمَنَ الرَّسُولُ بِمَا أُنْزِلَ إِلَيْهِ مِنْ رَبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِنْ رُسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ ۝ لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا ... رَبَّنَا لَا تُؤَاخِذْنَا إِنْ نَسِينَا أَوْ أَخْطَأْنَا ... وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا أَنْتَ مَوْلَانَا فَانْصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ", 1, "صحيح البخاري 5009 • صحيح مسلم 808؛ يلزم إظهار النص القرآني كاملاً من مصدر المصحف المعتمد"),
+                MorningItem("sleep-ikhlas", "الإخلاص والمعوذتان", "قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ\n\nقُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ...\n\nقُلْ أَعُوذُ بِرَبِّ النَّاسِ ...", 3, "صحيح البخاري 5017 • صحيح مسلم 2192؛ النص المختصر هنا يحتاج استكمال السورتين"),
+                MorningItem("sleep-bismika", "باسمك اللهم أموت وأحيا", "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا", 1, "صحيح البخاري 6324"),
+                MorningItem("sleep-wada", "باسمك ربي وضعت جنبي", "بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ", 1, "صحيح البخاري 6320"),
+                MorningItem("sleep-tasbih", "تسبيح النوم", "سُبْحَانَ اللَّهِ", 33, "صحيح البخاري 6318 • صحيح مسلم 2727"),
+                MorningItem("sleep-tahmid", "تحميد النوم", "الْحَمْدُ لِلَّهِ", 33, "صحيح البخاري 6318 • صحيح مسلم 2727"),
+                MorningItem("sleep-takbir", "تكبير النوم", "اللَّهُ أَكْبَرُ", 34, "صحيح البخاري 6318 • صحيح مسلم 2727")
+            ),
+            "الاستيقاظ" to listOf(
+                MorningItem("wake-hamd", "الحمد لله الذي أحيانا", "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَمَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ", 1, "صحيح البخاري 6312"),
+                MorningItem("wake-tahlil", "الذكر عند الاستيقاظ من الليل", "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، الْحَمْدُ لِلَّهِ، وَسُبْحَانَ اللَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ", 1, "صحيح البخاري 1154"),
+                MorningItem("wake-afiyah", "الحمد لله الذي عافاني في جسدي", "الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي فِي جَسَدِي، وَرَدَّ عَلَيَّ رُوحِي، وَأَذِنَ لِي بِذِكْرِهِ", 1, "جامع الترمذي 3401 • حسن")
+            ),
+            "الاستغفار" to listOf(
+                MorningItem("istighfar-sayyid", "سيد الاستغفار", morningItems.first { it.id == "sayyid-istighfar" }.body, 1, "صحيح البخاري 6306 • يقال صباحاً ومساءً"),
+                MorningItem("istighfar-100", "أستغفر الله وأتوب إليه", "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", 100, "صحيح البخاري 6307 • صحيح مسلم 2702؛ كان النبي ﷺ يستغفر مئة مرة في اليوم")
+            ),
+            "الصلاة على النبي" to listOf(
+                MorningItem("salawat-ibrahim", "الصلاة الإبراهيمية", "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ، إِنَّكَ حَمِيدٌ مَجِيدٌ. اللَّهُمَّ بَارِكْ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا بَارَكْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ، إِنَّكَ حَمِيدٌ مَجِيدٌ", 0, "صحيح البخاري 3370 • صحيح مسلم 406؛ لا يثبت لهذا الباب عدد يومي مخصوص"),
+                MorningItem("salawat-once", "فضل الصلاة على النبي ﷺ", "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ ﷺ", 0, "صحيح مسلم 408: من صلى عليه صلاة صلى الله عليه بها عشراً؛ لا عدد محدد هنا")
+            ),
+            "أذكار يومية" to listOf(
+                MorningItem("daily-subhanallah", "سبحان الله وبحمده", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", 100, "صحيح البخاري 6405 • صحيح مسلم 2691"),
+                MorningItem("daily-tahlil", "لا إله إلا الله وحده", "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ", 100, "صحيح البخاري 3293 • صحيح مسلم 2691"),
+                MorningItem("daily-baqiyat", "الباقيات الصالحات", "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ", 0, "صحيح مسلم 2137 • فضل الذكر دون عدد مخصوص"),
+                MorningItem("daily-hawqala", "لا حول ولا قوة إلا بالله", "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ", 0, "صحيح البخاري 6384 • كنز من كنوز الجنة، دون عدد مخصوص"),
+                MorningItem("daily-kalima", "كلمتان خفيفتان", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ", 0, "صحيح البخاري 6406 • دون عدد مخصوص")
+            ),
+            "أدعية" to listOf(
+                MorningItem("dua-world", "دعاء الخير في الدنيا والآخرة", "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ", 0, "القرآن الكريم • البقرة: 201"),
+                MorningItem("dua-knowledge", "دعاء زيادة العلم", "رَبِّ زِدْنِي عِلْمًا", 0, "القرآن الكريم • طه: 114"),
+                MorningItem("dua-guidance", "دعاء الهدى والتقى", "اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى", 0, "صحيح مسلم 2721"),
+                MorningItem("dua-worship", "دعاء الإعانة على الذكر", "اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ", 0, "أبو داود 1522 • النسائي 1303"),
+                MorningItem("dua-heart", "دعاء الثبات", "رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ", 0, "القرآن الكريم • آل عمران: 8"),
+                MorningItem("dua-forgiveness", "دعاء المغفرة", "اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظُلْمًا كَثِيرًا، وَلَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ، فَاغْفِرْ لِي مَغْفِرَةً مِنْ عِنْدِكَ وَارْحَمْنِي، إِنَّكَ أَنْتَ الْغَفُورُ الرَّحِيمُ", 0, "صحيح البخاري 834 • صحيح مسلم 2705")
+            )
+        )
+        var morningFlowActive = isCategoryDetail
         fun renderCategory() {
             categoryContent.removeAllViews()
-            if (selectedCategory == "الصباح" && morningFlowActive) {
-                if (morningIndex >= morningItems.size) {
+            if (isCategoryDetail) {
+                val items = categorySequences[selectedCategory].orEmpty()
+                val indexKey = if (selectedCategory == "الصباح") "morning_sequence_index" else "azkar_sequence_index_$selectedCategory"
+                var sequenceIndex = azkarPrefs.getInt(indexKey, 0).coerceIn(0, items.size)
+                if (items.isEmpty()) {
                     categoryContent.addView(TextView(this@MainActivity).apply {
-                        text = "ما شاء الله\nأتممت أذكار الصباح\nتقبّل الله منك"
+                        text = "لا توجد أذكار موثقة في هذا الباب بعد"
+                        gravity = Gravity.CENTER; setTextColor(muted); textSize = 15f
+                        setPadding(dp(16), dp(35), dp(16), dp(35))
+                    })
+                    return
+                }
+                if (sequenceIndex >= items.size) {
+                    categoryContent.addView(TextView(this@MainActivity).apply {
+                        text = "ما شاء الله\nأتممت $selectedCategory\nتقبّل الله منك"
                         textSize = 23f; gravity = Gravity.CENTER; setTextColor(gold)
                         typeface = azkarTypeface("Cairo"); setPadding(dp(15), dp(45), dp(15), dp(35))
                     }, LinearLayout.LayoutParams(-1, -2))
-                    categoryContent.addView(button("إعادة أذكار الصباح") {
-                        morningItems.forEach { azkarPrefs.edit().putInt("morning_count_" + it.id, 0).apply() }
-                        morningIndex = 0
-                        azkarPrefs.edit().putInt("morning_sequence_index", 0).apply()
+                    categoryContent.addView(button("إعادة هذا الورد") {
+                        items.forEach { azkarPrefs.edit().putInt("azkar_count_${selectedCategory}_${it.id}", 0).apply() }
+                        if (selectedCategory == "الصباح") items.forEach { azkarPrefs.edit().putInt("morning_count_${it.id}", 0).apply() }
+                        azkarPrefs.edit().putInt(indexKey, 0).apply()
                         renderCategory()
                     }, LinearLayout.LayoutParams(-1, -2))
-                    categoryContent.addView(button("العودة إلى الأبواب") {
-                        morningFlowActive = false
-                        renderCategory()
-                    }, LinearLayout.LayoutParams(-1, -2))
+                    categoryContent.addView(button("العودة إلى أبواب الأذكار") { showPage("azkar") }, LinearLayout.LayoutParams(-1, -2))
                     return
                 }
-                val entry = morningItems[morningIndex]
-                val key = "morning_count_" + entry.id
-                var current = azkarPrefs.getInt(key, 0).coerceIn(0, entry.times)
+                val entry = items[sequenceIndex]
+                val key = if (selectedCategory == "الصباح") "morning_count_${entry.id}" else "azkar_count_${selectedCategory}_${entry.id}"
+                var current = azkarPrefs.getInt(key, 0).coerceIn(0, if (entry.times > 0) entry.times else Int.MAX_VALUE)
+                val completedItems = items.count { it.times > 0 && azkarPrefs.getInt(if (selectedCategory == "الصباح") "morning_count_${it.id}" else "azkar_count_${selectedCategory}_${it.id}", 0) >= it.times }
                 categoryContent.addView(TextView(this@MainActivity).apply {
-                    text = "أذكار الصباح  •  الذكر " + (morningIndex + 1) + " من " + morningItems.size
+                    text = "$selectedCategory  •  الذكر ${sequenceIndex + 1} من ${items.size}\nاكتمل ${completedItems} من ${items.count { it.times > 0 }} أذكار محددة العدد"
                     textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted)
                     typeface = azkarTypeface("Cairo"); setPadding(0, dp(8), 0, dp(12))
                 })
@@ -1222,55 +1299,64 @@ class MainActivity : Activity(), SensorEventListener {
                     background = shape(panel, 22, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(54, 99, 77))
                 }
                 panelCard.addView(TextView(this@MainActivity).apply {
-                    text = entry.title; textSize = 18f; gravity = Gravity.CENTER
+                    text = entry.title; textSize = 16f; gravity = Gravity.CENTER
                     setTextColor(gold); typeface = azkarTypeface("Cairo")
                 })
+                val remainingLabel = TextView(this@MainActivity).apply {
+                    text = if (entry.times > 0) "المتبقي: ${(entry.times - current).coerceAtLeast(0)} من ${entry.times}" else "لا يوجد عدد محدد لهذا الذكر"
+                    textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted); setPadding(0, dp(10), 0, dp(8))
+                }
+                panelCard.addView(remainingLabel)
                 val dhikrText = TextView(this@MainActivity).apply {
                     text = entry.body; textSize = 23f; gravity = Gravity.CENTER
                     setTextColor(cream); typeface = azkarTypeface("Amiri-Regular")
                     setLineSpacing(dp(9).toFloat(), 1.12f); setPadding(0, dp(25), 0, dp(25))
-                    isClickable = true
-                    isFocusable = true
-                    contentDescription = "اضغط على نص الذكر لاحتساب قراءة"
+                    isClickable = true; isFocusable = true
+                    contentDescription = "اضغط على نص الذكر بعد قراءته لاحتساب القراءة"
                     setOnClickListener {
-                        if (current < entry.times) {
-                            current++
-                            azkarPrefs.edit().putInt(key, current).apply()
-                            if (current >= entry.times) {
-                                morningIndex++
-                                azkarPrefs.edit().putInt("morning_sequence_index", morningIndex).apply()
-                                Toast.makeText(this@MainActivity, "اكتمل الذكر • التالي", Toast.LENGTH_SHORT).show()
-                            }
-                            renderCategory()
+                        if (entry.times > 0 && current >= entry.times) return@setOnClickListener
+                        current++
+                        azkarPrefs.edit().putInt(key, current).apply()
+                        if (entry.times > 0 && current >= entry.times) {
+                            sequenceIndex++
+                            azkarPrefs.edit().putInt(indexKey, sequenceIndex).apply()
+                            Toast.makeText(this@MainActivity, "اكتمل الذكر • التالي", Toast.LENGTH_SHORT).show()
+                        } else if (entry.times == 0) {
+                            sequenceIndex++
+                            azkarPrefs.edit().putInt(indexKey, sequenceIndex).apply()
                         }
+                        renderCategory()
                     }
                 }
                 panelCard.addView(dhikrText)
                 panelCard.addView(TextView(this@MainActivity).apply {
-                    text = "المصدر والتخريج: " + entry.source
+                    text = "المصدر والتخريج: ${entry.source}"
                     textSize = 11f; gravity = Gravity.CENTER; setTextColor(muted)
+                    setPadding(0, dp(8), 0, dp(4))
                 })
-                val countLabel = TextView(this@MainActivity).apply {
-                    text = "التكرار: " + current + " / " + entry.times
-                    textSize = 16f; gravity = Gravity.CENTER; setTextColor(gold)
-                    setPadding(0, dp(12), 0, dp(5))
-                }
-                panelCard.addView(countLabel)
-                val navigation = LinearLayout(this@MainActivity).apply {
-                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
-                }
+                if (entry.times == 0) panelCard.addView(TextView(this@MainActivity).apply {
+                    text = "هذا الذكر لا يثبت له عدد مخصوص؛ اضغط على النص بعد قراءته للانتقال فقط."
+                    textSize = 10f; gravity = Gravity.CENTER; setTextColor(muted)
+                })
+                categoryContent.addView(panelCard, LinearLayout.LayoutParams(-1, -2))
+                val navigation = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
                 navigation.addView(button("السابق") {
-                    if (morningIndex > 0) morningIndex--
-                    azkarPrefs.edit().putInt("morning_sequence_index", morningIndex).apply()
+                    if (sequenceIndex > 0) sequenceIndex--
+                    azkarPrefs.edit().putInt(indexKey, sequenceIndex).apply()
                     renderCategory()
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(6) })
                 navigation.addView(button("تجاوز إلى التالي") {
-                    if (morningIndex < morningItems.lastIndex) morningIndex++
-                    azkarPrefs.edit().putInt("morning_sequence_index", morningIndex).apply()
+                    if (sequenceIndex < items.lastIndex) sequenceIndex++
+                    azkarPrefs.edit().putInt(indexKey, sequenceIndex).apply()
                     renderCategory()
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(6) })
-                categoryContent.addView(panelCard, LinearLayout.LayoutParams(-1, -2))
                 categoryContent.addView(navigation, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+                categoryContent.addView(button("إعادة ضبط هذا الباب") {
+                    items.forEach { azkarPrefs.edit().putInt(if (selectedCategory == "الصباح") "morning_count_${it.id}" else "azkar_count_${selectedCategory}_${it.id}", 0).apply() }
+                    azkarPrefs.edit().putInt(indexKey, 0).apply()
+                    renderCategory()
+                }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+                categoryContent.addView(button("العودة إلى أبواب الأذكار") { showPage("azkar") }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
                 return
             }
             val categoryPhrases = categoryItems[selectedCategory].orEmpty()
