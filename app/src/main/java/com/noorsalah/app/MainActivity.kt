@@ -404,45 +404,37 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun home() {
+        val selectedCalendar = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
+        val gregorian = SimpleDateFormat("d MMM yyyy", Locale("ar")).format(Date(selectedDateMillis))
+        val hijri = hijriDateForCalendar(selectedCalendar)
+        val dateHeader = LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            setPadding(0, dp(2), 0, dp(8))
+        }
+        val hijriLabel = TextView(this@MainActivity).apply {
+            text = hijri?.let { "${it.day} ${it.monthArabic} ${it.year} هـ" } ?: ""
+            textSize = 11f; setTextColor(gold); gravity = Gravity.CENTER
+            setPadding(dp(5), dp(5), dp(5), dp(5))
+        }
+        val gregorianLabel = TextView(this@MainActivity).apply {
+            text = gregorian
+            textSize = 11f; setTextColor(cream); gravity = Gravity.CENTER
+            setPadding(dp(5), dp(5), dp(5), dp(5))
+        }
+        dateHeader.addView(hijriLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        dateHeader.addView(gregorianLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        content.addView(dateHeader, LinearLayout.LayoutParams(-1, -2))
         text("☾  نور الصلاة", 28f, gold, true, Gravity.CENTER)
         text("رفيقك إلى الصلاة والذكر", 13f, muted, false, Gravity.CENTER)
-        gap(16)
+        gap(12)
         card {
             line("صدقة جارية", 14f, gold, true, Gravity.CENTER)
             line("عن روح المرحوم بإذن الله محمد سليمان موسى أبو زبارق", 14f, cream, true, Gravity.CENTER)
             line(dedicationDuaForToday(), 13f, muted, false, Gravity.CENTER)
         }
         gap(12)
-        val dateCard = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(14), dp(9), dp(14), dp(9))
-            background = shape(panel, 20, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(39, 87, 67))
-            elevation = dp(2).toFloat()
-        }
-        fun dateLine(value: String, size: Float, color: Int, bold: Boolean = false) {
-            dateCard.addView(TextView(this@MainActivity).apply {
-                text = value
-                textSize = size
-                setTextColor(color)
-                gravity = Gravity.CENTER
-                if (bold) typeface = Typeface.DEFAULT_BOLD
-                setPadding(0, dp(2), 0, dp(2))
-            }, LinearLayout.LayoutParams(-1, -2))
-        }
-        dateLine("⌖  $cityName", 12f, muted)
-        dateLine(SimpleDateFormat("EEEE، d MMMM yyyy", Locale("ar")).format(Date(selectedDateMillis)), 14f, cream, true)
-        val selectedCalendar = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-        hijriDateForCalendar(selectedCalendar)?.let { hijri ->
-            dateLine("${hijri.day} ${hijri.monthArabic} ${hijri.year} هـ", 12f, gold, true)
-            if (hijri.basis.contains("umm-al-qura")) {
-                dateLine("تقويم أم القرى • قد يختلف عن الرؤية المحلية", 9f, muted)
-            }
-        }
-        dateLine("تقبّل الله طاعتكم", 10f, gold)
-        content.addView(dateCard, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
-        gap(10)
         val next = nextPrayerInfo()
         val hero = LinearLayout(this@MainActivity).apply {
             orientation = LinearLayout.VERTICAL
@@ -476,69 +468,47 @@ class MainActivity : Activity(), SensorEventListener {
         content.addView(hero, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
 
         val heading = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
         }
         val title = TextView(this@MainActivity).apply {
-            text = "مواقيت الصلاة"
-            textSize = 16f
-            setTextColor(gold)
-            typeface = Typeface.DEFAULT_BOLD
+            text = "مواقيت الصلاة"; textSize = 20f; setTextColor(gold); typeface = Typeface.DEFAULT_BOLD
         }
         heading.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
         val badge = TextView(this@MainActivity).apply {
-            text = "اليوم"
-            textSize = 10f
-            setTextColor(cream)
-            setPadding(dp(8), dp(3), dp(8), dp(3))
+            text = "اليوم"; textSize = 11f; setTextColor(cream); setPadding(dp(10), dp(5), dp(10), dp(5))
             background = shape(panelAlt, 20)
         }
         heading.addView(badge)
-        content.addView(heading)
-        gap(5)
+        content.addView(heading); gap(8)
 
         val names = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
+        val symbols = listOf("☼", "◌", "☀", "◐", "☾", "☽")
         val times = prayerTimes()
         val nextName = next.first
-        val timesRow = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-        }
         names.forEachIndexed { i, name ->
             val active = name == nextName
-            val cell = LinearLayout(this@MainActivity).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                setPadding(dp(2), dp(8), dp(2), dp(8))
-                background = shape(
-                    if (active) Color.rgb(15, 76, 55) else if (i % 2 == 0) panel else panelAlt,
-                    11,
-                    if (active) goldOnDark else null
-                )
+            val row = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(15), dp(12), dp(15), dp(12))
+                background = shape(if (active) Color.rgb(15, 76, 55) else if (i % 2 == 0) panel else panelAlt,
+                    15, if (active) goldOnDark else null)
             }
-            cell.addView(TextView(this@MainActivity).apply {
-                text = name
-                textSize = 9f
-                setTextColor(if (active) creamOnDark else muted)
-                gravity = Gravity.CENTER
+            val icon = TextView(this@MainActivity).apply {
+                text = symbols[i]; textSize = 20f; setTextColor(if (active) goldOnDark else gold); gravity = Gravity.CENTER
+            }
+            val n = TextView(this@MainActivity).apply {
+                text = name; textSize = 15f; setTextColor(if (active) creamOnDark else cream)
                 typeface = if (active) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-                includeFontPadding = false
-            })
-            cell.addView(TextView(this@MainActivity).apply {
-                text = times[i]
-                textSize = 10f
-                setTextColor(if (active) goldOnDark else cream)
-                gravity = Gravity.CENTER
+            }
+            val t = TextView(this@MainActivity).apply {
+                text = times[i]; textSize = 16f; setTextColor(if (active) goldOnDark else cream)
                 typeface = Typeface.DEFAULT_BOLD
-                includeFontPadding = false
-                setPadding(0, dp(4), 0, 0)
-            })
-            timesRow.addView(cell, LinearLayout.LayoutParams(0, -2, 1f).apply {
-                if (i > 0) marginStart = dp(3)
-            })
+            }
+            row.addView(icon, LinearLayout.LayoutParams(dp(34), -2))
+            row.addView(n, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(t)
+            content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
         }
-        content.addView(timesRow, LinearLayout.LayoutParams(-1, -2))
         gap(2)
         val prayerSource = TextView(this@MainActivity).apply {
             text = PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity) + "\n" +
