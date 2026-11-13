@@ -564,38 +564,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }
         gap(5)
-        // Keep all shortcut tiles and their click actions; omit only the section heading.
-        val quickGrid = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
-        val quickRows = listOf(
-            listOf(Triple("◉", "اتجاه القبلة", "qibla"), Triple("▤", "القرآن الكريم", "quran")),
-            listOf(Triple("✧", "الأذكار", "azkar"), Triple("▦", "التقويم الهجري", "calendar"))
-        )
-        quickRows.forEach { items ->
-            val r = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.HORIZONTAL }
-            items.forEach { item ->
-                val tile = LinearLayout(this@MainActivity).apply {
-                    orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
-                    setPadding(dp(8), dp(15), dp(8), dp(15))
-                    background = shape(panel, 17, Color.rgb(42, 91, 72))
-                    setOnClickListener {
-                        if (item.third == "calendar") calendarMonthMillis = selectedDateMillis
-                        showPage(item.third)
-                    }
-                }
-                val symbol = TextView(this@MainActivity).apply {
-                    text = item.first; textSize = 26f; setTextColor(gold); gravity = Gravity.CENTER
-                }
-                val caption = TextView(this@MainActivity).apply {
-                    text = item.second; textSize = 12f; setTextColor(cream); gravity = Gravity.CENTER
-                }
-                tile.addView(symbol); tile.addView(caption)
-                r.addView(tile, LinearLayout.LayoutParams(0, -2, 1f).apply {
-                    if (item != items.first()) marginStart = dp(7)
-                })
-            }
-            quickGrid.addView(r, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
-        }
-        content.addView(quickGrid)
+        // قسم "مساحتك الإيمانية" واختصاراته أزيل بالكامل بناءً على طلب المستخدم.
         card {
             line("ذِكر اليوم", 14f, gold, true, Gravity.CENTER)
             line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 21f, cream, true, Gravity.CENTER)
