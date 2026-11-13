@@ -347,8 +347,7 @@ class MainActivity : Activity(), SensorEventListener {
             PrayerAlarmScheduler.createChannel(this)
             Toast.makeText(this, "تم حفظ ملف الأذان المخصص", Toast.LENGTH_SHORT).show()
             showPage("settings")
-        } catch (_: Exception) {            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()        }
-    }
+        } catch (_: Exception) {            Toast.makeText(this, "تعذّر حفظ الملف. اختر ملفاً صوتياً يمكن الوصول إليه.", Toast.LENGTH_LONG).show()        }    }
 
     private fun showPage(target: String) {
         releaseQuranMushafPage()
@@ -697,8 +696,7 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("التقويم الهجري والميلادي", 21f, gold, true, Gravity.CENTER)
             line(if (firstHijri != null) "${firstHijri.monthArabic} ${firstHijri.year} هـ" else "بيانات الشهر الهجري عند توفر المصدر", 14f, muted, false, Gravity.CENTER)
-            val header = LinearLayout(this@MainActivity).apply {                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
+            val header = LinearLayout(this@MainActivity).apply {                orientation = LinearLayout.HORIZONTAL                gravity = Gravity.CENTER_VERTICAL
             }
             header.addView(button("السابق") { changeCalendarMonth(-1) }, LinearLayout.LayoutParams(0, -2, 1f))
             val monthTitle = TextView(this@MainActivity).apply {
@@ -1047,8 +1045,7 @@ class MainActivity : Activity(), SensorEventListener {
                 })
                 row.addView(tile, LinearLayout.LayoutParams(0, dp(142), 1f).apply {
                     if (row.childCount == 1) marginStart = dp(7)                    else marginEnd = dp(7)                })
-            }
-            if (pair.size == 1) {
+            }            if (pair.size == 1) {
                 row.addView(View(this), LinearLayout.LayoutParams(0, dp(142), 1f))
             }
             content.addView(row, LinearLayout.LayoutParams(-1, -2).apply {
@@ -1396,9 +1393,9 @@ class MainActivity : Activity(), SensorEventListener {
         listOf("الكل", "المفضلة", "الأخيرة").forEach { filter ->
             val chip = TextView(this@MainActivity).apply {
                 text = when (filter) { "الكل" -> "▦  الكل"; "المفضلة" -> "☆  المفضلة"; else -> "◷  الأخيرة" }
-                textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))                setOnClickListener {
-                    selectedFilter = filter
-                    filterButtons.forEach { (name, view) ->
+                textSize = 12f; gravity = Gravity.CENTER; setPadding(dp(13), dp(10), dp(13), dp(10))
+                setOnClickListener {
+                    selectedFilter = filter                    filterButtons.forEach { (name, view) ->
                         val active = name == selectedFilter
                         view.background = shape(if (active) Color.rgb(222, 235, 219) else panelAlt, 18, if (active) gold else null)
                         view.setTextColor(if (active) Color.rgb(35, 77, 59) else cream)
@@ -1747,8 +1744,7 @@ class MainActivity : Activity(), SensorEventListener {
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("توثيق مصدر صفحات المصحف وبياناتها") {                try {                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")))
                 } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
+                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()                }
             }, LinearLayout.LayoutParams(-1, -2))
             addView(button("شروط ترخيص بيانات الصفحات") {
                 try {
@@ -2095,10 +2091,10 @@ class MainActivity : Activity(), SensorEventListener {
             text = "قراءة متواصلة في المصحف"
             textSize = 14f
             setTextColor(muted)
-            gravity = Gravity.CENTER            setPadding(0, dp(5), 0, dp(5))
+            gravity = Gravity.CENTER
+            setPadding(0, dp(5), 0, dp(5))
         }
-        content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
-        text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
+        content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))        text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
         gap(8)
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
@@ -2447,8 +2443,7 @@ class MainActivity : Activity(), SensorEventListener {
                         }                    }
                     contentDescription = "صفحة المصحف $pageNumber"
                     page = loaded
-                }
-                pageView.setOnTouchListener { _, event ->
+                }                pageView.setOnTouchListener { _, event ->
                     when (event.actionMasked) {
                         android.view.MotionEvent.ACTION_DOWN -> {
                             val zoomed = pageView.zoom.step > 0 || pageView.zoom.zoom > 1.01f
@@ -2797,8 +2792,7 @@ class MainActivity : Activity(), SensorEventListener {
                     playCurrentQuranQueueAyah()
                 } else {
                     releaseQuranAudioPlayer()
-                    quranAudioQueue = emptyList()
-                    quranAudioQueueReciter = null
+                    quranAudioQueue = emptyList()                    quranAudioQueueReciter = null
                     setQuranAudioStatus(if (quranAudioQueueEndGlobal == 6236) "انتهت التلاوة المتتابعة حتى نهاية القرآن الكريم" else "انتهت تلاوة السورة")
                 }
             }
@@ -3138,17 +3132,18 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(volumeSlider, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختبار تنبيه الأذان الآن") {
-                if (android.os.Build.VERSION.SDK_INT >= 33 &&                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                if (android.os.Build.VERSION.SDK_INT  >= 33 &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                     requestPrayerNotificationPermission()
                 } else {
                     val testIntent = Intent(this@MainActivity, PrayerAlarmReceiver::class.java).apply {
-                        putExtra("prayer_name", "تجربة")                        putExtra("test_only", true)
+                        putExtra("prayer_name", "تجربة")
+                        putExtra("test_only", true)
                     }
                     sendBroadcast(testIntent)
                     Toast.makeText(this@MainActivity, "تم إرسال تنبيه تجريبي", Toast.LENGTH_SHORT).show()
                 }
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("اختيار تسجيل أذان من الهاتف") { openAdhanFilePicker() }, LinearLayout.LayoutParams(-1, -2))
+            }, LinearLayout.LayoutParams(-1, -2))            addView(button("اختيار تسجيل أذان من الهاتف") { openAdhanFilePicker() }, LinearLayout.LayoutParams(-1, -2))
             line("تسجيلان صوتيان مرخّصان CC0، ويمكنك استيراد تسجيلك الخاص من الهاتف. الملف المخصص يبقى على جهازك ولا يُرفع إلى أي خدمة، ولا ننسب التسجيلات إلى مؤذنين غير موثّقين.", 12f, muted)
             line("يعمل تسجيل الأذان كاملاً في الخلفية عند تفعيل التنبيهات والسماح بصلاحيات الإشعارات والمنبهات. ويمكن إيقافه من إشعار الأذان.", 12f, muted)
             line("يمكنك ضبط مستوى تسجيل الأذان من هنا. ويظل مستوى صوت المنبه العام في الهاتف مؤثراً أيضاً.", 11f, muted)
@@ -3486,19 +3481,20 @@ class MainActivity : Activity(), SensorEventListener {
             PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
-        if (page == "home" || page == "settings" || page == "calendar") showPage(page)    }
+        if (page == "home" || page == "settings" || page == "calendar") showPage(page)
+    }
 
     private fun requestLocation(forceGps: Boolean = false) {
         if (locationMode == "manual" && !forceGps) return
         if (locationRequestInFlight) {
-            Toast.makeText(this, "جارٍ تحديد موقعك الحالي…", Toast.LENGTH_SHORT).show()            return
+            Toast.makeText(this, "جارٍ تحديد موقعك الحالي…", Toast.LENGTH_SHORT).show()
+            return
         }
         val hasFine = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasCoarse = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!hasFine && !hasCoarse) {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 100)
-            return
-        }
+            return        }
         try {
             val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val enabledProviders = lm.getProviders(true)
