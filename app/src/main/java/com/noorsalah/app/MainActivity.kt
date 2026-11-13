@@ -1071,8 +1071,8 @@ class MainActivity : Activity(), SensorEventListener {
             categoryContent.removeAllViews()
             val categoryPhrases = categoryItems[selectedCategory].orEmpty()
             val visiblePhrases = when (selectedFilter) {
-                "المفضلة" -> categoryPhrases.filter { it in favoritePhrases }
-                "الأخيرة" -> recentPhrases.filter { it in categoryPhrases }
+                "المفضلة" -> categoryItems.values.flatten().distinct().filter { it in favoritePhrases }
+                "الأخيرة" -> recentPhrases.distinct()
                 else -> categoryPhrases
             }
             visiblePhrases.forEachIndexed { index, phrase ->
@@ -1208,6 +1208,21 @@ class MainActivity : Activity(), SensorEventListener {
                     bottomMargin = dp(11)
                 })
             }
+            if (visiblePhrases.isEmpty()) {
+                val emptyState = TextView(this@MainActivity).apply {
+                    text = when (selectedFilter) {
+                        "المفضلة" -> "لم تحفظ أي ذكر في المفضلة بعد"
+                        "الأخيرة" -> "لم تفتح أي ذكر مؤخراً"
+                        else -> "لا توجد أذكار في هذا القسم حالياً"
+                    }
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    setTextColor(muted)
+                    setPadding(dp(16), dp(28), dp(16), dp(28))
+                    background = shape(panel, 18)
+                }
+                categoryContent.addView(emptyState, LinearLayout.LayoutParams(-1, -2))
+            }
         }
         val categoryButtons = linkedMapOf<String, TextView>()
         categoryItems.keys.toList().forEach { label ->
@@ -1287,14 +1302,6 @@ class MainActivity : Activity(), SensorEventListener {
         gap(13)
         renderCategory()
         content.addView(categoryContent)
-        if (categoryContent.childCount == 0) {
-            val emptyState = TextView(this@MainActivity).apply {
-                text = if (selectedFilter == "المفضلة") "لم تضف أذكاراً إلى المفضلة بعد" else "ستظهر هنا الأذكار التي قرأتها مؤخراً"
-                textSize = 13f; gravity = Gravity.CENTER; setTextColor(muted); setPadding(dp(16), dp(28), dp(16), dp(28))
-                background = shape(panel, 18)
-            }
-            content.addView(emptyState, LinearLayout.LayoutParams(-1, -2))
-        }
         gap(8)
         card {
             line("مسبحة الأذكار", 18f, if (isLightTheme) Color.rgb(143, 104, 43) else gold, true, Gravity.CENTER)
@@ -1373,26 +1380,49 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 }.setNegativeButton("إلغاء", null).show()
             }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("تسبيح  +") {
-                count++
-                getPreferences(0).edit().putInt("tasbeeh", count).putInt("tasbeeh_count_$selectedDhikr", count).apply()
+            val counterActions = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutDirection = View.LAYOUT_DIRECTION_RTL
+            }
+            fun refreshCounterUi() {
                 counter.text = count.toString()
-                progress.text = "الهدف: $tasbeehTarget • المتبقي: ${(tasbeehTarget - (count % tasbeehTarget)) % tasbeehTarget}"
-                if (vibrationEnabled) {
-                    try {
-                        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-                        if (android.os.Build.VERSION.SDK_INT >= 26) {
-                            vibrator.vibrate(android.os.VibrationEffect.createOneShot(25, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
-                        } else {
-                            @Suppress("DEPRECATION")
-                            vibrator.vibrate(25)
-                        }
-                    } catch (_: Exception) {}
+                progress.text = "الهدف: $tasbeehTarget  •  المتبقي: ${(tasbeehTarget - (count % tasbeehTarget)) % tasbeehTarget}"
+                getPreferences(0).edit()
+                    .putInt("tasbeeh", count)
+                    .putInt("tasbeeh_count_$selectedDhikr", count)
+                    .apply()
+            }
+            fun countVibration() {
+                if (!vibrationEnabled) return
+                try {
+                    val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                    if (android.os.Build.VERSION.SDK_INT >= 26) {
+                        vibrator.vibrate(android.os.VibrationEffect.createOneShot(22, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(22)
+                    }
+                } catch (_: Exception) {}
+            }
+            counterActions.addView(button("−  تراجع") {
+                if (count > 0) {
+                    count--
+                    refreshCounterUi()
+                    countVibration()
+                } else {
+                    Toast.makeText(this@MainActivity, "العداد عند الصفر", Toast.LENGTH_SHORT).show()
                 }
+            }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(6) })
+            counterActions.addView(button("تسبيح  +") {
+                count++
+                refreshCounterUi()
+                countVibration()
                 if (count % tasbeehTarget == 0) {
                     Toast.makeText(this@MainActivity, "ما شاء الله! أتممت هدف $tasbeehTarget", Toast.LENGTH_LONG).show()
                 }
-            }, LinearLayout.LayoutParams(-1, -2))
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+            addView(counterActions, LinearLayout.LayoutParams(-1, -2))
             addView(button("تصفير العداد") {
                 AlertDialog.Builder(this@MainActivity).setTitle("تصفير المسبحة؟")
                     .setMessage("سيتم تصفير العدد المحفوظ.")
@@ -3219,13 +3249,22 @@ class MainActivity : Activity(), SensorEventListener {
                 showPage("azkar")
             }
             .setNeutralButton("نسخ", null)
-            .setNegativeButton("إغلاق", null)
+            .setNegativeButton("مشاركة", null)
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("الذكر", phrase))
                 Toast.makeText(this, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
+                val shareText = "$phrase\n\nالمصدر: $source" +
+                    (repetition?.let { "\nالعدد الوارد: $it" } ?: "")
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                }
+                startActivity(Intent.createChooser(send, "مشاركة الذكر"))
             }
         }
         dialog.show()
