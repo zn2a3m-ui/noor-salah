@@ -64,14 +64,21 @@ class PrayerTimesRemoteRepositoryTest {
     }
 
     @Test
-    fun mapsVisibleCalculationChoicesToProviderMethodIds() {
-        assertEquals("JORDAN", PrayerTimesRemoteRepository.methodIdFor("الأردن (18° / 18°)"))
-        assertEquals("MWL", PrayerTimesRemoteRepository.methodIdFor("رابطة العالم الإسلامي (18° / 17°)"))
-        assertEquals("UMM_AL_QURA", PrayerTimesRemoteRepository.methodIdFor("أم القرى (18.5° / 90 دقيقة)"))
+    fun automaticallySelectsCalculationMethodFromCountry() {
+        assertEquals("الأردن (18° / 18°)", PrayerTimesRemoteRepository.methodLabelForCountryCode("JO"))
+        assertEquals("أم القرى (18.5° / 90 دقيقة)", PrayerTimesRemoteRepository.methodLabelForCountryCode("SA"))
+        assertEquals("الهيئة المصرية (19.5° / 17.5°)", PrayerTimesRemoteRepository.methodLabelForCountryCode("EG"))
+        assertEquals("ديانت تركيا (18° / 17°)", PrayerTimesRemoteRepository.methodLabelForCountryCode("TR"))
+        assertEquals("سنغافورة (20° / 18°)", PrayerTimesRemoteRepository.methodLabelForCountryCode("SG"))
+        assertEquals("أمريكا الشمالية ISNA (15° / 15°)", PrayerTimesRemoteRepository.methodLabelForCountryCode("US"))
+        assertEquals("رابطة العالم الإسلامي (18° / 17°)", PrayerTimesRemoteRepository.methodLabelForCountryCode("FR"))
     }
 
     @Test
-    fun mapsAllVisibleGlobalMethodsToProviderIds() {
+    fun mapsAutomaticallySelectedMethodsToProviderIds() {
+        assertEquals("JORDAN", PrayerTimesRemoteRepository.methodIdFor("الأردن (18° / 18°)"))
+        assertEquals("MWL", PrayerTimesRemoteRepository.methodIdFor("رابطة العالم الإسلامي (18° / 17°)"))
+        assertEquals("UMM_AL_QURA", PrayerTimesRemoteRepository.methodIdFor("أم القرى (18.5° / 90 دقيقة)"))
         assertEquals("EGYPT", PrayerTimesRemoteRepository.methodIdFor("الهيئة المصرية (19.5° / 17.5°)"))
         assertEquals("ISNA", PrayerTimesRemoteRepository.methodIdFor("أمريكا الشمالية ISNA (15° / 15°)"))
         assertEquals("DIYANET", PrayerTimesRemoteRepository.methodIdFor("ديانت تركيا (18° / 17°)"))
