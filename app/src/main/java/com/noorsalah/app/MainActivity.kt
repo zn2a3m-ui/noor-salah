@@ -1918,6 +1918,8 @@ class MainActivity : Activity(), SensorEventListener {
         releaseQuranMushafPage()
         val token = quranMushafRequestId
         quranContinuousCurrentPage = startPage
+        val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
+        val mushafPaperColor = if (quranNightMode) Color.BLACK else Color.WHITE
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
@@ -1929,6 +1931,11 @@ class MainActivity : Activity(), SensorEventListener {
             setPadding(0, dp(5), 0, dp(5))
         }
         content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
+        content.addView(button(if (quranNightMode) "☀ إيقاف وضع القراءة الليلية" else "☾ تفعيل وضع القراءة الليلية") {
+            val pageToKeep = quranContinuousCurrentPage.coerceIn(1, 604)
+            getPreferences(0).edit().putBoolean("quran_night_mode", !quranNightMode).apply()
+            showQuranMushafPages(surahNumber, focusAyah, pageToKeep)
+        }, LinearLayout.LayoutParams(-1, -2))
         text("تصفّح صفحات المصحف الأصلية بالتمرير. المس كلمة للاستماع، أو علامة الآية لإدارة العلامات المرجعية.", 12f, muted, false, Gravity.CENTER)
         gap(8)
         card {
@@ -1984,7 +1991,7 @@ class MainActivity : Activity(), SensorEventListener {
         quranContinuousHost = host
         val frames = (1..604).map { number ->
             FrameLayout(this).apply {
-                setBackgroundColor(Color.WHITE)
+                setBackgroundColor(mushafPaperColor)
                 layoutParams = LinearLayout.LayoutParams(-1, estimatedHeight)
                 contentDescription = "صفحة المصحف " + number
                 host.addView(this)
@@ -2075,7 +2082,7 @@ class MainActivity : Activity(), SensorEventListener {
                 return@loadPage
             }
             result.onSuccess { loaded ->
-                val ink = 0x111111FF.toInt()
+                val ink = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.WHITE else 0x111111FF.toInt()
                 loaded.theme(QvpTheme(ink = ink, diacritics = ink, dots = ink, waqf = ink, sifr = ink, ayahMark = ink, numeral = ink, headers = ink))
                 val bookmarks = getPreferences(0).getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
                 bookmarks.forEach { key ->
@@ -2100,7 +2107,7 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 }
                 val pageView = QvpPageView(this).apply {
-                    paperColor = Color.WHITE
+                    paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
                     padSide = dp(2).toFloat()
@@ -2145,14 +2152,14 @@ class MainActivity : Activity(), SensorEventListener {
                 frame.layoutParams = frame.layoutParams.apply { height = pageHeight + dp(28) }
                 val pageColumn = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
-                    setBackgroundColor(Color.WHITE)
+                    setBackgroundColor(if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE)
                 }
                 pageColumn.addView(pageView, LinearLayout.LayoutParams(-1, pageHeight))
                 val pageNumberLabel = TextView(this).apply {
                     text = pageNumber.toString().map { digit -> "٠١٢٣٤٥٦٧٨٩"[digit - '0'] }.joinToString("")
                     textSize = 12f
                     typeface = Typeface.DEFAULT_BOLD
-                    setTextColor(Color.rgb(70, 70, 70))
+                    setTextColor(if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.WHITE else Color.rgb(70, 70, 70))
                     gravity = Gravity.CENTER
                     contentDescription = "رقم الصفحة $pageNumber"
                 }
