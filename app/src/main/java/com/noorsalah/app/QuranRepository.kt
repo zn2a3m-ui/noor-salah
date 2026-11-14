@@ -170,15 +170,35 @@ class QuranRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Loads the KFGQPC QPC-Hafs corpus paired with Uthmanic Hafs V22.
+     * Source text is retained verbatim; only JSON structure is indexed.
+     */
     private fun loadAyahLines(): List<String> {
         cachedAyahs?.let { return it }
         synchronized(this) {
             cachedAyahs?.let { return it }
-            val lines = context.assets.open("tanzil-uthmani-1.1.txt")
-                .bufferedReader(Charsets.UTF_8).useLines { sequence ->
-                    sequence.filter { it.isNotBlank() && !it.startsWith("#") }.toList()
+            val root = context.assets.open("qpc-hafs.json")
+                .bufferedReader(Charsets.UTF_8).use { JSONObject(it.readText()) }
+            val lines = ArrayList<String>(6236)
+            for (surahNumber in 1..114) {
+                val verses = root.getJSONArray(surahNumber.toString())
+                val expectedCount = loadSurahs()[surahNumber - 1].ayahCount
+                check(verses.length() == expectedCount) {
+                    "QPC-Hafs surah $surahNumber has an unexpected ayah count."
                 }
-            check(lines.size == 6236) { "Verified Tanzil text must contain exactly 6,236 ayahs." }
+                for (index in 0 until verses.length()) {
+                    val verse = verses.getJSONObject(index)
+                    check(verse.getInt("chapter") == surahNumber &&
+                        verse.getInt("verse") == index + 1) {
+                        "QPC-Hafs verse order is invalid at $surahNumber:${index + 1}."
+                    }
+                    val text = verse.getString("text")
+                    check(text.isNotBlank()) { "QPC-Hafs text is empty at $surahNumber:${index + 1}." }
+                    lines.add(text)
+                }
+            }
+            check(lines.size == 6236) { "QPC-Hafs corpus must contain exactly 6,236 ayahs." }
             cachedAyahs = lines
             return lines
         }

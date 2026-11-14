@@ -1939,228 +1939,18 @@ class MainActivity : Activity(), SensorEventListener {
             quranAudioLastSurahNumber = -1
             quranAudioStatusText = "جاهز للتلاوة"
         }
-        val surah = try {
-            quranRepository.loadSurahs().first { it.number == surahNumber }
-        } catch (_: Exception) {
+        val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1)
+        if (surah == null) {
             Toast.makeText(this, "تعذّر فتح السورة", Toast.LENGTH_SHORT).show()
             return
         }
-        val pageNumber = try {
-            pageOverride ?: quranMushafAtlas?.pageOf(surahNumber, focusAyah)
-                ?: quranRepository.pageFor(surahNumber, focusAyah)
-        } catch (_: Exception) {
-            Toast.makeText(this, "تعذّر تحديد صفحة الآية", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val safeAyah = focusAyah.coerceIn(1, surah.ayahCount)
         getPreferences(0).edit()
             .putInt("quran_last_surah", surahNumber)
-            .putInt("quran_last_ayah", focusAyah)
+            .putInt("quran_last_ayah", safeAyah)
+            .putString("quran_reading_mode", "v22")
             .apply()
-        val readingMode = getPreferences(0).getString("quran_reading_mode", "text") ?: "text"
-        if (readingMode == "text") {
-            showQuranTextReader(surahNumber, focusAyah)
-        } else {
-            showContinuousQuranReader(surahNumber, focusAyah, pageNumber)
-        }
-        return
-        val ayahs = try {
-            quranRepository.loadPageAyahs(pageNumber)
-        } catch (_: Exception) {
-            Toast.makeText(this, "تعذّر تحميل صفحة المصحف الموثقة", Toast.LENGTH_LONG).show()
-            return
-        }
-        // Keep the reading position current whenever a page is opened.
-        // The explicit verse action remains available for users who prefer manual saving.
-        getPreferences(0).edit()
-            .putInt("quran_last_surah", surahNumber)
-            .putInt("quran_last_ayah", focusAyah)
-            .apply()
-        val pageStartSurah = quranMushafAtlas?.pageRange(pageNumber)?.first?.first
-            ?: ayahs.first().surahNumber
-        val pageFirstSurah = quranRepository.loadSurahs().first { it.number == pageStartSurah }
-        quranFontSize = getPreferences(0).getFloat("quran_font_size", 29f).coerceIn(24f, 36f)
-
-        content.removeAllViews()
-        text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
-        content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
-        text("صفحة المصحف $pageNumber", 24f, cream, true, Gravity.CENTER)
-        text("تبدأ من سورة ${pageFirstSurah.name} • 604 صفحة", 12f, muted, false, Gravity.CENTER)
-        gap(8)
-
-        text("المس كلمات الآية للاستماع أو التكرار، والمس رقم الآية لحفظ موضعك.", 12f, muted, false, Gravity.CENTER)
-        gap(8)
-
-        val savedPrefs = getPreferences(0)
-        val savedSurah = savedPrefs.getInt("quran_last_surah", -1)
-        val savedAyah = savedPrefs.getInt("quran_last_ayah", -1)
-        val bookmarkedAyahs = savedPrefs.getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
-
-        val mushafText = SpannableStringBuilder()
-        var focusMarkerOffset: Int? = null
-        ayahs.forEach { ayah ->
-            mushafText.append(ayah.text)
-            mushafText.append("  ")
-            val marker = "﴿${ayah.number}﴾"
-            val markerStart = mushafText.length
-            if (ayah.surahNumber == surahNumber && ayah.number == focusAyah) {
-                focusMarkerOffset = markerStart
-            }
-            mushafText.append(marker)
-            mushafText.setSpan(object : ClickableSpan() {
-                override fun onClick(widget: View) {
-                    val ayahSurah = quranRepository.loadSurahs().first { it.number == ayah.surahNumber }
-                    showQuranVerseActions(ayah.surahNumber, ayahSurah.name, ayah.number)
-                }
-
-                override fun updateDrawState(ds: TextPaint) {
-                    ds.color = when {
-                        bookmarkedAyahs.contains("${ayah.surahNumber}:${ayah.number}") -> Color.rgb(35, 125, 77)
-                        ayah.surahNumber == savedSurah && ayah.number == savedAyah -> Color.rgb(139, 91, 28)
-                        else -> Color.rgb(151, 111, 42)
-                    }
-                    ds.isUnderlineText = false
-                    ds.isFakeBoldText = true
-                }
-            }, markerStart, markerStart + marker.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            mushafText.append("  ")
-        }
-
-        val mushafPage = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(22), dp(18), dp(22))
-            background = shape(Color.rgb(247, 241, 222), 18, Color.rgb(184, 145, 77))
-            elevation = dp(2).toFloat()
-        }
-        if (ayahs.firstOrNull()?.number == 1) {
-            mushafPage.addView(TextView(this).apply {
-                text = "۞  ${pageFirstSurah.name}  ۞"
-                textSize = 19f
-                setTextColor(Color.rgb(103, 77, 35))
-                typeface = Typeface.create("serif", Typeface.BOLD)
-                gravity = Gravity.CENTER
-                setPadding(0, 0, 0, dp(15))
-            }, LinearLayout.LayoutParams(-1, -2))
-
-            // In the Madani Mushaf, the basmala is a separate line at the
-            // beginning of every surah except Al-Fatihah (already in ayah 1)
-            // and At-Tawbah (which has no basmala).
-            if (pageFirstSurah.number != 1 && pageFirstSurah.number != 9) {
-                val verifiedBasmala = quranRepository.loadAyahs(1).first().text
-                mushafPage.addView(TextView(this).apply {
-                    text = verifiedBasmala
-                    textSize = quranFontSize
-                    setTextColor(Color.rgb(42, 43, 35))
-                    gravity = Gravity.CENTER
-                    textDirection = View.TEXT_DIRECTION_RTL
-                    typeface = Typeface.create("serif", Typeface.NORMAL)
-                    setPadding(dp(2), 0, dp(2), dp(12))
-                }, LinearLayout.LayoutParams(-1, -2))
-            }
-        }
-        val mushafTextView = TextView(this).apply {
-            text = mushafText
-            textSize = quranFontSize
-            setTextColor(Color.rgb(42, 43, 35))
-            gravity = Gravity.CENTER
-            textDirection = View.TEXT_DIRECTION_RTL
-            typeface = Typeface.create("serif", Typeface.NORMAL)
-            setLineSpacing(dp(12).toFloat(), 1.25f)
-            movementMethod = LinkMovementMethod.getInstance()
-            highlightColor = Color.TRANSPARENT
-            setPadding(dp(2), dp(5), dp(2), dp(5))
-        }
-        mushafPage.addView(mushafTextView, LinearLayout.LayoutParams(-1, -2))
-        val mushafContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(4), 0, dp(4))
-        }
-        mushafContainer.addView(mushafPage, LinearLayout.LayoutParams(-1, -2))
-        content.addView(mushafContainer, LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = dp(6)
-            bottomMargin = dp(12)
-        })
-        var focusView: View? = mushafContainer
-
-        val nextRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        nextRow.addView(button("الصفحة السابقة") {
-            if (pageNumber > 1) {
-                val location = quranPageStart(pageNumber - 1)
-                quranSurah(location.first, location.second)
-            }
-        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
-        nextRow.addView(button("الصفحة التالية") {
-            if (pageNumber < 604) {
-                val location = quranPageStart(pageNumber + 1)
-                quranSurah(location.first, location.second)
-            }
-        }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
-        content.addView(nextRow, LinearLayout.LayoutParams(-1, -2))
-
-        gap(8)
-
-        card {
-            line("التلاوة الصوتية للسورة", 17f, gold, true)
-            val prefs = getPreferences(0)
-            val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
-            val selectedReciterIndex = quranReciters.indexOfFirst { it.edition == savedEdition }.coerceAtLeast(0)
-            val reciterPicker = Spinner(this@MainActivity).apply {
-                adapter = ArrayAdapter(
-                    this@MainActivity,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    quranReciters.map { it.name }
-                )
-                setSelection(selectedReciterIndex)
-                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                        val chosen = quranReciters[position]
-                        if (prefs.getString("quran_reciter", "ar.mahermuaiqly") != chosen.edition) {
-                            prefs.edit().putString("quran_reciter", chosen.edition).apply()
-                            if (quranAudioQueueReciter != null) playQuranFromGlobalAyah(quranAudioQueueStartGlobal, quranAudioQueueEndGlobal)
-                        }
-                    }
-                }
-            }
-            addView(reciterPicker, LinearLayout.LayoutParams(-1, -2))
-            val repeatSwitch = Switch(this@MainActivity).apply {
-                text = "تكرار التلاوة بعد انتهائها"
-                setTextColor(cream)
-                isChecked = prefs.getBoolean("quran_repeat", false)
-                quranRepeat = isChecked
-                setOnCheckedChangeListener { _, checked ->
-                    quranRepeat = checked
-                    prefs.edit().putBoolean("quran_repeat", checked).apply()
-                }
-            }
-            addView(repeatSwitch, LinearLayout.LayoutParams(-1, -2))
-            addView(button("تشغيل / متابعة التلاوة") {
-                toggleQuranAudio(surahNumber)
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("إيقاف التلاوة") {
-                stopQuranAudio()
-                Toast.makeText(this@MainActivity, "تم إيقاف التلاوة", Toast.LENGTH_SHORT).show()
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("تنزيل السورة للاستماع دون إنترنت") {
-                downloadQuranSurah(surahNumber)
-            }, LinearLayout.LayoutParams(-1, -2))
-
-            quranAudioStatusView = TextView(this@MainActivity).apply {
-                text = if (quranAudioLastSurahNumber == surahNumber) quranAudioStatusText else "جاهز للتلاوة"
-                textSize = 12f
-                setTextColor(muted)
-                gravity = Gravity.CENTER
-                setPadding(0, dp(6), 0, dp(3))
-            }
-            addView(quranAudioStatusView, LinearLayout.LayoutParams(-1, -2))
-            line("تعمل التلاوة عبر الإنترنت أو من الآيات المحفوظة على الجهاز دون إنترنت. يلزم الاتصال عند البث أو التنزيل لأول مرة؛ وحقوق التسجيل محفوظة لأصحابها.", 11f, muted)
-        }
-        loadQvpMushafPage(pageNumber, surahNumber, focusAyah, mushafContainer)
-        mainScroll?.post {
-            focusView?.let { mainScroll?.smoothScrollTo(0, it.top) }
-        }
+        showQuranTextReader(surahNumber, safeAyah)
     }
 
 
@@ -2170,6 +1960,7 @@ class MainActivity : Activity(), SensorEventListener {
      */
     private fun showQuranTextReader(surahNumber: Int, focusAyah: Int) {
         releaseQuranMushafPage()
+        val v22Typeface = Typeface.createFromAsset(assets, "fonts/UthmanicHafs_V22.ttf")
         val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1) ?: return
         val ayahs = try {
             quranRepository.loadAyahs(surahNumber)
@@ -2186,24 +1977,15 @@ class MainActivity : Activity(), SensorEventListener {
         content.removeAllViews()
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
-        text("قراءة مريحة • رواية حفص عن عاصم", 13f, muted, false, Gravity.CENTER)
+        text("مصحف حفص • خط Uthmanic Hafs V22", 13f, muted, false, Gravity.CENTER)
         gap(7)
 
         card {
             line("سورة ${surah.name}", 21f, gold, true, Gravity.CENTER)
             line("${surah.ayahCount} آية • ${if (surah.revelationType == "Meccan") "مكية" else "مدنية"}", 12f, muted, false, Gravity.CENTER)
-            val modeRow = LinearLayout(this@MainActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-            }
-            modeRow.addView(button("صفحات المصحف") {
-                getPreferences(0).edit().putString("quran_reading_mode", "mushaf").apply()
-                quranSurah(surahNumber, focusAyah)
-            }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(4) })
-            modeRow.addView(button("تشغيل السورة") {
+            addView(button("تشغيل السورة") {
                 toggleQuranAudio(surahNumber)
-            }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
-            addView(modeRow, LinearLayout.LayoutParams(-1, -2))
+            }, LinearLayout.LayoutParams(-1, -2))
             addView(button("اختيار القارئ") {
                 val prefs = getPreferences(0)
                 val selected = prefs.getString("quran_reciter", "ar.mahermuaiqly")
@@ -2252,7 +2034,7 @@ class MainActivity : Activity(), SensorEventListener {
                 text = basmala
                 textSize = quranFontSize
                 setTextColor(Color.rgb(48, 59, 47))
-                typeface = Typeface.create("serif", Typeface.NORMAL)
+                typeface = v22Typeface
                 gravity = Gravity.CENTER
                 textDirection = View.TEXT_DIRECTION_RTL
                 setLineSpacing(dp(8).toFloat(), 1.18f)
@@ -2299,7 +2081,7 @@ class MainActivity : Activity(), SensorEventListener {
                 text = ayah.text
                 textSize = quranFontSize
                 setTextColor(Color.rgb(40, 45, 37))
-                typeface = Typeface.create("serif", Typeface.NORMAL)
+                typeface = v22Typeface
                 gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
                 textDirection = View.TEXT_DIRECTION_RTL
                 setLineSpacing(dp(10).toFloat(), 1.22f)
