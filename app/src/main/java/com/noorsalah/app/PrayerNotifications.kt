@@ -162,15 +162,15 @@ object PrayerAlarmScheduler {
         val latitude = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
         val longitude = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
         val method = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
-        val offset = prefs.getInt("time_offset", 0)
         val remoteTimes = PrayerTimesRemoteRepository.getTimes(context, date)
-        val allTimes = if (remoteTimes != null) {
-            remoteTimes.map { ((it + offset) % 1440 + 1440) % 1440 }
-        } else {
-            PrayerTimesCalculator.calculate(date, latitude, longitude, method, offset)
-        }
+        val baseTimes = remoteTimes ?: PrayerTimesCalculator.calculate(date, latitude, longitude, method, 0)
+        val prayerKeys = listOf("fajr", "dhuhr", "asr", "maghrib", "isha")
+        val prayerIndices = listOf(0, 2, 3, 4, 5)
         // Sunrise is not an obligatory prayer and must not trigger an adhan.
-        return listOf(allTimes[0], allTimes[2], allTimes[3], allTimes[4], allTimes[5])
+        return prayerIndices.mapIndexed { index, sourceIndex ->
+            val correction = prefs.getInt("prayer_offset_${prayerKeys[index]}", 0).coerceIn(-5, 5)
+            ((baseTimes[sourceIndex] + correction) % 1440 + 1440) % 1440
+        }
     }
 }
 
