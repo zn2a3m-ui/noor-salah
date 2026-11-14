@@ -73,6 +73,57 @@ tasks.register("downloadVerifiedAdhanAudio") {
 }
 
 
+
+def qpcHafsAsset = file("$projectDir/src/main/assets/qpc-hafs.json")
+def v22FontAsset = file("$projectDir/src/main/assets/fonts/UthmanicHafs_V22.ttf")
+def qpcHafsGitBlobSha = "d924fc96f7a0f798d7cab319db2eefce1de37929"
+def v22FontGitBlobSha = "741ac35ac5eca475934c804b0cada6010d0fadfc"
+
+tasks.register("verifyQpcHafsV22Assets") {
+    inputs.files(qpcHafsAsset, v22FontAsset)
+    doLast {
+        [ [file: qpcHafsAsset, expected: qpcHafsGitBlobSha, label: "QPC-Hafs Quran text"],
+          [file: v22FontAsset, expected: v22FontGitBlobSha, label: "Uthmanic Hafs V22 font"] ].each { asset ->
+            if (!asset.file.exists()) {
+                throw new GradleException("${asset.label} asset is missing.")
+            }
+            byte[] bytes = asset.file.bytes
+            byte[] header = "blob ${bytes.length}\u0000".getBytes("UTF-8")
+            byte[] gitBlob = new byte[header.length + bytes.length]
+            System.arraycopy(header, 0, gitBlob, 0, header.length)
+            System.arraycopy(bytes, 0, gitBlob, header.length, bytes.length)
+            String actual = java.security.MessageDigest.getInstance("SHA-1").digest(gitBlob)
+                .collect { String.format("%02x", it & 0xff) }.join()
+            if (actual != asset.expected) {
+                throw new GradleException("${asset.label} checksum mismatch; refusing to package an unverified asset.")
+            }
+        }
+
+        def corpus = new groovy.json.JsonSlurper().parse(qpcHafsAsset)
+        def metadata = new groovy.json.JsonSlurper().parse(file("$projectDir/src/main/assets/quran-surah-index.json"))
+        if (corpus.keySet().size() != 114 || metadata.suras.size() != 114) {
+            throw new GradleException("QPC-Hafs must contain all 114 surahs.")
+        }
+        int totalAyahs = 0
+        (1..114).each { number ->
+            def verses = corpus[number.toString()]
+            def expectedCount = metadata.suras[number - 1].ayahs
+            if (verses == null || verses.size() != expectedCount) {
+                throw new GradleException("QPC-Hafs ayah count mismatch in surah ${number}.")
+            }
+            verses.eachWithIndex { verse, index ->
+                if (verse.chapter != number || verse.verse != index + 1 || !verse.text?.trim()) {
+                    throw new GradleException("QPC-Hafs verse sequence validation failed at ${number}:${index + 1}.")
+                }
+            }
+            totalAyahs += verses.size()
+        }
+        if (totalAyahs != 6236 || v22FontAsset.length() != 297700) {
+            throw new GradleException("QPC-Hafs/V22 assets failed full-corpus validation.")
+        }
+    }
+}
+
 android {
     namespace 'com.noorsalah.app'
     compileSdk 36
@@ -142,4 +193,5 @@ dependencies {
 tasks.named("preBuild").configure {
     dependsOn(tasks.named("downloadVerifiedQvpAndroidAar"))
     dependsOn(tasks.named("downloadVerifiedAdhanAudio"))
+    dependsOn(tasks.named("verifyQpcHafsV22Assets"))
 }
