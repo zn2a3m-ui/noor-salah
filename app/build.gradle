@@ -75,28 +75,20 @@ tasks.register("downloadVerifiedAdhanAudio") {
 
 
 def qpcHafsAsset = file("$projectDir/src/main/assets/qpc-hafs.json")
-def v22FontAsset = file("$projectDir/src/main/assets/fonts/UthmanicHafs_V22.ttf")
 def qpcHafsGitBlobSha = "d924fc96f7a0f798d7cab319db2eefce1de37929"
-def v22FontGitBlobSha = "741ac35ac5eca475934c804b0cada6010d0fadfc"
 
-tasks.register("verifyQpcHafsV22Assets") {
-    inputs.files(qpcHafsAsset, v22FontAsset)
+tasks.register("verifyQpcHafsCorpus") {
+    inputs.file(qpcHafsAsset)
     doLast {
-        [ [file: qpcHafsAsset, expected: qpcHafsGitBlobSha, label: "QPC-Hafs Quran text"],
-          [file: v22FontAsset, expected: v22FontGitBlobSha, label: "Uthmanic Hafs V22 font"] ].each { asset ->
-            if (!asset.file.exists()) {
-                throw new GradleException("${asset.label} asset is missing.")
-            }
-            byte[] bytes = asset.file.bytes
-            byte[] header = "blob ${bytes.length}\u0000".getBytes("UTF-8")
-            byte[] gitBlob = new byte[header.length + bytes.length]
-            System.arraycopy(header, 0, gitBlob, 0, header.length)
-            System.arraycopy(bytes, 0, gitBlob, header.length, bytes.length)
-            String actual = java.security.MessageDigest.getInstance("SHA-1").digest(gitBlob)
-                .collect { String.format("%02x", it & 0xff) }.join()
-            if (actual != asset.expected) {
-                throw new GradleException("${asset.label} checksum mismatch; refusing to package an unverified asset.")
-            }
+        byte[] bytes = qpcHafsAsset.bytes
+        byte[] header = "blob ${bytes.length}\u0000".getBytes("UTF-8")
+        byte[] gitBlob = new byte[header.length + bytes.length]
+        System.arraycopy(header, 0, gitBlob, 0, header.length)
+        System.arraycopy(bytes, 0, gitBlob, header.length, bytes.length)
+        String actual = java.security.MessageDigest.getInstance("SHA-1").digest(gitBlob)
+            .collect { String.format("%02x", it & 0xff) }.join()
+        if (actual != qpcHafsGitBlobSha) {
+            throw new GradleException("QPC-Hafs Quran text checksum mismatch; refusing to package an unverified asset.")
         }
 
         def corpus = new groovy.json.JsonSlurper().parse(qpcHafsAsset)
@@ -118,8 +110,8 @@ tasks.register("verifyQpcHafsV22Assets") {
             }
             totalAyahs += verses.size()
         }
-        if (totalAyahs != 6236 || v22FontAsset.length() != 297700) {
-            throw new GradleException("QPC-Hafs/V22 assets failed full-corpus validation.")
+        if (totalAyahs != 6236) {
+            throw new GradleException("QPC-Hafs Quran text failed full-corpus validation.")
         }
     }
 }
@@ -193,5 +185,5 @@ dependencies {
 tasks.named("preBuild").configure {
     dependsOn(tasks.named("downloadVerifiedQvpAndroidAar"))
     dependsOn(tasks.named("downloadVerifiedAdhanAudio"))
-    dependsOn(tasks.named("verifyQpcHafsV22Assets"))
+    dependsOn(tasks.named("verifyQpcHafsCorpus"))
 }
