@@ -2946,7 +2946,22 @@ class MainActivity : Activity(), SensorEventListener {
                 }, LinearLayout.LayoutParams(-1, -2))
                 gap(8)
                 line("الأذان والخصوصية", 16f, gold, true)
-                line("التسجيلات المدمجة موثّقة بترخيص CC0 في ملفات الإسناد المرفقة بالمشروع. الملف الصوتي الذي يختاره المستخدم يبقى على جهازه. عند طلب المواقيت المتصلة قد تُرسل إحداثيات تقريبية للخدمة، ولا يحتاج التطبيق إلى حساب مستخدم.", 12f, muted)
+                line("الأصوات المدمجة: أذان المدينة بصوت ejaz215، وأذان الفجر في مسجد مالمو من Islamic Center Malmö، وكلاهما بترخيص CC BY 3.0؛ وأذان عاصم جاويد بترخيص CC0 1.0. جرى تحويل الملفات إلى MP3 أحادي 128 kbps للتوافق مع أجهزة أندرويد دون تغيير مضمون التسجيل. الملف الذي تختاره من هاتفك يبقى على جهازك ولا يُرفع إلى أي خدمة.", 12f, muted)
+                addView(button("مصدر أذان المدينة – ejaz215") {
+                    openDocumentationUrl("https://commons.wikimedia.org/wiki/File:33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("مصدر أذان الفجر – مسجد مالمو") {
+                    openDocumentationUrl("https://commons.wikimedia.org/wiki/File:Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("مصدر أذان عاصم جاويد") {
+                    openDocumentationUrl("https://archive.org/details/icr-friday-prayer-2nd-adhan-17th-may-2024-9th-dhul-qadah-1445-by-asim-javed")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("ترخيص CC BY 3.0") {
+                    openDocumentationUrl("https://creativecommons.org/licenses/by/3.0/")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("ترخيص CC0 1.0") {
+                    openDocumentationUrl("https://creativecommons.org/publicdomain/zero/1.0/")
+                }, LinearLayout.LayoutParams(-1, -2))
             }
         }
     }
