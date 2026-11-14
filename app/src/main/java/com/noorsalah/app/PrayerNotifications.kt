@@ -280,7 +280,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val preferences = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
-            val selectedAudio = preferences.getString("muezzin", "أذان كامل — تسجيل مرخّص") ?: "أذان كامل — تسجيل مرخّص"
+            val selectedAudio = preferences.getString("muezzin", "تنبيه النظام فقط") ?: "تنبيه النظام فقط"
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val customUri = preferences.getString("custom_adhan_uri", null)?.let { Uri.parse(it) }
             val customAudioAvailable = if (selectedAudio.startsWith("صوت مخصص") && customUri != null) {
