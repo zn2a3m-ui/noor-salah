@@ -26,6 +26,7 @@ import android.provider.Settings
 import android.content.pm.PackageManager
 import android.Manifest
 import android.location.Location
+import android.location.Geocoder
 import android.location.LocationManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -218,6 +219,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (restorePage == "calendar") calendarMonthMillis = selectedDateMillis
         showPage(restorePage)
         requestLocation()
+        updateAutomaticPrayerMethod()
         PrayerAlarmScheduler.createChannel(this)
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
         DedicationReminderScheduler.scheduleNext(this)
@@ -541,30 +543,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }
         content.addView(prayerSource, LinearLayout.LayoutParams(-1, -2))
-        val remotePrefs = getPreferences(0)
-        if (calculationMethod.startsWith("الأردن") &&
-            PrayerTimesRemoteRepository.isJordan(latitude, longitude) &&
-            !remotePrefs.getBoolean("prayer_remote_consent", false) &&
-            !remotePrefs.getBoolean("prayer_remote_prompt_dismissed", false)) {
-            card {
-                line("تحسين دقة مواقيت الصلاة", 16f, gold, true)
-                line("يمكن جلب مواقيت الأردن بطريقة الحساب التي تنسبها خدمة prayertime.si إلى وزارة الأوقاف، وتذكر أنها طابقتها مع جدول الجهة المنشور؛ وقد تختلف دقيقة أو دقيقتين عن أذان المسجد. عند التفعيل يُرسل اسم المدينة أو إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين، حسب طريقة جلب البيانات.", 12f, muted)
-                addView(button("تفعيل التحديث عبر الإنترنت") {
-                    remotePrefs.edit().putBoolean("prayer_remote_consent", true)
-                        .putBoolean("prayer_remote_prompt_dismissed", true).apply()
-                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true) {
-                        if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
-                    }
-                    Toast.makeText(this@MainActivity, "بدأ تحديث المواقيت", Toast.LENGTH_SHORT).show()
-                    showPage("home")
-                }, LinearLayout.LayoutParams(-1, -2))
-                addView(button("المتابعة بالحساب المحلي") {
-                    remotePrefs.edit().putBoolean("prayer_remote_consent", false)
-                        .putBoolean("prayer_remote_prompt_dismissed", true).apply()
-                    showPage("home")
-                }, LinearLayout.LayoutParams(-1, -2))
-            }
-        }
+        getPreferences(0).edit().putBoolean("prayer_remote_consent", true).apply()
         gap(5)
         // قسم "مساحتك الإيمانية" واختصاراته أزيل بالكامل بناءً على طلب المستخدم.
         card {
@@ -3066,34 +3045,8 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         sectionHeading("مصدر مواقيت الصلاة والخصوصية")
         card {
-            line("مصدر مواقيت الصلاة المتصل", 16f, gold, true)
-            val onlineSwitch = Switch(this@MainActivity).apply {
-                text = "السماح بتحديث المواقيت عبر الإنترنت"
-                setTextColor(cream)
-                isEnabled = latitude.isFinite() && longitude.isFinite() &&
-                    latitude in -90.0..90.0 && longitude in -180.0..180.0
-                isChecked = getPreferences(0).getBoolean("prayer_remote_consent", false) && isEnabled
-                setOnCheckedChangeListener { _, enabled ->
-                    getPreferences(0).edit()
-                        .putBoolean("prayer_remote_consent", enabled)
-                        .putBoolean("prayer_remote_prompt_dismissed", true)
-                        .apply()
-                    if (enabled) {
-                        PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true) {
-                            if (!isFinishing && page == "settings") showPage("settings")
-                        }
-                        Toast.makeText(this@MainActivity, "بدأ تحديث المواقيت", Toast.LENGTH_SHORT).show()
-                    } else {
-                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
-                        Toast.makeText(this@MainActivity, "تم إيقاف التحديث عبر الإنترنت", Toast.LENGTH_SHORT).show()
-                    }
-                    showPage("settings")
-                }
-            }
-            addView(onlineSwitch, LinearLayout.LayoutParams(-1, -2))
-            line("عند التفعيل يستخدم التطبيق رمز المدينة للمدن الأردنية المدعومة عند اختيار طريقة الوزارة، أو يرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين إلى prayertime.si في الحالات الأخرى. لا تُرسل الإحداثيات الدقيقة أو ملفاتك. يمكنك إيقاف هذا الخيار في أي وقت؛ وعند الإيقاف يعمل الحساب المحلي التقديري.", 12f, muted)
-            line("يدعم المصدر المتصل المواقع حول العالم. في الأردن مع طريقة الوزارة يستخدم جدول المدينة المنشور لدى الخدمة، وفي بقية الحالات يستخدم طريقة الحساب التي تختارها. قد تختلف النتائج دقيقة أو دقيقتين عن أذان المسجد.", 11f, muted)
-            line("يحفظ التطبيق جداول الأشهر القريبة للمدن الأردنية المدعومة، أو مواقيت الأيام السبعة القادمة للمواقع والطرق الأخرى، لتستمر التنبيهات دون اتصال بقدر البيانات المخزنة.", 12f, muted)
+            line("المواقيت المتصلة تعمل تلقائيًا", 16f, gold, true)
+            line("يستخدم التطبيق موقعك لتحديد البلد وطريقة الحساب، ويطلب المواقيت من prayertime.si عند الحاجة. تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين في الحالات التي لا يتوفر فيها جدول مدينة، ولا تُرسل ملفاتك أو بياناتك الشخصية. عند انقطاع الإنترنت يستمر التطبيق بآخر مواقيت محفوظة ثم بالحساب المحلي الاحتياطي.", 12f, muted)
             addView(button("شروط مصدر المواقيت") {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://prayertime.si/terms/")))
@@ -3120,32 +3073,10 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card {
-            line("طريقة الحساب", 18f, gold, true)
-            line(calculationMethod, 13f, cream)
-            addView(button("اختيار طريقة الحساب") {
-                val methods = arrayOf(
-                    "الأردن (18° / 18°)",
-                    "رابطة العالم الإسلامي (18° / 17°)",
-                    "أم القرى (18.5° / 90 دقيقة)",
-                    "الهيئة المصرية (19.5° / 17.5°)",
-                    "أمريكا الشمالية ISNA (15° / 15°)",
-                    "ديانت تركيا (18° / 17°)",
-                    "سنغافورة (20° / 18°)"
-                )
-                AlertDialog.Builder(this@MainActivity).setTitle("طريقة الحساب").setItems(methods) { _, i ->
-                    calculationMethod = methods[i]
-                    getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
-                    PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
-                    PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude, force = true)
-                    showPage("settings")
-                }.setNegativeButton("إلغاء", null).show()
-            }, LinearLayout.LayoutParams(-1, -2))
-            line("اختر طريقة الحساب المناسبة لموقعك. عند تفعيل المصدر المتصل تُرسل الطريقة المختارة للخدمة؛ وفي الأردن عند اختيار طريقة الوزارة تُستخدم بيانات جدول المدينة. قد تختلف المواقيت دقيقة أو دقيقتين عن أذان المسجد، وعند انقطاع الإنترنت يعمل الحساب المحلي كبديل تقديري.", 12f, muted)
-            line("حساب وقت العصر المستخدم حالياً قياسي؛ خيار العصر الحنفي غير متاح بعد.", 11f, muted)
-            if (!PrayerTimesRemoteRepository.isJordan(latitude, longitude) &&
-                calculationMethod.startsWith("الأردن")) {
-                line("تنبيه: طريقة الأردن ما زالت مختارة رغم أن موقعك خارج الأردن. اختر طريقة تناسب بلدك.", 11f, gold)
-            }
+            line("طريقة الاحتساب الذكية", 18f, gold, true)
+            line("يحدد نور الصلاة بلدك تلقائيًا ويختار طريقة الحساب المناسبة لموقعك.", 13f, cream)
+            line(calculationMethod, 12f, muted)
+            line("يُحدّث المواقيت من المصدر المتصل عند توفر الإنترنت، ويحتفظ بآخر بيانات صحيحة ويستخدم الحساب المحلي عند انقطاع الاتصال. وقت العصر محسوب بالطريقة القياسية.", 12f, muted)
             if (PrayerTimesRemoteRepository.isJordan(latitude, longitude)) {
                 addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
                     try {
@@ -3344,11 +3275,46 @@ class MainActivity : Activity(), SensorEventListener {
             .putFloat("location_accuracy_m", locationAccuracyMeters ?: 0f)
             .apply()
         PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+        updateAutomaticPrayerMethod()
         PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude) {
             PrayerWidgetProvider.updateAll(this)
             if (!isFinishing && (page == "home" || page == "calendar")) showPage(page)
         }
         if (page == "home" || page == "settings" || page == "calendar") showPage(page)
+    }
+
+    private fun updateAutomaticPrayerMethod() {
+        val lookupLatitude = latitude
+        val lookupLongitude = longitude
+        Thread {
+            val countryCode = try {
+                if (!Geocoder.isPresent()) null else {
+                    @Suppress("DEPRECATION")
+                    Geocoder(this, Locale.getDefault()).getFromLocation(lookupLatitude, lookupLongitude, 1)
+                        ?.firstOrNull()?.countryCode?.uppercase(Locale.US)
+                }
+            } catch (_: Exception) { null }
+            val selected = countryCode?.let { PrayerTimesRemoteRepository.methodLabelForCountryCode(it) }
+                ?: return@Thread
+            runOnUiThread {
+                if (isFinishing || kotlin.math.abs(latitude - lookupLatitude) > 0.02 ||
+                    kotlin.math.abs(longitude - lookupLongitude) > 0.02) return@runOnUiThread
+                if (calculationMethod != selected) {
+                    calculationMethod = selected
+                    getPreferences(0).edit()
+                        .putString("calculation_method", selected)
+                        .putBoolean("prayer_remote_consent", true)
+                        .apply()
+                    PrayerTimesRemoteRepository.refreshIfNeeded(this, latitude, longitude, force = true) {
+                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+                        PrayerWidgetProvider.updateAll(this)
+                        if (!isFinishing && (page == "home" || page == "settings" || page == "calendar")) showPage(page)
+                    }
+                    PrayerAlarmScheduler.scheduleTodayAndTomorrow(this)
+                    if (page == "settings") showPage("settings")
+                }
+            }
+        }.start()
     }
 
     private fun requestLocation(forceGps: Boolean = false) {
