@@ -13,6 +13,91 @@ def qvpAndroidAar = file("$projectDir/libs/qvp-android-0.8.0.aar")
 def qvpAndroidAarUrl = "https://github.com/quran-ws/quran-engine/releases/download/v0.8.0/qvp-android-0.8.0.aar"
 def qvpAndroidAarSha256 = "df3055762a6ffcfb8ba02626f607a87933d56f9b483f3be5783daa3d5352bc81"
 
+def generatedAdhanResources = file("$buildDir/generated/adhan-res")
+def adhanDownloadDir = file("$buildDir/adhan-downloads")
+def adhanSources = [
+    [
+        name: "adhan_madinah",
+        filename: "madinah.ogg",
+        url: "https://upload.wikimedia.org/wikipedia/commons/7/7c/33937_ejaz215_call-to-prayer-from-the-prophet-s-mo.ogg",
+        sha1: "4aa432b9e44804e7d72af4429bd743aa5fa9e3a4"
+    ],
+    [
+        name: "adhan_malmo_fajr",
+        filename: "malmo-fajr.webm",
+        url: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm",
+        sha1: "bc75d5cee271efb67f03d3f35474a9362fce103f"
+    ],
+    [
+        name: "adhan_asim_javed",
+        filename: "asim-javed.mp3",
+        url: "https://archive.org/download/icr-friday-prayer-2nd-adhan-17th-may-2024-9th-dhul-qadah-1445-by-asim-javed/ICR_Friday_Prayer_2nd_Adhan_17th_May_2024_9th_Dhul_Qadah_1445_by_Asim_Javed.mp3",
+        sha1: null
+    ]
+]
+def adhanOutputFiles = adhanSources.collect { new File(new File(generatedAdhanResources, "raw"), "${it.name}.mp3") }
+
+tasks.register("prepareBundledAdhanAssets") {
+    outputs.dir(generatedAdhanResources)
+    outputs.upToDateWhen { adhanOutputFiles.every { it.isFile() && it.length() > 100_000 } }
+    doLast {
+        def ffmpegCheck = new ProcessBuilder("ffmpeg", "-version").redirectErrorStream(true).start()
+        if (ffmpegCheck.waitFor() != 0) {
+            throw new GradleException("FFmpeg is required to prepare the bundled adhan recordings. Install FFmpeg and retry.")
+        }
+
+        def rawDir = new File(generatedAdhanResources, "raw")
+        rawDir.mkdirs()
+        adhanDownloadDir.mkdirs()
+
+        adhanSources.each { source ->
+            File downloaded = new File(adhanDownloadDir, source.filename)
+            boolean downloadedOk = false
+            Exception lastError = null
+            for (int attempt = 1; attempt <= 4 && !downloadedOk; attempt++) {
+                try {
+                    def connection = new URL(source.url).openConnection()
+                    connection.connectTimeout = 30000
+                    connection.readTimeout = 300000
+                    connection.setRequestProperty("User-Agent", "NoorSalah-Android-Build/1.0 (open-source app)")
+                    connection.inputStream.withCloseable { input ->
+                        downloaded.withOutputStream { output -> output << input }
+                    }
+                    downloadedOk = downloaded.isFile() && downloaded.length() > 100_000
+                } catch (Exception error) {
+                    lastError = error
+                    downloaded.delete()
+                    if (attempt < 4) Thread.sleep(attempt * 3000L)
+                }
+            }
+            if (!downloadedOk) {
+                throw new GradleException("Could not download the licensed adhan source ${source.filename}: ${lastError}")
+            }
+
+            if (source.sha1) {
+                String actualSha1 = java.security.MessageDigest.getInstance("SHA-1").digest(downloaded.bytes)
+                    .collect { String.format("%02x", it & 0xff) }.join()
+                if (actualSha1 != source.sha1) {
+                    downloaded.delete()
+                    throw new GradleException("Checksum mismatch for ${source.filename}; refusing to package an unverified recording.")
+                }
+            }
+
+            File output = new File(rawDir, "${source.name}.mp3")
+            def transcode = new ProcessBuilder(
+                "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+                "-i", downloaded.absolutePath, "-map", "0:a:0", "-vn",
+                "-ac", "1", "-ar", "44100", "-b:a", "128k", output.absolutePath
+            ).redirectErrorStream(true).start()
+            String ffmpegLog = transcode.inputStream.getText("UTF-8")
+            if (transcode.waitFor() != 0 || !output.isFile() || output.length() < 100_000) {
+                output.delete()
+                throw new GradleException("Audio conversion failed for ${source.filename}: ${ffmpegLog}")
+            }
+        }
+    }
+}
+
 tasks.register("downloadVerifiedQvpAndroidAar") {
     outputs.file(qvpAndroidAar)
     outputs.upToDateWhen { false }
@@ -80,6 +165,7 @@ tasks.register("verifyQpcHafsCorpus") {
 }
 
 android {
+    sourceSets.main.res.srcDir(generatedAdhanResources)
     namespace 'com.noorsalah.app'
     compileSdk 36
 
@@ -148,4 +234,5 @@ dependencies {
 tasks.named("preBuild").configure {
     dependsOn(tasks.named("downloadVerifiedQvpAndroidAar"))
     dependsOn(tasks.named("verifyQpcHafsCorpus"))
+    dependsOn(tasks.named("prepareBundledAdhanAssets"))
 }
