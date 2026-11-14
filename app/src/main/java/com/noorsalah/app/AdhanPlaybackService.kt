@@ -121,16 +121,13 @@ class AdhanPlaybackService : Service() {
             val volume = getSharedPreferences("MainActivity", MODE_PRIVATE)
                 .getInt("adhan_volume", 100).coerceIn(0, 100) / 100f
             media.setVolume(volume, volume)
-            if (selectedAudio.startsWith("صوت مخصص") && customUri != null) {
-                media.setDataSource(this, customUri)
-            } else {
-                val resource = if (selectedAudio.startsWith("أذان قصير")) {
-                    R.raw.adhan_short
-                } else {
-                    R.raw.adhan_full
-                }
-                media.setDataSource(this, Uri.parse("android.resource://$packageName/$resource"))
+            if (!selectedAudio.startsWith("صوت مخصص") || customUri == null) {
+                media.release()
+                stopForegroundCompat()
+                stopSelf()
+                return
             }
+            media.setDataSource(this, customUri)
             player = media
             media.setOnPreparedListener { prepared ->
                 if (player === prepared) prepared.start()
@@ -150,12 +147,8 @@ class AdhanPlaybackService : Service() {
         } catch (_: Exception) {
             try { media.release() } catch (_: Exception) {}
             player = null
-            if (selectedAudio.startsWith("صوت مخصص")) {
-                startPlayback("أذان كامل", null)
-            } else {
-                stopForegroundCompat()
-                stopSelf()
-            }
+            stopForegroundCompat()
+            stopSelf()
         }
     }
 
