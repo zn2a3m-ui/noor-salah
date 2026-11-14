@@ -104,7 +104,6 @@ object PrayerTimesRemoteRepository {
             latitude !in -90.0..90.0 || longitude !in -180.0..180.0) return
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("prayer_remote_consent", false)) return
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         val methodId = methodIdFor(selectedMethod)
         val cachedMethodId = prefs.getString("prayer_remote_method_key", null)
@@ -266,7 +265,6 @@ object PrayerTimesRemoteRepository {
     ) {
         val appContext = context.applicationContext
         val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("prayer_remote_consent", false)) return
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         val methodId = methodIdFor(selectedMethod)
         if (methodId != "JORDAN" || !isJordan(latitude, longitude)) return
@@ -325,7 +323,6 @@ object PrayerTimesRemoteRepository {
 
     fun getTimes(context: Context, date: Calendar): List<Int>? {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (!prefs.getBoolean("prayer_remote_consent", false)) return null
         val selectedMethod = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
         val methodId = methodIdFor(selectedMethod)
         if (prefs.getString("prayer_remote_method_key", null) != methodId) return null
@@ -416,6 +413,16 @@ object PrayerTimesRemoteRepository {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("prayer_remote_authority_url", null)
             ?.takeIf { it.startsWith("https://") }
+
+    internal fun methodLabelForCountryCode(countryCode: String): String = when (countryCode.uppercase(Locale.US)) {
+        "JO" -> "الأردن (18° / 18°)"
+        "SA" -> "أم القرى (18.5° / 90 دقيقة)"
+        "EG" -> "الهيئة المصرية (19.5° / 17.5°)"
+        "TR" -> "ديانت تركيا (18° / 17°)"
+        "SG" -> "سنغافورة (20° / 18°)"
+        "US", "CA" -> "أمريكا الشمالية ISNA (15° / 15°)"
+        else -> "رابطة العالم الإسلامي (18° / 17°)"
+    }
 
     internal fun methodIdFor(label: String): String = when {
         label.startsWith("الأردن") -> "JORDAN"
