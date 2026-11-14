@@ -9,10 +9,6 @@ def releaseKeyAlias = System.getenv("KEY_ALIAS")
 def releaseKeyPassword = System.getenv("KEY_PASSWORD")
 def stableDebugStoreFile = file("${System.getProperty('user.home')}/.android/debug.keystore")
 
-def tanzilQuranAsset = file("$projectDir/src/main/assets/tanzil-uthmani-1.1.txt")
-def tanzilQuranUrl = "https://raw.githubusercontent.com/iptvchecker/content-tanzil/1f7f2e368983e33208f16bbb7fbf826fc0a56619/tanzil-uthmani-1.1.txt"
-def tanzilQuranSha256 = "ac0724796cbbda0f4801470fbbd11d0f3c5802067bae0493466d0128b0c667af"
-
 def qvpAndroidAar = file("$projectDir/libs/qvp-android-0.8.0.aar")
 def qvpAndroidAarUrl = "https://github.com/quran-ws/quran-engine/releases/download/v0.8.0/qvp-android-0.8.0.aar"
 def qvpAndroidAarSha256 = "df3055762a6ffcfb8ba02626f607a87933d56f9b483f3be5783daa3d5352bc81"
@@ -72,52 +68,6 @@ tasks.register("downloadVerifiedAdhanAudio") {
                 source.file.delete()
                 throw new GradleException("Adhan audio verification failed for ${source.file.name}.")
             }
-        }
-    }
-}
-
-
-tasks.register("downloadVerifiedTanzilQuran") {
-    outputs.file(tanzilQuranAsset)
-    outputs.upToDateWhen { false }
-    doLast {
-        tanzilQuranAsset.parentFile.mkdirs()
-        if (!tanzilQuranAsset.exists()) {
-            def connection = new URL(tanzilQuranUrl).openConnection()
-            connection.connectTimeout = 20000
-            connection.readTimeout = 60000
-            connection.setRequestProperty("User-Agent", "NoorSalah-Android-Build")
-            connection.inputStream.withCloseable { input ->
-                tanzilQuranAsset.withOutputStream { output -> output << input }
-            }
-        }
-        def digest = java.security.MessageDigest.getInstance("SHA-256").digest(tanzilQuranAsset.bytes)
-        def actualSha256 = new BigInteger(1, digest).toString(16).padLeft(64, "0")
-        if (actualSha256 != tanzilQuranSha256) {
-            tanzilQuranAsset.delete()
-            throw new GradleException("Tanzil Quran asset checksum mismatch; refusing to package unverified text.")
-        }
-        def ayahLineCount = tanzilQuranAsset.readLines("UTF-8").count { line ->
-            !line.trim().isEmpty() && !line.startsWith("#")
-        }
-        if (ayahLineCount != 6236) {
-            throw new GradleException("Tanzil Quran text must contain 6,236 verse lines; found ${ayahLineCount}.")
-        }
-        def quranMetadataFile = file("$projectDir/src/main/assets/quran-surah-index.json")
-        def quranMetadata = new groovy.json.JsonSlurper().parse(quranMetadataFile)
-        def totalAyahs = quranMetadata.suras.collect { it.ayahs }.sum()
-        if (quranMetadata.suras.size() != 114 || totalAyahs != 6236 ||
-            quranMetadata.juz.size() != 30 || quranMetadata.hizbQuarters.size() != 240 ||
-            quranMetadata.manzils.size() != 7 || quranMetadata.rukus.size() != 556 ||
-            quranMetadata.pages.size() != 604 || quranMetadata.sajdas.size() != 15) {
-            throw new GradleException("Tanzil Quran metadata failed structural validation.")
-        }
-        def expectedStartLine = 0
-        quranMetadata.suras.eachWithIndex { surah, index ->
-            if (surah.number != index + 1 || surah.start != expectedStartLine) {
-                throw new GradleException("Tanzil surah boundaries are not contiguous.")
-            }
-            expectedStartLine += surah.ayahs
         }
     }
 }
@@ -190,7 +140,6 @@ dependencies {
 }
 
 tasks.named("preBuild").configure {
-    dependsOn(tasks.named("downloadVerifiedTanzilQuran"))
     dependsOn(tasks.named("downloadVerifiedQvpAndroidAar"))
     dependsOn(tasks.named("downloadVerifiedAdhanAudio"))
 }
