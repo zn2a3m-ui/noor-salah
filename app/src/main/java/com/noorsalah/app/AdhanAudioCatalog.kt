@@ -4,9 +4,8 @@ package com.noorsalah.app
 object AdhanAudioCatalog {
     const val MADINAH = "أذان المدينة – المسجد النبوي"
     const val MALMO_FAJR = "أذان الفجر – مسجد مالمو"
-    const val ASIM_JAVED = "أذان عاصم جاويد"
 
-    val bundledChoices = listOf(MADINAH, MALMO_FAJR, ASIM_JAVED)
+    val bundledChoices = listOf(MADINAH, MALMO_FAJR)
 
     fun isBundled(selectedAudio: String): Boolean =
         bundledChoices.any { selectedAudio == it }
@@ -14,7 +13,6 @@ object AdhanAudioCatalog {
     fun resourceId(selectedAudio: String): Int? = when (selectedAudio) {
         MADINAH -> R.raw.adhan_madinah
         MALMO_FAJR -> R.raw.adhan_malmo_fajr
-        ASIM_JAVED -> R.raw.adhan_asim_javed
         else -> null
     }
 }
