@@ -124,7 +124,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var selectedDateMillis = 0L
     private var calendarMonthMillis = System.currentTimeMillis()
     private var prayerOffsetsExpanded = false
-    private var selectedMuezzin = "المؤذن الافتراضي"
+    private var selectedMuezzin = "تنبيه النظام فقط"
     private var calculationMethod = "الأردن (18° / 18°)"
     private var use24Hour = true
     private var cityName = "عمّان، الأردن"
@@ -176,7 +176,7 @@ class MainActivity : Activity(), SensorEventListener {
             }
             edit.putBoolean("prayer_offsets_migrated", true).remove("time_offset").apply()
         }
-        selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
+        selectedMuezzin = getPreferences(0).getString("muezzin", "تنبيه النظام فقط") ?: "تنبيه النظام فقط"
         quranFontSize = getPreferences(0).getFloat("quran_font_size", 32f).coerceIn(26f, 42f)
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
@@ -270,7 +270,7 @@ class MainActivity : Activity(), SensorEventListener {
     private fun previewAdhan() {
         stopAdhanPreview()
         if (selectedMuezzin.startsWith("تنبيه النظام")) {
-            Toast.makeText(this, "هذا الخيار يستخدم صوت إشعار الهاتف", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "لا يوجد تسجيل أذان مدمج حالياً؛ سيُستخدم صوت إشعار الهاتف.", Toast.LENGTH_SHORT).show()
             return
         }
         val customUri = getPreferences(0).getString("custom_adhan_uri", null)
@@ -281,10 +281,7 @@ class MainActivity : Activity(), SensorEventListener {
         val player = try {
             if (selectedMuezzin.startsWith("صوت مخصص")) {
                 MediaPlayer.create(this, Uri.parse(customUri!!))
-            } else {
-                val resource = if (selectedMuezzin.startsWith("أذان قصير")) R.raw.adhan_short else R.raw.adhan_full
-                MediaPlayer.create(this, resource)
-            }
+            } else null
         } catch (_: Exception) {
             null
         }
@@ -2748,7 +2745,7 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         card {
             line("صوت الأذان", 18f, gold, true)
-            val choices = mutableListOf("أذان كامل • 2:34", "أذان قصير • 0:42", "تنبيه النظام فقط")
+            val choices = mutableListOf("تنبيه النظام فقط")
             if (getPreferences(0).getString("custom_adhan_uri", null) != null) {
                 choices.add("صوت مخصص من الجهاز")
             }
