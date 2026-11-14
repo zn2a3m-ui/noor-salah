@@ -1830,7 +1830,7 @@ class MainActivity : Activity(), SensorEventListener {
                             prefs.edit()
                                 .putStringSet("quran_bookmarks_v1", bookmarks)
                                 .apply()
-                            showQuranTextReader(surahNumber, ayahNumber)
+                            showQuranV22Reader(surahNumber, ayahNumber)
                             Toast.makeText(this, "تمت إزالة العلامة المرجعية", Toast.LENGTH_SHORT).show()
                         } else {
                             bookmarks.add(bookmarkKey)
@@ -1839,7 +1839,7 @@ class MainActivity : Activity(), SensorEventListener {
                                 .putInt("quran_last_surah", surahNumber)
                                 .putInt("quran_last_ayah", ayahNumber)
                                 .apply()
-                            showQuranTextReader(surahNumber, ayahNumber)
+                            showQuranV22Reader(surahNumber, ayahNumber)
                             Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -1910,7 +1910,7 @@ class MainActivity : Activity(), SensorEventListener {
             .putInt("quran_last_surah", surahNumber)
             .putInt("quran_last_ayah", safeAyah)
             .apply()
-        showQuranTextReader(surahNumber, safeAyah)
+        showQuranV22Reader(surahNumber, safeAyah)
     }
 
 
@@ -1918,7 +1918,7 @@ class MainActivity : Activity(), SensorEventListener {
      * Large-type, verse-by-verse reading mode. The source text remains the
      * verified Tanzil asset; only presentation and interaction are changed.
      */
-    private fun showQuranTextReader(surahNumber: Int, focusAyah: Int) {
+    private fun showQuranV22Reader(surahNumber: Int, focusAyah: Int) {
         releaseQuranMushafPage()
         val v22Typeface = Typeface.createFromAsset(assets, "fonts/UthmanicHafs_V22.ttf")
         val surah = quranRepository.loadSurahs().getOrNull(surahNumber - 1) ?: return
@@ -1976,13 +1976,13 @@ class MainActivity : Activity(), SensorEventListener {
             sizeRow.addView(button("−") {
                 quranFontSize = (quranFontSize - 2f).coerceAtLeast(26f)
                 getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
-                showQuranTextReader(surahNumber, focusAyah)
+                showQuranV22Reader(surahNumber, focusAyah)
             }, LinearLayout.LayoutParams(dp(64), -2))
             sizeRow.addView(sizeLabel, LinearLayout.LayoutParams(0, -2, 1f))
             sizeRow.addView(button("+") {
                 quranFontSize = (quranFontSize + 2f).coerceAtMost(42f)
                 getPreferences(0).edit().putFloat("quran_font_size", quranFontSize).apply()
-                showQuranTextReader(surahNumber, focusAyah)
+                showQuranV22Reader(surahNumber, focusAyah)
             }, LinearLayout.LayoutParams(dp(64), -2))
             addView(sizeRow, LinearLayout.LayoutParams(-1, -2))
             line("اضغط على نص الآية للاستماع، أو على رقمها لإضافة علامة مرجعية أو إزالتها.", 12f, muted, false, Gravity.CENTER)
@@ -2097,10 +2097,6 @@ class MainActivity : Activity(), SensorEventListener {
         }
         content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
         text("اسحب للأعلى لمواصلة القراءة. المس كلمات الآية للاستماع أو التكرار، والمس رقمها للحفظ.", 12f, muted, false, Gravity.CENTER)
-        content.addView(button("قراءة الآيات بخط كبير ومريح") {
-            getPreferences(0).edit().putString("quran_reading_mode", "text").apply()
-            showQuranTextReader(surahNumber, focusAyah)
-        }, LinearLayout.LayoutParams(-1, -2))
         gap(8)
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
