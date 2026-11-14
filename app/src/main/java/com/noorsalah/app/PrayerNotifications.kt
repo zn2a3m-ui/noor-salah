@@ -295,6 +295,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             } else {
                 manager.getNotificationChannel(PrayerAlarmScheduler.CHANNEL_CUSTOM_ID) != null
             }
+            val useBundledAudio = AdhanAudioCatalog.isBundled(selectedAudio)
             val useCustomAudio = selectedAudio.startsWith("صوت مخصص") &&
                 customAudioAvailable && customChannelAvailable
             val channelId = if (useCustomAudio) {
@@ -302,7 +303,7 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
             } else {
                 PrayerAlarmScheduler.CHANNEL_ALERT_ID
             }
-            val playbackStarted = if (useCustomAudio) {
+            val playbackStarted = if (useCustomAudio || useBundledAudio) {
                 try {
                     val playbackIntent = Intent(context, AdhanPlaybackService::class.java).apply {
                         putExtra(AdhanPlaybackService.EXTRA_PRAYER, prayer)
