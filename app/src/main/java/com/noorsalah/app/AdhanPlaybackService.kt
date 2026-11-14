@@ -121,13 +121,24 @@ class AdhanPlaybackService : Service() {
             val volume = getSharedPreferences("MainActivity", MODE_PRIVATE)
                 .getInt("adhan_volume", 100).coerceIn(0, 100) / 100f
             media.setVolume(volume, volume)
-            if (!selectedAudio.startsWith("صوت مخصص") || customUri == null) {
-                media.release()
-                stopForegroundCompat()
-                stopSelf()
-                return
+            val bundledResource = AdhanAudioCatalog.resourceId(selectedAudio)
+            when {
+                bundledResource != null -> {
+                    media.setDataSource(
+                        this,
+                        Uri.parse("android.resource://$packageName/$bundledResource")
+                    )
+                }
+                selectedAudio.startsWith("صوت مخصص") && customUri != null -> {
+                    media.setDataSource(this, customUri)
+                }
+                else -> {
+                    media.release()
+                    stopForegroundCompat()
+                    stopSelf()
+                    return
+                }
             }
-            media.setDataSource(this, customUri)
             player = media
             media.setOnPreparedListener { prepared ->
                 if (player === prepared) prepared.start()
