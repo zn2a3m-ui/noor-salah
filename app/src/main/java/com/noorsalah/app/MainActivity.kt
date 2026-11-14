@@ -278,10 +278,14 @@ class MainActivity : Activity(), SensorEventListener {
             Toast.makeText(this, "ملف الأذان المخصص غير متاح. اختره من جديد.", Toast.LENGTH_LONG).show()
             return
         }
+        val bundledResource = AdhanAudioCatalog.resourceId(selectedMuezzin)
         val player = try {
-            if (selectedMuezzin.startsWith("صوت مخصص")) {
-                MediaPlayer.create(this, Uri.parse(customUri!!))
-            } else null
+            when {
+                bundledResource != null -> MediaPlayer.create(this, bundledResource)
+                selectedMuezzin.startsWith("صوت مخصص") && customUri != null ->
+                    MediaPlayer.create(this, Uri.parse(customUri))
+                else -> null
+            }
         } catch (_: Exception) {
             null
         }
@@ -2745,7 +2749,9 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         card {
             line("صوت الأذان", 18f, gold, true)
-            val choices = mutableListOf("تنبيه النظام فقط")
+            val choices = mutableListOf("تنبيه النظام فقط").apply {
+                addAll(AdhanAudioCatalog.bundledChoices)
+            }
             if (getPreferences(0).getString("custom_adhan_uri", null) != null) {
                 choices.add("صوت مخصص من الجهاز")
             }
