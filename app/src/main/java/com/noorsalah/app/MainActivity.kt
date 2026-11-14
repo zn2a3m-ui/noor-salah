@@ -55,22 +55,15 @@ class MainActivity : Activity(), SensorEventListener {
     private val mutedOnDark = Color.rgb(184, 199, 184)
 
     private fun applyThemeColors() {
-        isLightTheme = getPreferences(0).getString("app_theme", "light") == "light"
-        if (isLightTheme) {
-            bg = Color.rgb(247, 243, 232)
-            panel = Color.rgb(255, 252, 245)
-            panelAlt = Color.rgb(238, 232, 218)
-            gold = Color.rgb(166, 127, 62)
-            cream = Color.rgb(38, 58, 48)
-            muted = Color.rgb(118, 121, 105)
-        } else {
-            bg = Color.rgb(5, 31, 26)
-            panel = Color.rgb(15, 45, 36)
-            panelAlt = Color.rgb(20, 55, 44)
-            gold = Color.rgb(222, 185, 105)
-            cream = Color.rgb(247, 243, 229)
-            muted = Color.rgb(184, 199, 184)
-        }
+        // The app uses the approved light appearance; Quran night reading is independent.
+        isLightTheme = true
+        getPreferences(0).edit().putString("app_theme", "light").apply()
+        bg = Color.rgb(247, 243, 232)
+        panel = Color.rgb(255, 252, 245)
+        panelAlt = Color.rgb(238, 232, 218)
+        gold = Color.rgb(166, 127, 62)
+        cream = Color.rgb(38, 58, 48)
+        muted = Color.rgb(118, 121, 105)
     }
     private lateinit var content: LinearLayout
     private lateinit var navigationBar: LinearLayout
@@ -2789,28 +2782,6 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(6)
         card {
-            line("المظهر", 18f, gold, true)
-            val themeChoices = listOf("الوضع الداكن • زمردي", "الوضع الفاتح • هادئ")
-            val themePicker = Spinner(this@MainActivity).apply {
-                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, themeChoices)
-                setSelection(if (isLightTheme) 1 else 0)
-                onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                        val selectedTheme = if (position == 1) "light" else "dark"
-                        val currentTheme = getPreferences(0).getString("app_theme", "light") ?: "light"
-                        if (selectedTheme != currentTheme) {
-                            getPreferences(0).edit()
-                                .putString("app_theme", selectedTheme)
-                                .putString("page_after_theme", page)
-                                .apply()
-                            recreate()
-                        }
-                    }
-                }
-            }
-            addView(themePicker, LinearLayout.LayoutParams(-1, -2))
-            line("يمكنك التبديل بين المظهرين في أي وقت.", 12f, muted)
             line("ويدجت المواقيت: اضغط مطولاً على الشاشة الرئيسية للهاتف، ثم الأدوات، واختر «نور الصلاة».", 12f, muted)
         }
         gap(10)
