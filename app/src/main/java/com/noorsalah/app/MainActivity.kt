@@ -1609,11 +1609,6 @@ class MainActivity : Activity(), SensorEventListener {
     private fun quran() {
         text("القرآن الكريم", 27f, gold, true, Gravity.CENTER)
         text("مصحف المدينة النبوية • رواية حفص عن عاصم", 13f, muted, false, Gravity.CENTER)
-        val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
-        content.addView(button(if (quranNightMode) "☀ إيقاف الوضع الليلي للمصحف" else "☾ تفعيل الوضع الليلي للمصحف") {
-            getPreferences(0).edit().putBoolean("quran_night_mode", !quranNightMode).apply()
-            showPage("quran")
-        }, LinearLayout.LayoutParams(-1, -2))
         gap(12)
 
         val surahs = try {
@@ -1633,6 +1628,16 @@ class MainActivity : Activity(), SensorEventListener {
             line("سورة ${lastInfo.name} • الآية $lastAyah", 14f, cream)
             addView(button("متابعة القراءة في صفحات المصحف") {
                 quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
+            }, LinearLayout.LayoutParams(-1, -2))
+        }
+        gap(10)
+
+        card {
+            line("إعدادات عرض المصحف", 17f, gold, true)
+            val quranNightMode = prefs.getBoolean("quran_night_mode", false)
+            addView(button(if (quranNightMode) "☀ إيقاف الوضع الليلي للمصحف" else "☾ تفعيل الوضع الليلي للمصحف") {
+                prefs.edit().putBoolean("quran_night_mode", !quranNightMode).apply()
+                showPage("quran")
             }, LinearLayout.LayoutParams(-1, -2))
         }
         gap(10)
