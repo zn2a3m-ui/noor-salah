@@ -1623,6 +1623,7 @@ class MainActivity : Activity(), SensorEventListener {
             return
         }
         val prefs = getPreferences(0)
+        prefs.edit().remove("quran_bookmarks_v1").apply()
         val lastSurah = prefs.getInt("quran_last_surah", 1).coerceIn(1, 114)
         val lastAyah = prefs.getInt("quran_last_ayah", 1).coerceAtLeast(1)
         val lastInfo = surahs[lastSurah - 1]
@@ -1633,32 +1634,6 @@ class MainActivity : Activity(), SensorEventListener {
             addView(button("متابعة القراءة في صفحات المصحف") {
                 quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
             }, LinearLayout.LayoutParams(-1, -2))
-        }
-        gap(10)
-
-        val savedBookmarks = prefs.getStringSet("quran_bookmarks_v1", emptySet())?.toList().orEmpty()
-            .mapNotNull { value ->
-                val parts = value.split(":")
-                if (parts.size == 2) {
-                    val surahNumber = parts[0].toIntOrNull()
-                    val ayahNumber = parts[1].toIntOrNull()
-                    if (surahNumber != null && ayahNumber != null) surahNumber to ayahNumber else null
-                } else null
-            }
-            .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
-
-        card {
-            line("علاماتي المرجعية", 18f, gold, true)
-            if (savedBookmarks.isEmpty()) {
-                line("لم تحفظ علامات بعد. اضغط على رقم أي آية واختر حفظ علامة مرجعية.", 13f, muted)
-            } else {
-                savedBookmarks.forEach { bookmark ->
-                    val bookmarkSurah = surahs.getOrNull(bookmark.first - 1) ?: return@forEach
-                    addView(button("سورة ${bookmarkSurah.name} • الآية ${bookmark.second}") {
-                        quranSurah(bookmark.first, bookmark.second)
-                    }, LinearLayout.LayoutParams(-1, -2))
-                }
-            }
         }
         gap(10)
 
@@ -1787,55 +1762,15 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun showQuranVerseActions(surahNumber: Int, surahName: String, ayahNumber: Int) {
-        val prefs = getPreferences(0)
-        val bookmarkKey = "$surahNumber:$ayahNumber"
-        val isBookmarked = prefs.getStringSet("quran_bookmarks_v1", emptySet())
-            ?.contains(bookmarkKey) == true
-        val choices = if (isBookmarked) {
-            arrayOf(
-                "إزالة العلامة المرجعية",
-                "حفظ موضع متابعة القراءة",
-                "إلغاء"
-            )
-        } else {
-            arrayOf(
-                "حفظ علامة مرجعية",
-                "حفظ موضع متابعة القراءة",
-                "إلغاء"
-            )
-        }
         AlertDialog.Builder(this)
             .setTitle("سورة $surahName • الآية $ayahNumber")
-            .setItems(choices) { dialog, which ->
-                when (which) {
-                    0 -> {
-                        val bookmarks = prefs.getStringSet("quran_bookmarks_v1", emptySet())
-                            ?.toMutableSet() ?: mutableSetOf()
-                        if (isBookmarked) {
-                            bookmarks.remove(bookmarkKey)
-                            prefs.edit()
-                                .putStringSet("quran_bookmarks_v1", bookmarks)
-                                .apply()
-                            refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
-                            Toast.makeText(this, "تمت إزالة العلامة المرجعية", Toast.LENGTH_SHORT).show()
-                        } else {
-                            bookmarks.add(bookmarkKey)
-                            prefs.edit()
-                                .putStringSet("quran_bookmarks_v1", bookmarks)
-                                .putInt("quran_last_surah", surahNumber)
-                                .putInt("quran_last_ayah", ayahNumber)
-                                .apply()
-                            refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
-                            Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    1 -> {
-                        prefs.edit()
-                            .putInt("quran_last_surah", surahNumber)
-                            .putInt("quran_last_ayah", ayahNumber)
-                            .apply()
-                        Toast.makeText(this, "تم حفظ موضع متابعة القراءة", Toast.LENGTH_SHORT).show()
-                    }
+            .setItems(arrayOf("حفظ موضع متابعة القراءة", "إلغاء")) { dialog, which ->
+                if (which == 0) {
+                    getPreferences(0).edit()
+                        .putInt("quran_last_surah", surahNumber)
+                        .putInt("quran_last_ayah", ayahNumber)
+                        .apply()
+                    Toast.makeText(this, "تم حفظ موضع متابعة القراءة", Toast.LENGTH_SHORT).show()
                 }
                 dialog.dismiss()
             }
@@ -1922,7 +1857,7 @@ class MainActivity : Activity(), SensorEventListener {
             getPreferences(0).edit().putBoolean("quran_night_mode", !quranNightMode).apply()
             showQuranMushafPages(surahNumber, focusAyah, pageToKeep)
         }, LinearLayout.LayoutParams(-1, -2))
-        text("تصفّح صفحات المصحف الأصلية بالتمرير. المس كلمة للاستماع، أو علامة الآية لإدارة العلامات المرجعية.", 12f, muted, false, Gravity.CENTER)
+        text("تصفّح صفحات المصحف الأصلية بالتمرير. المس كلمة للاستماع، أو رقم الآية لحفظ موضع متابعة القراءة.", 12f, muted, false, Gravity.CENTER)
         gap(8)
         card {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
@@ -2070,15 +2005,6 @@ class MainActivity : Activity(), SensorEventListener {
             result.onSuccess { loaded ->
                 val ink = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.WHITE else 0x111111FF.toInt()
                 loaded.theme(QvpTheme(ink = ink, diacritics = ink, dots = ink, waqf = ink, sifr = ink, ayahMark = ink, numeral = ink, headers = ink))
-                val bookmarks = getPreferences(0).getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
-                bookmarks.forEach { key ->
-                    val parts = key.split(":")
-                    val s = parts.getOrNull(0)?.toIntOrNull()
-                    val a = parts.getOrNull(1)?.toIntOrNull()
-                    if (s != null && a != null && loaded.ayahs.any { it.surah == s && it.ayah == a }) {
-                        loaded.highlight(s.toString() + ":" + a, QvpHighlightStyle(mode = HighlightMode.BAND, band = 0x8B50A060.toInt()))
-                    }
-                }
                 if (quranAudioHighlightGlobal in 1..6236) {
                     val playbackSurah = quranRepository.loadSurahs().lastOrNull { it.startLine < quranAudioHighlightGlobal }
                     val playbackAyah = playbackSurah?.let { quranAudioHighlightGlobal - it.startLine } ?: 0
@@ -2216,25 +2142,10 @@ class MainActivity : Activity(), SensorEventListener {
                     headers = ink
                 ))
 
-                val bookmarkStyle = QvpHighlightStyle(
-                    mode = HighlightMode.BAND,
-                    band = 0x8B50A060.toInt()
-                )
                 val currentStyle = QvpHighlightStyle(
                     mode = HighlightMode.BAND,
                     band = 0xA32690D6.toInt()
                 )
-                val savedBookmarks = getPreferences(0)
-                    .getStringSet("quran_bookmarks_v1", emptySet()) ?: emptySet()
-                savedBookmarks.forEach { key ->
-                    val parts = key.split(":")
-                    val savedSurah = parts.getOrNull(0)?.toIntOrNull()
-                    val savedAyah = parts.getOrNull(1)?.toIntOrNull()
-                    if (savedSurah != null && savedAyah != null &&
-                        loaded.ayahs.any { it.surah == savedSurah && it.ayah == savedAyah }) {
-                        loaded.highlight("$savedSurah:$savedAyah", bookmarkStyle)
-                    }
-                }
                 if (loaded.ayahs.any { it.surah == surahNumber && it.ayah == focusAyah }) {
                     loaded.highlight("$surahNumber:$focusAyah", currentStyle)
                 }
