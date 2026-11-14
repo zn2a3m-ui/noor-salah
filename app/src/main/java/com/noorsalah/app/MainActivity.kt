@@ -1630,31 +1630,6 @@ class MainActivity : Activity(), SensorEventListener {
         text("مصحف المدينة النبوية • رواية حفص عن عاصم", 13f, muted, false, Gravity.CENTER)
         gap(12)
 
-        card {
-            line("صفحات المصحف الأصلية", 17f, gold, true)
-            val offlineStatus = TextView(this@MainActivity).apply {
-                text = if (quranMushafDataRepository.isFullPackInstalled()) {
-                    "تم حفظ صفحات المصحف الـ604 على الجهاز."
-                } else {
-                    "تُحمّل الصفحة عند فتحها وتُحفظ تلقائياً. لحفظ الصفحات الـ604 كلها: تنزيل نحو 44 ميغابايت، ومساحة مؤقتة تقارب 150 ميغابايت أثناء التثبيت، ثم نحو 93 ميغابايت للصفحات."
-                }
-                textSize = 12f
-                setTextColor(muted)
-            }
-            quranMushafOfflineStatusView = offlineStatus
-            addView(offlineStatus, LinearLayout.LayoutParams(-1, -2))
-            val fullPackInstalled = quranMushafDataRepository.isFullPackInstalled()
-            val downloadButton = button(
-                if (fullPackInstalled) "صفحات المصحف محفوظة دون إنترنت"
-                else "تنزيل صفحات المصحف كاملة دون إنترنت"
-            ) {
-                if (!quranMushafDataRepository.isFullPackInstalled()) downloadFullQuranMushafPack()
-            }.apply { isEnabled = !fullPackInstalled }
-            quranMushafOfflineDownloadButton = downloadButton
-            addView(downloadButton, LinearLayout.LayoutParams(-1, -2))
-        }
-        gap(12)
-
         val surahs = try {
             quranRepository.loadSurahs()
         } catch (_: Exception) {
@@ -1669,15 +1644,7 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("متابعة القراءة", 18f, gold, true)
             line("سورة ${lastInfo.name} • الآية $lastAyah", 14f, cream)
-            addView(button("متابعة من آخر موضع") {
-                quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("قراءة بخط كبير ومريح") {
-                prefs.edit().putString("quran_reading_mode", "text").apply()
-                quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("عرض صفحات المصحف الأصلية") {
-                prefs.edit().putString("quran_reading_mode", "mushaf").apply()
+            addView(button("متابعة القراءة في مصحف حفص V22") {
                 quranSurah(lastSurah, lastAyah.coerceAtMost(lastInfo.ayahCount))
             }, LinearLayout.LayoutParams(-1, -2))
         }
@@ -1863,10 +1830,7 @@ class MainActivity : Activity(), SensorEventListener {
                             prefs.edit()
                                 .putStringSet("quran_bookmarks_v1", bookmarks)
                                 .apply()
-                            refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
-                            if (getPreferences(0).getString("quran_reading_mode", "text") == "text") {
-                                showQuranTextReader(surahNumber, ayahNumber)
-                            }
+                            showQuranTextReader(surahNumber, ayahNumber)
                             Toast.makeText(this, "تمت إزالة العلامة المرجعية", Toast.LENGTH_SHORT).show()
                         } else {
                             bookmarks.add(bookmarkKey)
@@ -1875,10 +1839,7 @@ class MainActivity : Activity(), SensorEventListener {
                                 .putInt("quran_last_surah", surahNumber)
                                 .putInt("quran_last_ayah", ayahNumber)
                                 .apply()
-                            refreshContinuousQuranPageForAyah(surahNumber, ayahNumber)
-                            if (getPreferences(0).getString("quran_reading_mode", "text") == "text") {
-                                showQuranTextReader(surahNumber, ayahNumber)
-                            }
+                            showQuranTextReader(surahNumber, ayahNumber)
                             Toast.makeText(this, "تم حفظ العلامة المرجعية", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -1948,7 +1909,6 @@ class MainActivity : Activity(), SensorEventListener {
         getPreferences(0).edit()
             .putInt("quran_last_surah", surahNumber)
             .putInt("quran_last_ayah", safeAyah)
-            .putString("quran_reading_mode", "v22")
             .apply()
         showQuranTextReader(surahNumber, safeAyah)
     }
@@ -2931,7 +2891,6 @@ class MainActivity : Activity(), SensorEventListener {
                 } else {
                     try {
                         val location = quranPageStart(pageNumber)
-                        getPreferences(0).edit().putString("quran_reading_mode", "mushaf").apply()
                         quranSurah(location.first, location.second, pageNumber)
                     } catch (_: Exception) {
                         Toast.makeText(this, "تعذّر الانتقال إلى الصفحة", Toast.LENGTH_SHORT).show()
