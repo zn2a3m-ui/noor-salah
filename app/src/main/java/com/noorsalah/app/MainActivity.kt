@@ -122,7 +122,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var vibrationEnabled = true
     private var selectedDateMillis = 0L
     private var calendarMonthMillis = System.currentTimeMillis()
-    private var timeOffsetMinutes = 0
+    private var prayerOffsetsExpanded = false
     private var selectedMuezzin = "المؤذن الافتراضي"
     private var calculationMethod = "الأردن (18° / 18°)"
     private var use24Hour = true
@@ -165,7 +165,16 @@ class MainActivity : Activity(), SensorEventListener {
         tasbeehTarget = getPreferences(0).getInt("tasbeeh_target", 100)
         vibrationEnabled = getPreferences(0).getBoolean("tasbeeh_vibration", true)
         selectedDateMillis = getPreferences(0).getLong("selected_date", 0L).let { if (it == 0L) System.currentTimeMillis() else it }
-        timeOffsetMinutes = getPreferences(0).getInt("time_offset", 0)
+        // Migrate the former global correction once to the five independent prayer corrections.
+        val prayerPrefs = getPreferences(0)
+        if (!prayerPrefs.getBoolean("prayer_offsets_migrated", false)) {
+            val legacyOffset = prayerPrefs.getInt("time_offset", 0).coerceIn(-5, 5)
+            val edit = prayerPrefs.edit()
+            listOf("fajr", "dhuhr", "asr", "maghrib", "isha").forEach { key ->
+                if (!prayerPrefs.contains("prayer_offset_$key")) edit.putInt("prayer_offset_$key", legacyOffset)
+            }
+            edit.putBoolean("prayer_offsets_migrated", true).remove("time_offset").apply()
+        }
         selectedMuezzin = getPreferences(0).getString("muezzin", "المؤذن الافتراضي") ?: "المؤذن الافتراضي"
         quranFontSize = getPreferences(0).getFloat("quran_font_size", 32f).coerceIn(26f, 42f)
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
@@ -2880,23 +2889,58 @@ class MainActivity : Activity(), SensorEventListener {
         }
         gap(10)
         card {
-            line("ضبط فرق الوقت", 18f, gold, true)
-            line("الفرق الحالي: ${if (timeOffsetMinutes >= 0) "+" else ""}$timeOffsetMinutes دقيقة", 15f, cream)
-            addView(button("تعديل الوقت") {
-                val now = java.util.Calendar.getInstance()
-                val baseMinutes = (now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE) + timeOffsetMinutes + 1440) % 1440
-                TimePickerDialog(this@MainActivity, { _, hour, minute ->
-                    val actual = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
-                    var diff = hour * 60 + minute - actual
-                    if (diff > 720) diff -= 1440
-                    if (diff < -720) diff += 1440
-                    timeOffsetMinutes = diff
-                    getPreferences(0).edit().putInt("time_offset", diff).apply()
+            val prefs = getPreferences(0)
+            prayerOffsetsExpanded = prefs.getBoolean("prayer_offsets_expanded", false)
+            addView(button(if (prayerOffsetsExpanded) "ضبط فرق الأذان 　⌃" else "ضبط فرق الأذان 　⌄") {
+                prayerOffsetsExpanded = !prayerOffsetsExpanded
+                prefs.edit().putBoolean("prayer_offsets_expanded", prayerOffsetsExpanded).apply()
+                showPage("settings")
+            }, LinearLayout.LayoutParams(-1, -2))
+            if (prayerOffsetsExpanded) {
+                line("قدّم أو أخّر كل صلاة بدقيقة واحدة لمطابقة أذان منطقتك. الحد الأقصى للتعديل ±5 دقائق.", 11f, muted)
+                val prayerOffsets = listOf(
+                    "الفجر" to "fajr",
+                    "الظهر" to "dhuhr",
+                    "العصر" to "asr",
+                    "المغرب" to "maghrib",
+                    "العشاء" to "isha"
+                )
+                prayerOffsets.forEach { (label, key) ->
+                    val row = LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        layoutDirection = View.LAYOUT_DIRECTION_RTL
+                    }
+                    val value = prefs.getInt("prayer_offset_$key", 0).coerceIn(-5, 5)
+                    val valueText = TextView(this@MainActivity).apply {
+                        text = "$label  •  ${if (value > 0) "+" else ""}$value دقيقة"
+                        textSize = 13f
+                        setTextColor(cream)
+                        gravity = Gravity.CENTER
+                    }
+                    row.addView(valueText, LinearLayout.LayoutParams(0, dp(42), 1f))
+                    row.addView(button("−") {
+                        val next = (prefs.getInt("prayer_offset_$key", 0) - 1).coerceAtLeast(-5)
+                        prefs.edit().putInt("prayer_offset_$key", next).apply()
+                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                        showPage("settings")
+                    }, LinearLayout.LayoutParams(dp(48), -2))
+                    row.addView(button("+") {
+                        val next = (prefs.getInt("prayer_offset_$key", 0) + 1).coerceAtMost(5)
+                        prefs.edit().putInt("prayer_offset_$key", next).apply()
+                        PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                        showPage("settings")
+                    }, LinearLayout.LayoutParams(dp(48), -2))
+                    addView(row, LinearLayout.LayoutParams(-1, -2))
+                }
+                addView(button("إعادة ضبط فروق الصلوات") {
+                    val edit = prefs.edit()
+                    listOf("fajr", "dhuhr", "asr", "maghrib", "isha").forEach { edit.putInt("prayer_offset_$it", 0) }
+                    edit.apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
                     showPage("settings")
-                }, baseMinutes / 60, baseMinutes % 60, true).show()
-            }, LinearLayout.LayoutParams(-1, -2))
-            line("هذا فرق تصحيحي لمواقيت التطبيق، وليس تغييراً لساعة الجهاز.", 12f, muted)
+                }, LinearLayout.LayoutParams(-1, -2))
+            }
         }
         gap(10)
         card {
@@ -3238,16 +3282,15 @@ class MainActivity : Activity(), SensorEventListener {
     private fun prayerTimesMinutes(): List<Int> {
         val date = java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
         val remoteTimes = PrayerTimesRemoteRepository.getTimes(this, date)
-        return if (remoteTimes != null) {
-            remoteTimes.map { ((it + timeOffsetMinutes) % 1440 + 1440) % 1440 }
-        } else {
-            PrayerTimesCalculator.calculate(
-                date,
-                latitude,
-                longitude,
-                calculationMethod,
-                timeOffsetMinutes
-            )
+        val baseTimes = remoteTimes ?: PrayerTimesCalculator.calculate(
+            date, latitude, longitude, calculationMethod, 0
+        )
+        val keys = listOf("fajr", null, "dhuhr", "asr", "maghrib", "isha")
+        val prefs = getPreferences(0)
+        return baseTimes.mapIndexed { index, minute ->
+            val key = keys[index]
+            val offset = if (key == null) 0 else prefs.getInt("prayer_offset_$key", 0).coerceIn(-5, 5)
+            ((minute + offset) % 1440 + 1440) % 1440
         }
     }
 
