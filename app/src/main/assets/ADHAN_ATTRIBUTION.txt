@@ -1,21 +1,3 @@
-ADHAN AUDIO ATTRIBUTION
+LEGACY ADHAN AUDIO REMOVAL
 
-1) Full adhan recording
-Title: Beautiful adhan.ogg
-Uploader / author: Adam-synagda
-Source: https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg
-Original media: https://upload.wikimedia.org/wikipedia/commons/b/b0/Beautiful_adhan.ogg
-License: CC0 1.0 Universal Public Domain Dedication
-Duration: approximately 154 seconds
-The original file is bundled without audio edits. Its SHA-1 is checked during the Android build.
-
-2) Short adhan recording
-Title: Adhan.ogg
-Uploader / author: Aishatu98
-Source: https://commons.wikimedia.org/wiki/File:Adhan.ogg
-Original media: https://upload.wikimedia.org/wikipedia/commons/e/e7/Adhan.ogg
-License: CC0 1.0 Universal Public Domain Dedication
-Duration: approximately 42 seconds
-The original file is bundled without audio edits. Its SHA-1 is checked during the Android build.
-
-Both recordings were released by their respective uploaders under CC0. No reciter identity is asserted by this application.
+The two previously bundled recordings (Beautiful adhan.ogg by Adam-synagda and Adhan.ogg by Aishatu98) have been removed from the app build. Their source and license details are retained here for historical attribution only; these recordings are no longer downloaded or packaged.
