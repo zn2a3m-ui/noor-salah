@@ -27,12 +27,6 @@ def adhanSources = [
         filename: "malmo-fajr.webm",
         url: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Eid_al-Fitr_Fajr_azan_at_Malm%C3%B6_Mosque_-_19_August_2012.webm",
         sha1: "bc75d5cee271efb67f03d3f35474a9362fce103f"
-    ],
-    [
-        name: "adhan_asim_javed",
-        filename: "asim-javed.mp3",
-        url: "https://archive.org/download/icr-friday-prayer-2nd-adhan-17th-may-2024-9th-dhul-qadah-1445-by-asim-javed/ICR_Friday_Prayer_2nd_Adhan_17th_May_2024_9th_Dhul_Qadah_1445_by_Asim_Javed.mp3",
-        sha1: null
     ]
 ]
 def adhanOutputFiles = adhanSources.collect { new File(new File(generatedAdhanResources, "raw"), "${it.name}.mp3") }
