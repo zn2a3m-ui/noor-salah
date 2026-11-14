@@ -3028,6 +3028,7 @@ class MainActivity : Activity(), SensorEventListener {
                         .remove("location_accuracy_m")
                         .apply()
                     PrayerAlarmScheduler.scheduleTodayAndTomorrow(this@MainActivity)
+                    updateAutomaticPrayerMethod()
                     PrayerTimesRemoteRepository.refreshIfNeeded(this@MainActivity, latitude, longitude)
                     showPage("settings")
                 }.setNegativeButton("إلغاء", null).show()
