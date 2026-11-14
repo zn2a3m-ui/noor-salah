@@ -521,28 +521,7 @@ class MainActivity : Activity(), SensorEventListener {
             row.addView(t)
             content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) })
         }
-        gap(2)
-        val prayerSource = TextView(this@MainActivity).apply {
-            text = PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity) + "\n" +
-                PrayerTimesRemoteRepository.getProviderLabel(this@MainActivity)
-            textSize = 10f
-            setTextColor(muted)
-            gravity = Gravity.CENTER
-            setPadding(dp(4), dp(4), dp(4), dp(8))
-            if (PrayerTimesRemoteRepository.getTimes(
-                    this@MainActivity,
-                    java.util.Calendar.getInstance().apply { timeInMillis = selectedDateMillis }
-                ) != null) {
-                setOnClickListener {
-                    try {
-                        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity))))
-                    } catch (_: Exception) {
-                        Toast.makeText(this@MainActivity, "تعذّر فتح مصدر المواقيت", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-        content.addView(prayerSource, LinearLayout.LayoutParams(-1, -2))
+        // تفاصيل المصادر وروابطها مجمّعة في الإعدادات ضمن «المصادر والتوثيق».
         getPreferences(0).edit().putBoolean("prayer_remote_consent", true).apply()
         gap(5)
         // قسم "مساحتك الإيمانية" واختصاراته أزيل بالكامل بناءً على طلب المستخدم.
@@ -770,18 +749,6 @@ class MainActivity : Activity(), SensorEventListener {
             } else {
                 line("التاريخ الهجري لهذا اليوم غير محفوظ. فعّل مصدر المواقيت عبر الإنترنت من الصفحة الرئيسية للحصول على بيانات الشهر.", 12f, muted)
                 addView(button("الذهاب لتفعيل مصدر المواقيت") { showPage("home") }, LinearLayout.LayoutParams(-1, -2))
-            }
-            line(PrayerTimesRemoteRepository.getMethodLabel(this@MainActivity), 11f, muted)
-            if (PrayerTimesRemoteRepository.getTimes(this@MainActivity, selectedDate) != null) {
-                addView(button("مصدر البيانات • prayertime.si") {
-                    try {
-                        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(
-                            PrayerTimesRemoteRepository.getSourceUrl(this@MainActivity)
-                        )))
-                    } catch (_: Exception) {
-                        Toast.makeText(this@MainActivity, "تعذّر فتح المصدر حالياً", Toast.LENGTH_SHORT).show()
-                    }
-                }, LinearLayout.LayoutParams(-1, -2))
             }
             val names = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
             val times = prayerTimesMinutes()
@@ -1298,11 +1265,6 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 }
                 panelCard.addView(dhikrText)
-                panelCard.addView(TextView(this@MainActivity).apply {
-                    text = "المصدر والتخريج: ${entry.source}"
-                    textSize = 11f; gravity = Gravity.CENTER; setTextColor(muted)
-                    setPadding(0, dp(8), 0, dp(4))
-                })
                 if (entry.times == 0) panelCard.addView(TextView(this@MainActivity).apply {
                     text = "هذا الذكر لا يثبت له عدد مخصوص؛ اضغط على النص بعد قراءته للانتقال فقط."
                     textSize = 10f; gravity = Gravity.CENTER; setTextColor(muted)
@@ -1415,15 +1377,6 @@ class MainActivity : Activity(), SensorEventListener {
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(0, dp(11), 0, 0)
                 }
-                val sourceText = if (phrase == "أَسْتَغْفِرُ اللهَ" && selectedCategory != "بعد الصلاة") "صيغة استغفار عامة • العدد هنا غير مقيّد" else (azkarSources[phrase] ?: "المصدر قيد المراجعة والتوثيق")
-                val repetitionText = if (phrase == "أَسْتَغْفِرُ اللهَ" && selectedCategory != "بعد الصلاة") null else azkarRepetitions[phrase]
-                val sourceView = TextView(this@MainActivity).apply {
-                    text = "المصدر: $sourceText" + (repetitionText?.let { "\nالعدد الوارد: $it" } ?: "")
-                    textSize = 10f
-                    setTextColor(muted)
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-                footer.addView(sourceView, LinearLayout.LayoutParams(0, -2, 1f))
                 val actionLabel = TextView(this@MainActivity).apply {
                     text = if (phrase == selectedDhikr) "ذكر المسبحة ✓" else "استخدمه في المسبحة  ←"
                     textSize = 10f
@@ -1458,7 +1411,7 @@ class MainActivity : Activity(), SensorEventListener {
                     Toast.makeText(this@MainActivity, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(5) })
                 actions.addView(actionChip("مشاركة") {
-                    val shareText = "$phrase\n\nالمصدر: $sourceText"
+                    val shareText = phrase
                     val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, shareText) }
                     startActivity(Intent.createChooser(send, "مشاركة الذكر"))
                 }, LinearLayout.LayoutParams(0, -2, 1f))
@@ -1714,56 +1667,6 @@ class MainActivity : Activity(), SensorEventListener {
             content.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(7) })
         }
 
-        gap(10)
-        card {
-            line("مصدر المصحف وحقوق النص", 16f, gold, true)
-            line("نص تنزيل العثماني • الإصدار 1.1 • CC BY 3.0. النص محفوظ كما ورد من المصدر دون تعديل.", 12f, muted)
-            addView(button("زيارة المصدر الرسمي للمصحف – تنزيل") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/download/")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("قراءة رخصة وشروط استخدام النص") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://tanzil.net/docs/Text_License")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-            gap(6)
-            line("صفحات العرض: مصحف المدينة النبوية، مجمع الملك فهد، الإصدار الرابع (1441هـ)، برواية حفص. تُعرض الصفحات من بيانات QVP موثّقة ببصمات SHA-256.", 12f, muted)
-            addView(button("المصدر الرسمي لمجمع الملك فهد") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://qurancomplex.gov.sa/")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("توثيق مصدر صفحات المصحف وبياناتها") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-            addView(button("شروط ترخيص بيانات الصفحات") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/LICENSE")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-            line("التلاوات الصوتية تُبث من Islamic Network بإذن أصحاب الحقوق، ولا تُخزّن ضمن التطبيق.", 12f, muted)
-            addView(button("شروط استخدام التلاوات الصوتية") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://alquran.cloud/terms-and-conditions")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-        }
     }
 
     private fun showQuranVerseActions(surahNumber: Int, surahName: String, ayahNumber: Int) {
@@ -2965,19 +2868,6 @@ class MainActivity : Activity(), SensorEventListener {
             line(if (locationMode == "manual") "الموقع مضبوط يدوياً" else "الموقع من الهاتف", 12f, muted)
         }
         gap(10)
-        sectionHeading("مصدر مواقيت الصلاة والخصوصية")
-        card {
-            line("المواقيت المتصلة تعمل تلقائيًا", 16f, gold, true)
-            line("يستخدم التطبيق موقعك لتحديد البلد وطريقة الحساب، ويطلب المواقيت من prayertime.si عند الحاجة. تُرسل إحداثيات تقريبية بعد تقريبها إلى منزلتين عشريتين في الحالات التي لا يتوفر فيها جدول مدينة، ولا تُرسل ملفاتك أو بياناتك الشخصية. عند انقطاع الإنترنت يستمر التطبيق بآخر مواقيت محفوظة ثم بالحساب المحلي الاحتياطي.", 12f, muted)
-            addView(button("شروط مصدر المواقيت") {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://prayertime.si/terms/")))
-                } catch (_: Exception) {
-                    Toast.makeText(this@MainActivity, "تعذّر فتح الشروط حالياً", Toast.LENGTH_SHORT).show()
-                }
-            }, LinearLayout.LayoutParams(-1, -2))
-        }
-        gap(10)
         sectionHeading("التنبيهات والصوت")
         card {
             line("تنسيق الوقت", 18f, gold, true)
@@ -2999,21 +2889,70 @@ class MainActivity : Activity(), SensorEventListener {
             line("يحدد نور الصلاة بلدك تلقائيًا ويختار طريقة الحساب المناسبة لموقعك.", 13f, cream)
             line(calculationMethod, 12f, muted)
             line("يُحدّث المواقيت من المصدر المتصل عند توفر الإنترنت، ويحتفظ بآخر بيانات صحيحة ويستخدم الحساب المحلي عند انقطاع الاتصال. وقت العصر محسوب بالطريقة القياسية.", 12f, muted)
-            if (PrayerTimesRemoteRepository.isJordan(latitude, longitude)) {
-                addView(button("فتح جدول وزارة الأوقاف الأردنية الرسمي") {
-                    try {
-                        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")))
-                    } catch (_: Exception) {
-                        Toast.makeText(this@MainActivity, "تعذر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
-                    }
-                }, LinearLayout.LayoutParams(-1, -2))
-            }
         }
         gap(10)
         card {
             line("حول التطبيق", 18f, gold, true)
             line("نور الصلاة • الإصدار 1.2", 14f, cream)
             line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted)
+        }
+        gap(10)
+        val docsExpanded = getPreferences(0).getBoolean("documentation_expanded", false)
+        card {
+            addView(button(if (docsExpanded) "المصادر والتوثيق 　⌃" else "المصادر والتوثيق 　⌄") {
+                getPreferences(0).edit().putBoolean("documentation_expanded", !docsExpanded).apply()
+                showPage("settings")
+            }, LinearLayout.LayoutParams(-1, -2))
+            if (docsExpanded) {
+                line("ملخص موحّد لمصادر البيانات والمحتوى والتراخيص المستخدمة في نور الصلاة. جمعنا المراجع هنا حتى تبقى صفحات الاستخدام هادئة وواضحة.", 12f, muted)
+                gap(8)
+                line("مواقيت الصلاة", 16f, gold, true)
+                line("يعتمد التطبيق على خدمة prayertime.si لجلب المواقيت عند توفر الإنترنت، مع الاحتفاظ بالبيانات السابقة والحساب المحلي الاحتياطي عند تعذّر الاتصال. في الأردن يُراعى جدول وزارة الأوقاف عند توفره؛ وتبقى مواقيت المسجد والجهة الرسمية المحلية المرجع العملي.", 12f, muted)
+                addView(button("شروط خدمة مواقيت الصلاة") {
+                    openDocumentationUrl("https://prayertime.si/terms/")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("جدول وزارة الأوقاف الأردنية") {
+                    openDocumentationUrl("https://www.awqaf.gov.jo/ar/Pages/PrayerTime")
+                }, LinearLayout.LayoutParams(-1, -2))
+                gap(8)
+                line("القرآن الكريم والمصحف", 16f, gold, true)
+                line("نص القرآن من تنزيل العثماني، الإصدار 1.1، محفوظ كما ورد دون تعديل. صفحات العرض من مصحف المدينة النبوية، مجمع الملك فهد، برواية حفص، بالاستناد إلى بيانات QVP. تُحفظ معلومات المصدر والترخيص هنا دون عرضها داخل فهرس المصحف.", 12f, muted)
+                addView(button("مصدر نص القرآن – تنزيل") {
+                    openDocumentationUrl("https://tanzil.net/download/")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("رخصة نص القرآن") {
+                    openDocumentationUrl("https://tanzil.net/docs/Text_License")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("مجمع الملك فهد لطباعة المصحف") {
+                    openDocumentationUrl("https://qurancomplex.gov.sa/")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("بيانات صفحات المصحف QVP") {
+                    openDocumentationUrl("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/docs/DATA.md")
+                }, LinearLayout.LayoutParams(-1, -2))
+                addView(button("ترخيص بيانات صفحات المصحف") {
+                    openDocumentationUrl("https://github.com/quran-ws/quran-engine/blob/data-v0.5.0/LICENSE")
+                }, LinearLayout.LayoutParams(-1, -2))
+                gap(8)
+                line("الأذكار والأدعية", 16f, gold, true)
+                line("تستند الإحالات الحديثية المدوّنة في التطبيق إلى القرآن الكريم وكتب السنة، ومنها صحيح البخاري وصحيح مسلم وسنن أبي داود وجامع الترمذي وسنن النسائي. الصيغ العامة لا تُقيّد بعدد مخصوص ما لم يرد دليل، وأي مادة غير مكتملة الإحالة تبقى بحاجة إلى مراجعة قبل اعتمادها.", 12f, muted)
+                gap(8)
+                line("التلاوات الصوتية", 16f, gold, true)
+                line("تُبث تلاوات القرآن عبر Al Quran Cloud / Islamic Network، وحقوق التسجيلات لأصحابها وتخضع لشروط الخدمة.", 12f, muted)
+                addView(button("شروط استخدام خدمة التلاوات") {
+                    openDocumentationUrl("https://alquran.cloud/terms-and-conditions")
+                }, LinearLayout.LayoutParams(-1, -2))
+                gap(8)
+                line("الأذان والخصوصية", 16f, gold, true)
+                line("التسجيلات المدمجة موثّقة بترخيص CC0 في ملفات الإسناد المرفقة بالمشروع. الملف الصوتي الذي يختاره المستخدم يبقى على جهازه. عند طلب المواقيت المتصلة قد تُرسل إحداثيات تقريبية للخدمة، ولا يحتاج التطبيق إلى حساب مستخدم.", 12f, muted)
+            }
+        }
+    }
+
+    private fun openDocumentationUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذّر فتح الرابط حالياً", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -3048,14 +2987,6 @@ class MainActivity : Activity(), SensorEventListener {
             setPadding(0, dp(12), 0, dp(18))
         }
         panelView.addView(textView, LinearLayout.LayoutParams(-1, -2))
-        val sourceView = TextView(this).apply {
-            text = "المصدر: $source" + (repetition?.let { "\nالعدد الوارد: $it" } ?: "")
-            textSize = 13f
-            setTextColor(muted)
-            gravity = Gravity.CENTER
-            setPadding(0, dp(8), 0, dp(8))
-        }
-        panelView.addView(sourceView, LinearLayout.LayoutParams(-1, -2))
         val dialog = AlertDialog.Builder(this)
             .setTitle("تفاصيل الذكر")
             .setView(panelView)
@@ -3077,8 +3008,7 @@ class MainActivity : Activity(), SensorEventListener {
                 Toast.makeText(this, "تم نسخ الذكر", Toast.LENGTH_SHORT).show()
             }
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
-                val shareText = "$phrase\n\nالمصدر: $source" +
-                    (repetition?.let { "\nالعدد الوارد: $it" } ?: "")
+                val shareText = phrase
                 val send = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, shareText)
