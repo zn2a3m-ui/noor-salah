@@ -23,6 +23,7 @@ import android.widget.*
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import android.content.pm.PackageManager
 import android.Manifest
 import android.location.Location
@@ -230,6 +231,12 @@ class MainActivity : Activity(), SensorEventListener {
 
     override fun onResume() {
         super.onResume()
+        val pendingUpdatePath = getPreferences(0).getString("pending_update_apk", null)
+        if (pendingUpdatePath != null && android.os.Build.VERSION.SDK_INT >= 26 && packageManager.canRequestPackageInstalls()) {
+            getPreferences(0).edit().remove("pending_update_apk").apply()
+            val pendingUpdate = File(pendingUpdatePath)
+            if (pendingUpdate.isFile) installDownloadedUpdate(pendingUpdate)
+        }
         sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
@@ -2978,24 +2985,24 @@ class MainActivity : Activity(), SensorEventListener {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
                 connection.disconnect()
                 val releases = org.json.JSONArray(response)
-                var releaseUrl: String? = null
-                var releaseName: String? = null
+                var latestApkUrl: String? = null
+                var latestDigest: String? = null
+                var releaseName = ""
                 var latestCode = -1
                 for (i in 0 until releases.length()) {
                     val release = releases.getJSONObject(i)
                     if (release.optBoolean("draft", false)) continue
                     val tag = release.optString("tag_name")
                     if (!tag.startsWith("preview-")) continue
+                    val code = tag.removePrefix("preview-").toIntOrNull() ?: continue
                     val assets = release.optJSONArray("assets") ?: continue
                     for (j in 0 until assets.length()) {
                         val asset = assets.getJSONObject(j)
-                        if (asset.optString("name").endsWith(".apk", true)) {
-                            val code = tag.removePrefix("preview-").toIntOrNull() ?: -1
-                            if (code > latestCode) {
-                                latestCode = code
-                                releaseUrl = release.optString("html_url")
-                                releaseName = release.optString("name", tag)
-                            }
+                        if (asset.optString("name") == "app-debug.apk" && code > latestCode) {
+                            latestCode = code
+                            latestApkUrl = asset.optString("browser_download_url").takeIf { it.startsWith("https://") }
+                            latestDigest = asset.optString("digest").removePrefix("sha256:").takeIf { it.matches(Regex("[0-9a-fA-F]{64}")) }
+                            releaseName = release.optString("name", tag)
                         }
                     }
                 }
@@ -3003,13 +3010,17 @@ class MainActivity : Activity(), SensorEventListener {
                     @Suppress("DEPRECATION")
                     packageManager.getPackageInfo(packageName, 0).versionCode
                 }
+                val apkUrl = latestApkUrl
+                val digest = latestDigest
                 runOnUiThread {
                     if (isFinishing) return@runOnUiThread
-                    if (releaseUrl != null && latestCode > installedCode) {
+                    if (apkUrl != null && digest != null && latestCode > installedCode) {
                         AlertDialog.Builder(this).setTitle("يتوفر تحديث جديد")
-                            .setMessage("$releaseName\\nرقم الإصدار: $latestCode")
-                            .setPositiveButton("فتح صفحة التحديث") { _, _ -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl))) }
+                            .setMessage("$releaseName\nرقم الإصدار: $latestCode\nسيتم تنزيل الملف والتحقق منه قبل طلب تثبيته.")
+                            .setPositiveButton("تنزيل وتثبيت") { _, _ -> downloadAndInstallUpdate(apkUrl, digest) }
                             .setNegativeButton("لاحقاً", null).show()
+                    } else if (latestCode > installedCode) {
+                        Toast.makeText(this, "التحديث موجود لكن تعذر التحقق من سلامة ملفه. حاول لاحقاً.", Toast.LENGTH_LONG).show()
                     } else Toast.makeText(this, "تطبيقك محدث حالياً.", Toast.LENGTH_LONG).show()
                 }
             } catch (_: Exception) {
@@ -3017,6 +3028,68 @@ class MainActivity : Activity(), SensorEventListener {
             }
         }.start()
     }
+
+    private fun downloadAndInstallUpdate(url: String, expectedSha256: String) {
+        Toast.makeText(this, "جارٍ تنزيل التحديث والتحقق منه…", Toast.LENGTH_LONG).show()
+        Thread {
+            try {
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 15000
+                connection.readTimeout = 60000
+                connection.instanceFollowRedirects = true
+                connection.setRequestProperty("User-Agent", "NoorSalah-Android")
+                val updateDir = File(cacheDir, "updates").apply { mkdirs() }
+                val apkFile = File(updateDir, "noor-salah-update.apk")
+                connection.inputStream.use { input ->
+                    apkFile.outputStream().use { output -> input.copyTo(output) }
+                }
+                connection.disconnect()
+                val digest = java.security.MessageDigest.getInstance("SHA-256").digest(apkFile.readBytes())
+                    .joinToString("") { "%02x".format(it) }
+                if (!digest.equals(expectedSha256, ignoreCase = true)) {
+                    apkFile.delete()
+                    throw IllegalStateException("Update checksum mismatch")
+                }
+                runOnUiThread {
+                    if (!isFinishing) {
+                        Toast.makeText(this, "اكتمل التنزيل والتحقق من سلامة الملف.", Toast.LENGTH_SHORT).show()
+                        installDownloadedUpdate(apkFile)
+                    }
+                }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    if (!isFinishing) Toast.makeText(this, "تعذر تنزيل التحديث أو التحقق منه. لم يتم تثبيت أي ملف.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun installDownloadedUpdate(apkFile: File) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+                getPreferences(0).edit().putString("pending_update_apk", apkFile.absolutePath).apply()
+                AlertDialog.Builder(this)
+                    .setTitle("السماح بتثبيت التحديث")
+                    .setMessage("افتح إعداد السماح بتثبيت التطبيقات لهذا المصدر، ثم ارجع إلى نور الصلاة لإكمال التثبيت.")
+                    .setPositiveButton("فتح الإعدادات") { _, _ ->
+                        startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+                    }
+                    .setNegativeButton("لاحقاً", null)
+                    .show()
+                return
+            }
+            val contentUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(contentUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(installIntent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "تعذر فتح مثبت Android. يمكنك إعادة المحاولة من صفحة التحديثات.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun openDocumentationUrl(url: String) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
