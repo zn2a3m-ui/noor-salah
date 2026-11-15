@@ -2686,6 +2686,27 @@ class MainActivity : Activity(), SensorEventListener {
             }
             addView(dedicationToggle, LinearLayout.LayoutParams(-1, -2))
             line("يصل تذكير بالدعاء بعد الفجر وبعد المغرب بربع ساعة، مع قراءة الدعاء صوتياً باللغة العربية.", 12f, muted)
+            addView(button("معاينة الدعاء الآن") {
+                val dua = dedicationDuaForToday()
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("معاينة الدعاء")
+                    .setMessage(dua)
+                    .setPositiveButton("استمع للدعاء") { _, _ ->
+                        try {
+                            val speechIntent = Intent(this@MainActivity, DuaSpeechService::class.java)
+                                .putExtra(DuaSpeechService.EXTRA_TEXT, dua)
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                startForegroundService(speechIntent)
+                            } else {
+                                startService(speechIntent)
+                            }
+                        } catch (_: Exception) {
+                            Toast.makeText(this@MainActivity, "تعذّرت قراءة الدعاء. تحقق من توفر صوت عربي في الهاتف.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    .setNegativeButton("إغلاق", null)
+                    .show()
+            }, LinearLayout.LayoutParams(-1, -2))
             addView(button("تفعيل صلاحية الإشعارات") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
             addView(button("السماح بالتنبيه الدقيق في وقته") { requestExactAlarmPermission() }, LinearLayout.LayoutParams(-1, -2))
         }
