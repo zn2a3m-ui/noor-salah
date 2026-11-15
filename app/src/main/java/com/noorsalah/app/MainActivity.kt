@@ -233,9 +233,12 @@ class MainActivity : Activity(), SensorEventListener {
         super.onResume()
         val pendingUpdatePath = getPreferences(0).getString("pending_update_apk", null)
         if (pendingUpdatePath != null && android.os.Build.VERSION.SDK_INT >= 26 && packageManager.canRequestPackageInstalls()) {
-            getPreferences(0).edit().remove("pending_update_apk").apply()
             val pendingUpdate = File(pendingUpdatePath)
-            if (pendingUpdate.isFile) installDownloadedUpdate(pendingUpdate)
+            if (pendingUpdate.isFile) {
+                installDownloadedUpdate(pendingUpdate)
+            } else {
+                getPreferences(0).edit().remove("pending_update_apk").apply()
+            }
         }
         sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
@@ -3032,24 +3035,49 @@ class MainActivity : Activity(), SensorEventListener {
     private fun downloadAndInstallUpdate(url: String, expectedSha256: String) {
         Toast.makeText(this, "جارٍ تنزيل التحديث والتحقق منه…", Toast.LENGTH_LONG).show()
         Thread {
+            val updateDir = File(cacheDir, "updates").apply { mkdirs() }
+            val apkFile = File(updateDir, "noor-salah-update.apk")
+            var connection: java.net.HttpURLConnection? = null
             try {
-                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                require(expectedSha256.matches(Regex("[0-9a-fA-F]{64}"))) { "Invalid update checksum" }
+                connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
                 connection.connectTimeout = 15000
                 connection.readTimeout = 60000
                 connection.instanceFollowRedirects = true
                 connection.setRequestProperty("User-Agent", "NoorSalah-Android")
-                val updateDir = File(cacheDir, "updates").apply { mkdirs() }
-                val apkFile = File(updateDir, "noor-salah-update.apk")
-                connection.inputStream.use { input ->
-                    apkFile.outputStream().use { output -> input.copyTo(output) }
+                val responseCode = connection.responseCode
+                if (responseCode != java.net.HttpURLConnection.HTTP_OK) {
+                    throw IllegalStateException("Update server returned HTTP $responseCode")
                 }
-                connection.disconnect()
-                val digest = java.security.MessageDigest.getInstance("SHA-256").digest(apkFile.readBytes())
-                    .joinToString("") { "%02x".format(it) }
-                if (!digest.equals(expectedSha256, ignoreCase = true)) {
-                    apkFile.delete()
+
+                val maxApkBytes = 100L * 1024L * 1024L
+                if (connection.contentLengthLong > maxApkBytes) {
+                    throw IllegalStateException("Update file exceeds the allowed size")
+                }
+
+                val sha256 = java.security.MessageDigest.getInstance("SHA-256")
+                var totalBytes = 0L
+                connection.inputStream.buffered().use { input ->
+                    apkFile.outputStream().buffered().use { output ->
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            totalBytes += count
+                            if (totalBytes > maxApkBytes) {
+                                throw IllegalStateException("Update file exceeds the allowed size")
+                            }
+                            sha256.update(buffer, 0, count)
+                            output.write(buffer, 0, count)
+                        }
+                    }
+                }
+
+                val actualDigest = sha256.digest().joinToString("") { "%02x".format(it) }
+                if (totalBytes == 0L || !actualDigest.equals(expectedSha256, ignoreCase = true)) {
                     throw IllegalStateException("Update checksum mismatch")
                 }
+
                 runOnUiThread {
                     if (!isFinishing) {
                         Toast.makeText(this, "اكتمل التنزيل والتحقق من سلامة الملف.", Toast.LENGTH_SHORT).show()
@@ -3057,9 +3085,12 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                 }
             } catch (_: Exception) {
+                apkFile.delete()
                 runOnUiThread {
                     if (!isFinishing) Toast.makeText(this, "تعذر تنزيل التحديث أو التحقق منه. لم يتم تثبيت أي ملف.", Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                connection?.disconnect()
             }
         }.start()
     }
@@ -3085,6 +3116,7 @@ class MainActivity : Activity(), SensorEventListener {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(installIntent)
+            getPreferences(0).edit().remove("pending_update_apk").apply()
         } catch (_: Exception) {
             Toast.makeText(this, "تعذر فتح مثبت Android. يمكنك إعادة المحاولة من صفحة التحديثات.", Toast.LENGTH_LONG).show()
         }
