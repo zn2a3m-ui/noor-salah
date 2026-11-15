@@ -531,7 +531,6 @@ class MainActivity : Activity(), SensorEventListener {
             line("سُبْحَانَ اللهِ وَبِحَمْدِهِ", 21f, cream, true, Gravity.CENTER)
             line("سبحان الله العظيم", 12f, muted, false, Gravity.CENTER)
         }
-        text("قد تختلف الحسابات الفلكية دقيقة أو دقيقتين عن أذان المسجد؛ ويُعتمد إعلان وزارة الأوقاف للمناسبات المرتبطة بالرؤية.", 11f, muted, false, Gravity.CENTER)
     }
 
     private fun localUmmAlQuraDate(date: java.util.Calendar): PrayerTimesRemoteRepository.HijriDate? {
