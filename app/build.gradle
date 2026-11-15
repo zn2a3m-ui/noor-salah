@@ -167,8 +167,8 @@ android {
         applicationId 'com.noorsalah.app'
         minSdk 24
         targetSdk 36
-        versionCode 4
-        versionName '1.2'
+        versionCode (project.findProperty('versionCode')?.toString()?.toInteger() ?: 4)
+        versionName (project.findProperty('versionName')?.toString() ?: '1.2')
         manifestPlaceholders = [appLabel: "نور الصلاة - NOOR"]
     }
 
