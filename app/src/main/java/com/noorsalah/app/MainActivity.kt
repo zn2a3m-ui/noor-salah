@@ -126,7 +126,6 @@ class MainActivity : Activity(), SensorEventListener {
     private var prayerOffsetsExpanded = false
     private var selectedMuezzin = "تنبيه النظام فقط"
     private var calculationMethod = "الأردن (18° / 18°)"
-    private var use24Hour = true
     private var cityName = "عمّان، الأردن"
     private var locationMode = "gps"
     private val clockHandler = Handler(Looper.getMainLooper())
@@ -160,7 +159,7 @@ class MainActivity : Activity(), SensorEventListener {
             calculationMethod = "الأردن (18° / 18°)"
             getPreferences(0).edit().putString("calculation_method", calculationMethod).apply()
         }
-        use24Hour = getPreferences(0).getBoolean("use_24_hour", true)
+        getPreferences(0).edit().putBoolean("use_24_hour", false).apply()
         selectedDhikr = getPreferences(0).getString("selected_dhikr", "سُبْحَانَ اللهِ وَبِحَمْدِهِ") ?: "سُبْحَانَ اللهِ وَبِحَمْدِهِ"
         count = getPreferences(0).getInt("tasbeeh_count_$selectedDhikr", getPreferences(0).getInt("tasbeeh", 0))
         tasbeehTarget = getPreferences(0).getInt("tasbeeh_target", 100)
@@ -2686,7 +2685,7 @@ class MainActivity : Activity(), SensorEventListener {
                 }
             }
             addView(dedicationToggle, LinearLayout.LayoutParams(-1, -2))
-            line("يصل تذكير يومي الساعة 9:00 صباحاً بدعاء متجدد، ويمكنك إيقافه من هنا.", 12f, muted)
+            line("يصل تذكير بالدعاء بعد الفجر وبعد المغرب بربع ساعة، مع قراءة الدعاء صوتياً باللغة العربية.", 12f, muted)
             addView(button("تفعيل صلاحية الإشعارات") { requestPrayerNotificationPermission() }, LinearLayout.LayoutParams(-1, -2))
             addView(button("السماح بالتنبيه الدقيق في وقته") { requestExactAlarmPermission() }, LinearLayout.LayoutParams(-1, -2))
         }
@@ -2872,28 +2871,6 @@ class MainActivity : Activity(), SensorEventListener {
         gap(10)
         sectionHeading("التنبيهات والصوت")
         card {
-            line("تنسيق الوقت", 18f, gold, true)
-            val formatSwitch = Switch(this@MainActivity).apply {
-                text = "عرض الوقت بنظام 24 ساعة"
-                setTextColor(cream)
-                isChecked = use24Hour
-                setOnCheckedChangeListener { _, checked ->
-                    use24Hour = checked
-                    getPreferences(0).edit().putBoolean("use_24_hour", checked).apply()
-                    showPage("settings")
-                }
-            }
-            addView(formatSwitch, LinearLayout.LayoutParams(-1, -2))
-        }
-        gap(10)
-        card {
-            line("طريقة الاحتساب الذكية", 18f, gold, true)
-            line("يحدد نور الصلاة بلدك تلقائيًا ويختار طريقة الحساب المناسبة لموقعك.", 13f, cream)
-            line(calculationMethod, 12f, muted)
-            line("يُحدّث المواقيت من المصدر المتصل عند توفر الإنترنت، ويحتفظ بآخر بيانات صحيحة ويستخدم الحساب المحلي عند انقطاع الاتصال. وقت العصر محسوب بالطريقة القياسية.", 12f, muted)
-        }
-        gap(10)
-        card {
             line("حول التطبيق", 18f, gold, true)
             line("نور الصلاة • الإصدار 1.2", 14f, cream)
             line("واجهة عربية • تصميم زمردي وذهبي", 13f, muted)
@@ -2907,6 +2884,10 @@ class MainActivity : Activity(), SensorEventListener {
             }, LinearLayout.LayoutParams(-1, -2))
             if (docsExpanded) {
                 line("ملخص موحّد لمصادر البيانات والمحتوى والتراخيص المستخدمة في نور الصلاة. جمعنا المراجع هنا حتى تبقى صفحات الاستخدام هادئة وواضحة.", 12f, muted)
+                gap(8)
+                line("طريقة احتساب مواقيت الصلاة", 16f, gold, true)
+                line("يعتمد نور الصلاة طريقة الحساب المناسبة للبلد تلقائياً: الأردن 18°/18°، أم القرى 18.5° للفجر و90 دقيقة للعشاء، الهيئة المصرية 19.5°/17.5°، ديانت تركيا 18°/17°، سنغافورة 20°/18°، وأمريكا الشمالية ISNA 15°/15°. وتُستخدم طريقة رابطة العالم الإسلامي كخيار احتياطي للمناطق الأخرى. هذه زوايا وطرق حساب فلكية، وقد تختلف المواقيت المحلية المعتمدة.", 12f, muted)
+                line("تُجلب المواقيت من المصدر المتصل عند توفر الإنترنت، مع الاحتفاظ بآخر بيانات صحيحة واستخدام الحساب المحلي الاحتياطي عند تعذّر الاتصال. يُحسب العصر بالطريقة القياسية، وتُطبّق فروق الضبط الفردية على الصلوات.", 12f, muted)
                 gap(8)
                 line("مواقيت الصلاة", 16f, gold, true)
                 line("يعتمد التطبيق على خدمة prayertime.si لجلب المواقيت عند توفر الإنترنت، مع الاحتفاظ بالبيانات السابقة والحساب المحلي الاحتياطي عند تعذّر الاتصال. في الأردن يُراعى جدول وزارة الأوقاف عند توفره؛ وتبقى مواقيت المسجد والجهة الرسمية المحلية المرجع العملي.", 12f, muted)
@@ -3089,12 +3070,11 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun formatPrayerTime(minutes: Int): String {
-        val h = (minutes/60)%24
-        val m = minutes%60
-        if (use24Hour) return "%02d:%02d".format(Locale.US,h,m)
-        val suffix = if (h<12) "ص" else "م"
-        val hour = if (h%12==0) 12 else h%12
-        return "%d:%02d %s".format(Locale("ar"),hour,m,suffix)
+        val h = (minutes / 60) % 24
+        val minute = minutes % 60
+        val suffix = if (h < 12) "ص" else "م"
+        val hour = if (h % 12 == 0) 12 else h % 12
+        return "%d:%02d %s".format(Locale("ar"), hour, minute, suffix)
     }
 
     private fun prayerTimes(): List<String> = prayerTimesMinutes().map { formatPrayerTime(it) }
