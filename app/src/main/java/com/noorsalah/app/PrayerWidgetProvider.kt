@@ -2,6 +2,12 @@ package com.noorsalah.app
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -36,7 +42,11 @@ class PrayerWidgetProvider : AppWidgetProvider() {
         private const val ACTION_WIDGET_REFRESH = "com.noorsalah.app.WIDGET_REFRESH"
         private const val WIDGET_REFRESH_REQUEST_CODE = 91001
 
+        private const val STATUS_CHANNEL_ID = "noor_prayer_status"
+        private const val STATUS_NOTIFICATION_ID = 91002
+
         fun updateAll(context: Context) {
+            updateStatusNotification(context)
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, PrayerWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)
@@ -44,6 +54,61 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             scheduleNextWidgetUpdate(context)
         }
 
+        private fun updateStatusNotification(context: Context) {
+            if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                notificationManager.createNotificationChannel(NotificationChannel(STATUS_CHANNEL_ID, "أوقات الصلاة في الشريط العلوي", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "يعرض الصلاة القادمة وجدول أوقات الصلاة دون صوت أو اهتزاز"
+                    setSound(null, null)
+                    enableVibration(false)
+                    setShowBadge(false)
+                })
+            }
+            val prefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+            val latitude = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
+            val longitude = prefs.getString("city_lon", "35.9106")?.toDoubleOrNull() ?: 35.9106
+            val method = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
+            val offset = prefs.getInt("time_offset", 0)
+            val city = prefs.getString("city_name", "عمّان، الأردن") ?: "عمّان، الأردن"
+            val now = Calendar.getInstance()
+            val currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            val remote = PrayerTimesRemoteRepository.getTimes(context, now)
+            val base = remote ?: PrayerTimesCalculator.calculate(now, latitude, longitude, method, offset)
+            val times = if (remote != null) base.map { ((it + offset) % 1440 + 1440) % 1440 } else base
+            val indexes = listOf(0, 2, 3, 4, 5)
+            val names = listOf("الفجر", "الظهر", "العصر", "المغرب", "العشاء")
+            val nextPosition = indexes.indexOfFirst { times[it] > currentMinutes }
+            val nextName: String
+            val nextMinute: Int
+            if (nextPosition >= 0) {
+                nextName = names[nextPosition]
+                nextMinute = times[indexes[nextPosition]]
+            } else {
+                val tomorrow = (now.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
+                val tomorrowRemote = PrayerTimesRemoteRepository.getTimes(context, tomorrow)
+                val tomorrowBase = tomorrowRemote ?: PrayerTimesCalculator.calculate(tomorrow, latitude, longitude, method, offset)
+                val tomorrowTimes = if (tomorrowRemote != null) tomorrowBase.map { ((it + offset) % 1440 + 1440) % 1440 } else tomorrowBase
+                nextName = "الفجر"
+                nextMinute = tomorrowTimes[0]
+            }
+            fun formatTime(minutes: Int): String {
+                val hour = (minutes / 60) % 24
+                val suffix = if (hour < 12) "ص" else "م"
+                val displayHour = if (hour % 12 == 0) 12 else hour % 12
+                return "%d:%02d %s".format(Locale("ar"), displayHour, minutes % 60, suffix)
+            }
+            val labels = listOf("الفجر", "الشروق", "الظهر", "العصر", "المغرب", "العشاء")
+            val schedule = labels.indices.joinToString("  •  ") { i -> "${labels[i]} ${formatTime(times[i])}" }
+            val openApp = PendingIntent.getActivity(context, STATUS_NOTIFICATION_ID, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(context, STATUS_CHANNEL_ID) else Notification.Builder(context).setPriority(Notification.PRIORITY_LOW).setSound(null)
+            val notification = builder.setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle("نور الصلاة • الصلاة القادمة: $nextName")
+                .setContentText("$city  |  ${formatTime(nextMinute)}")
+                .setStyle(Notification.BigTextStyle().setBigContentTitle("نور الصلاة • الصلاة القادمة: $nextName").bigText("$city\n$schedule"))
+                .setCategory(Notification.CATEGORY_STATUS).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false).setContentIntent(openApp).build()
+            notificationManager.notify(STATUS_NOTIFICATION_ID, notification)
+        }
         private fun scheduleNextWidgetUpdate(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, PrayerWidgetProvider::class.java)
