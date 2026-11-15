@@ -11,6 +11,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+    </queries>
+
     <application
         android:icon="@drawable/ic_noor_logo"
         android:roundIcon="@drawable/ic_noor_logo"
@@ -18,6 +24,12 @@
         android:label="${appLabel}"
         android:allowBackup="true"
         android:supportsRtl="true">
+
+        <service
+            android:name=".DuaSpeechService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"/>
 
         <service
             android:name=".AdhanPlaybackService"
