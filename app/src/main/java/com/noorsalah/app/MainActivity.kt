@@ -2595,6 +2595,11 @@ class MainActivity : Activity(), SensorEventListener {
         card {
             line("ويدجت المواقيت: اضغط مطولاً على الشاشة الرئيسية للهاتف، ثم الأدوات، واختر «نور الصلاة».", 12f, muted)
         }
+        card {
+            line("تحديثات نور الصلاة", 18f, gold, true)
+            line("افحص توفر إصدار أحدث من التطبيق.", 12f, muted)
+            addView(button("التحقق من وجود تحديث") { checkForAppUpdate() }, LinearLayout.LayoutParams(-1, -2))
+        }
         gap(10)
         sectionHeading("المواقيت والموقع")
         card {
@@ -2961,6 +2966,57 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+    private fun checkForAppUpdate() {
+        Toast.makeText(this, "جارٍ التحقق من التحديثات…", Toast.LENGTH_SHORT).show()
+        Thread {
+            try {
+                val connection = java.net.URL("https://api.github.com/repos/zn2a3m-ui/noor-salah/releases?per_page=20").openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 12000
+                connection.readTimeout = 12000
+                connection.setRequestProperty("Accept", "application/vnd.github+json")
+                connection.setRequestProperty("User-Agent", "NoorSalah-Android")
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                connection.disconnect()
+                val releases = org.json.JSONArray(response)
+                var releaseUrl: String? = null
+                var releaseName: String? = null
+                var latestCode = -1
+                for (i in 0 until releases.length()) {
+                    val release = releases.getJSONObject(i)
+                    if (release.optBoolean("draft", false)) continue
+                    val tag = release.optString("tag_name")
+                    if (!tag.startsWith("preview-")) continue
+                    val assets = release.optJSONArray("assets") ?: continue
+                    for (j in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(j)
+                        if (asset.optString("name").endsWith(".apk", true)) {
+                            val code = tag.removePrefix("preview-").toIntOrNull() ?: -1
+                            if (code > latestCode) {
+                                latestCode = code
+                                releaseUrl = release.optString("html_url")
+                                releaseName = release.optString("name", tag)
+                            }
+                        }
+                    }
+                }
+                val installedCode = if (android.os.Build.VERSION.SDK_INT >= 28) packageManager.getPackageInfo(packageName, 0).longVersionCode.toInt() else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getPackageInfo(packageName, 0).versionCode
+                }
+                runOnUiThread {
+                    if (isFinishing) return@runOnUiThread
+                    if (releaseUrl != null && latestCode > installedCode) {
+                        AlertDialog.Builder(this).setTitle("يتوفر تحديث جديد")
+                            .setMessage("$releaseName\\nرقم الإصدار: $latestCode")
+                            .setPositiveButton("فتح صفحة التحديث") { _, _ -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl))) }
+                            .setNegativeButton("لاحقاً", null).show()
+                    } else Toast.makeText(this, "تطبيقك محدث حالياً.", Toast.LENGTH_LONG).show()
+                }
+            } catch (_: Exception) {
+                runOnUiThread { if (!isFinishing) Toast.makeText(this, "تعذر التحقق الآن. تحقق من اتصال الإنترنت وحاول لاحقاً.", Toast.LENGTH_LONG).show() }
+            }
+        }.start()
+    }
     private fun openDocumentationUrl(url: String) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
