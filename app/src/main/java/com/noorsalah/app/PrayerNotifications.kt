@@ -137,6 +137,11 @@ object PrayerAlarmScheduler {
         }
     }
 
+    fun reminderPrayerTimes(context: Context, date: Calendar): List<Int> {
+        val all = prayerTimes(context, date)
+        return listOf(all[0], all[3])
+    }
+
     private fun prayerTimes(context: Context, date: Calendar): List<Int> {
         val prefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
         val latitude = prefs.getString("city_lat", "31.9539")?.toDoubleOrNull() ?: 31.9539
@@ -158,8 +163,9 @@ object PrayerAlarmScheduler {
 object DedicationReminderScheduler {
     const val CHANNEL_ID = "noor_dedication_reminder"
     private const val ACTION = "com.noorsalah.app.DEDICATION_REMINDER"
-    private const val REQUEST_CODE = 90412
-    private const val HOUR = 9
+    private const val FAJR_REQUEST_CODE = 90412
+    private const val MAGHRIB_REQUEST_CODE = 90413
+    private const val AFTER_PRAYER_MINUTES = 15
 
     private val duas = listOf(
         "اللهم اغفر له وارحمه، واعفُ عنه وأكرم نزله.",
@@ -184,13 +190,19 @@ object DedicationReminderScheduler {
     private fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build()
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
                     "الدعاء للمرحوم",
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
-                    description = "تذكير يومي بدعاء متجدد للمرحوم"
+                    description = "تذكير بالدعاء بعد الفجر وبعد المغرب"
+                    enableVibration(true)
+                    setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes)
                 }
             )
         }
@@ -204,66 +216,115 @@ object DedicationReminderScheduler {
         }
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+
         createChannel(context)
-        val next = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, HOUR)
-            set(Calendar.MINUTE, 0)
+        val now = System.currentTimeMillis()
+        val today = Calendar.getInstance()
+        val prayerTimes = PrayerAlarmScheduler.reminderPrayerTimes(context, today)
+        scheduleDailyPrayerReminder(context, today, prayerTimes[0], FAJR_REQUEST_CODE, "الفجر", now)
+        scheduleDailyPrayerReminder(context, today, prayerTimes[1], MAGHRIB_REQUEST_CODE, "المغرب", now)
+    }
+
+    private fun scheduleDailyPrayerReminder(
+        context: Context,
+        date: Calendar,
+        prayerMinute: Int,
+        requestCode: Int,
+        prayerName: String,
+        now: Long
+    ) {
+        val trigger = (date.clone() as Calendar).apply {
+            set(Calendar.HOUR_OF_DAY, prayerMinute / 60)
+            set(Calendar.MINUTE, prayerMinute % 60)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-            if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
+            add(Calendar.MINUTE, AFTER_PRAYER_MINUTES)
         }
-        val intent = Intent(context, DedicationReminderReceiver::class.java).apply { action = ACTION }
+        if (trigger.timeInMillis <= now) {
+            trigger.add(Calendar.DAY_OF_YEAR, 1)
+            val tomorrow = (date.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) }
+            val tomorrowTimes = PrayerAlarmScheduler.reminderPrayerTimes(context, tomorrow)
+            val nextMinute = if (prayerName == "الفجر") tomorrowTimes[0] else tomorrowTimes[1]
+            trigger.set(Calendar.HOUR_OF_DAY, nextMinute / 60)
+            trigger.set(Calendar.MINUTE, nextMinute % 60)
+            trigger.set(Calendar.SECOND, 0)
+            trigger.set(Calendar.MILLISECOND, 0)
+            trigger.add(Calendar.MINUTE, AFTER_PRAYER_MINUTES)
+        }
+
+        val intent = Intent(context, DedicationReminderReceiver::class.java).apply {
+            action = ACTION
+            putExtra("prayer_period", prayerName)
+        }
         val pending = PendingIntent.getBroadcast(
-            context, REQUEST_CODE, intent,
+            context, requestCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarm.cancel(pending)
         try {
-            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next.timeInMillis, pending)
-        } catch (_: Exception) {
-            alarm.set(AlarmManager.RTC_WAKEUP, next.timeInMillis, pending)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarm.canScheduleExactAlarms()) {
+                alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
+            } else {
+                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
+            }
+        } catch (_: SecurityException) {
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger.timeInMillis, pending)
         }
     }
 
     fun cancel(context: Context) {
-        val intent = Intent(context, DedicationReminderReceiver::class.java).apply { action = ACTION }
-        val pending = PendingIntent.getBroadcast(
-            context, REQUEST_CODE, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(pending)
-        pending.cancel()
+        listOf(FAJR_REQUEST_CODE, MAGHRIB_REQUEST_CODE).forEach { requestCode ->
+            val intent = Intent(context, DedicationReminderReceiver::class.java).apply { action = ACTION }
+            val pending = PendingIntent.getBroadcast(
+                context, requestCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(pending)
+            pending.cancel()
+        }
     }
 
-    fun showNotification(context: Context) {
+    fun showNotification(context: Context, prayerPeriod: String) {
         if (Build.VERSION.SDK_INT >= 33 &&
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         createChannel(context)
+        val dua = duaForToday()
         val openApp = PendingIntent.getActivity(
-            context, REQUEST_CODE, Intent(context, MainActivity::class.java),
+            context, 90414, Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(context, CHANNEL_ID)
         } else {
             Notification.Builder(context).setPriority(Notification.PRIORITY_DEFAULT)
+                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
         }
         val notification = builder
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("دعاء للمرحوم محمد سليمان موسى أبو زبارق")
-            .setContentText(duaForToday())
-            .setStyle(Notification.BigTextStyle().bigText(duaForToday()))
+            .setContentTitle("دعاء للمرحوم بعد صلاة $prayerPeriod")
+            .setContentText(dua)
+            .setStyle(Notification.BigTextStyle().bigText(dua))
             .setAutoCancel(true)
             .setContentIntent(openApp)
             .build()
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .notify(REQUEST_CODE, notification)
+            .notify(if (prayerPeriod == "الفجر") FAJR_REQUEST_CODE else MAGHRIB_REQUEST_CODE, notification)
+
+        val speechIntent = Intent(context, DuaSpeechService::class.java).putExtra(DuaSpeechService.EXTRA_TEXT, dua)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(speechIntent)
+            else context.startService(speechIntent)
+        } catch (_: Exception) {
+            // The notification and its normal notification sound remain available if speech is unavailable.
+        }
     }
 }
 
 class DedicationReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        DedicationReminderScheduler.showNotification(context)
+        val period = intent.getStringExtra("prayer_period") ?: "الصلاة"
+        DedicationReminderScheduler.showNotification(context, period)
         DedicationReminderScheduler.scheduleNext(context)
     }
 }
