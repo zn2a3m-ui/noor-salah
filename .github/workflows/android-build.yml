@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: noor-salah-android-build
@@ -64,8 +64,8 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build debug APK
-        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
+      - name: Build versioned debug APK
+        run: gradle --no-daemon -PversionCode=${{ github.run_number }} -PversionName=1.2.${{ github.run_number }} :app:testDebugUnitTest :app:assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -73,3 +73,12 @@ jobs:
           name: noor-salah-preview-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Publish preview release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: preview-${{ github.run_number }}
+          name: Noor Salah preview ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          files: app/build/outputs/apk/debug/*.apk
