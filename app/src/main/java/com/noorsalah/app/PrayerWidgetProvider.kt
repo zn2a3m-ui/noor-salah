@@ -116,7 +116,6 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             val method = prefs.getString("calculation_method", "الأردن (18° / 18°)") ?: "الأردن (18° / 18°)"
             val offset = prefs.getInt("time_offset", 0)
             val city = prefs.getString("city_name", "عمّان، الأردن") ?: "عمّان، الأردن"
-            val use24Hour = prefs.getBoolean("use_24_hour", true)
 
             val now = Calendar.getInstance()
             val today = (now.clone() as Calendar)
@@ -154,7 +153,6 @@ class PrayerWidgetProvider : AppWidgetProvider() {
             fun formatTime(minutes: Int): String {
                 val hour = (minutes / 60) % 24
                 val minute = minutes % 60
-                if (use24Hour) return "%02d:%02d".format(Locale.US, hour, minute)
                 val suffix = if (hour < 12) "ص" else "م"
                 val displayHour = if (hour % 12 == 0) 12 else hour % 12
                 return "%d:%02d %s".format(Locale("ar"), displayHour, minute, suffix)
