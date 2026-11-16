@@ -2168,11 +2168,11 @@ class MainActivity : Activity(), SensorEventListener {
                         }
                     }
                     contentDescription = "صفحة المصحف $pageNumber"
-                    onZoomChanged = { zoom ->
-                        quranContinuousZoomStep = zoom.step
-                        pageView.post { syncQuranReflowedPageHeight(pageView) }
-                    }
                     page = loaded
+                }
+                pageView.onZoomChanged = { zoom ->
+                    quranContinuousZoomStep = zoom.step
+                    pageView.post { syncQuranReflowedPageHeight(pageView) }
                 }
                 quranMushafView = pageView
                 container.removeAllViews()
