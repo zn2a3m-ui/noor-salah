@@ -85,7 +85,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranContinuousSelectedPage = -1
     private var quranContinuousSelectedHighlight = 0
     private var quranContinuousHost: LinearLayout? = null
-    private var quranContinuousZoomStep = 1
+    private var quranContinuousZoomStep = 2
     private var quranContinuousApplyingZoom = false
 
     /** Lets QVP scroll inside a zoomed page, then hands the gesture to the outer reader at its edge. */
@@ -1772,7 +1772,7 @@ class MainActivity : Activity(), SensorEventListener {
     private fun showQuranMushafPages(surahNumber: Int, focusAyah: Int, startPage: Int) {
         releaseQuranMushafPage()
         val token = quranMushafRequestId
-        quranContinuousZoomStep = 1
+        quranContinuousZoomStep = 2
         quranContinuousApplyingZoom = false
         quranContinuousCurrentPage = startPage
         val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
