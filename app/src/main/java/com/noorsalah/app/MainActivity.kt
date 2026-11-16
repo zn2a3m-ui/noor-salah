@@ -390,6 +390,7 @@ class MainActivity : Activity(), SensorEventListener {
         if (target != "quran") stopQuranAudio()
         page = target
         content.removeAllViews()
+        content.setPadding(dp(18), dp(18), dp(18), dp(18))
         navigationBar.visibility = if (target == "azkar" || target == "azkar_detail") View.GONE else View.VISIBLE
         updateNavigationSelection()
         when (target) {
@@ -1780,6 +1781,8 @@ class MainActivity : Activity(), SensorEventListener {
         val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
         val mushafPaperColor = if (quranNightMode) Color.BLACK else Color.WHITE
         content.removeAllViews()
+        // Give the Mushaf page almost the full screen width while keeping a small safe margin.
+        content.setPadding(dp(6), dp(18), dp(6), dp(18))
         text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         val pageLabel = TextView(this).apply {
