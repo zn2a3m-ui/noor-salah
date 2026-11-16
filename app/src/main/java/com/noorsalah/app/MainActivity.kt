@@ -86,6 +86,8 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranContinuousSelectedHighlight = 0
     private var quranContinuousHost: LinearLayout? = null
     private var quranContinuousZoomStep = 4
+    /** Extra visual magnification over the original printed glyph geometry. */
+    private var quranMushafMagnification = 1f
     private var quranContinuousApplyingZoom = false
 
     /** Lets QVP scroll inside a zoomed page, then hands the gesture to the outer reader at its edge. */
@@ -2076,6 +2078,9 @@ class MainActivity : Activity(), SensorEventListener {
                     if (steps.isNotEmpty()) {
                         pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
                     }
+                    if (quranMushafMagnification > 1f) {
+                        applyQuranMushafMagnification(pageView, quranMushafMagnification)
+                    }
                 }
             }.onFailure {
                 quranContinuousFrames.getOrNull(pageNumber - 1)?.let { frame ->
@@ -2233,12 +2238,53 @@ class MainActivity : Activity(), SensorEventListener {
     private fun quranPageStart(pageNumber: Int): Pair<Int, Int> =
         quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
 
+    /**
+     * Magnify the original QVP vector ink without reflowing or rewriting Quran text.
+     * The printed row geometry stays intact; the reader can pan the enlarged page.
+     */
+    private fun applyQuranMushafMagnification(view: QvpPageView, factor: Float) {
+        if (view.width <= 0 || view.height <= 0 || view.page?.currentLayout == null) return
+        if (view.zoomMode != QvpZoomMode.MAGNIFY) {
+            view.zoomMode = QvpZoomMode.MAGNIFY
+        }
+        val targetScale = (view.viewScale * factor).coerceAtMost(view.maxZoom)
+        val ratio = if (view.viewScale > 0f) targetScale / view.viewScale else 1f
+        val cx = view.width / 2f
+        val cy = view.height / 2f
+        val scaled = QvpEngine.viewZoomAbout(
+            QvpView(view.viewScale, view.viewOx, view.viewOy),
+            cx, cy, ratio, 0f, view.maxZoom
+        )
+        val clamped = view.page!!.dressClamp(scaled, view.width.toFloat(), view.height.toFloat())
+        view.viewScale = clamped.scale
+        view.viewOx = clamped.offsetX
+        view.viewOy = clamped.offsetY
+        view.invalidate()
+    }
+
     private fun adjustQuranMushafZoom(zoomIn: Boolean, surahNumber: Int, focusAyah: Int) {
-        val view = quranMushafView
-        val steps = view?.zoomSteps
-        if (view != null && steps != null && steps.isNotEmpty()) {
-            val next = (view.zoom.step + if (zoomIn) 1 else -1).coerceIn(0, steps.size)
-            view.zoomToStep(next)
+        val previous = quranMushafMagnification
+        quranMushafMagnification = if (zoomIn) {
+            (previous * 1.22f).coerceAtMost(2.2f)
+        } else {
+            (previous / 1.22f).coerceAtLeast(1f)
+        }
+        val ratio = quranMushafMagnification / previous
+        val views = (quranContinuousViews.values + listOfNotNull(quranMushafView)).distinct()
+        if (views.isNotEmpty()) {
+            views.forEach { view ->
+                view.post {
+                    if (quranMushafMagnification > 1f || ratio < 1f) {
+                        if (view.zoomMode != QvpZoomMode.MAGNIFY) {
+                            view.zoomMode = QvpZoomMode.MAGNIFY
+                            // Switching modes resets to the fitted page, so apply the full factor.
+                            applyQuranMushafMagnification(view, quranMushafMagnification)
+                        } else {
+                            applyQuranMushafMagnification(view, ratio)
+                        }
+                    }
+                }
+            }
             return
         }
         quranFontSize = if (zoomIn) {
