@@ -1916,7 +1916,7 @@ class MainActivity : Activity(), SensorEventListener {
                 if (number == sourcePage || view.zoom.step == quranContinuousZoomStep) return@forEach
                 val steps = view.zoomSteps
                 if (steps.isNotEmpty()) {
-                    view.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
+                    view.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.lastIndex))
                 }
             }
         } finally {
@@ -2074,7 +2074,7 @@ class MainActivity : Activity(), SensorEventListener {
                     if (token != quranMushafRequestId || quranContinuousViews[pageNumber] !== pageView) return@post
                     val steps = pageView.zoomSteps
                     if (steps.isNotEmpty()) {
-                        pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
+                        pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.lastIndex))
                     }
                 }
             }.onFailure {
