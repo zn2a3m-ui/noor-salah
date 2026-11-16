@@ -2263,6 +2263,32 @@ class MainActivity : Activity(), SensorEventListener {
         view.viewOx = clamped.offsetX
         view.viewOy = clamped.offsetY
         view.invalidate()
+        // Keep the vertical scroll area in step with the enlarged vector words.
+        // The page width and original printed row breaks remain unchanged.
+        view.post { syncQuranMushafMagnifiedHeight(view) }
+    }
+
+    private fun syncQuranMushafMagnifiedHeight(view: QvpPageView) {
+        val entry = quranContinuousViews.entries.firstOrNull { it.value === view } ?: return
+        val page = view.page ?: return
+        val layoutHeight = page.currentLayout?.contentH ?: return
+        val baseWidth = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
+        val basePageHeight = (baseWidth * page.height.toFloat() / page.width.toFloat()).roundToInt()
+        val expandedHeight = maxOf(basePageHeight, (layoutHeight * view.viewScale).roundToInt())
+        view.layoutParams?.let { params ->
+            if (params.height != expandedHeight) {
+                params.height = expandedHeight
+                view.layoutParams = params
+            }
+        }
+        val hostFrame = quranContinuousFrames.getOrNull(entry.key - 1) ?: return
+        val targetFrameHeight = expandedHeight + dp(28)
+        hostFrame.layoutParams?.let { params ->
+            if (params.height != targetFrameHeight) {
+                params.height = targetFrameHeight
+                hostFrame.layoutParams = params
+            }
+        }
     }
 
     private fun adjustQuranMushafZoom(zoomIn: Boolean, surahNumber: Int, focusAyah: Int) {
