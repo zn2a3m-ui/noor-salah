@@ -1990,9 +1990,34 @@ class MainActivity : Activity(), SensorEventListener {
                         )
                     }
                 }
+                var zoomFrame: FrameLayout? = null
+                var zoomBasePageHeight = 0
                 lateinit var pageView: QvpPageView
                 pageView = QvpPageView(this).apply {
-                    onZoomChanged = { zoom -> syncContinuousQuranZoom(pageNumber, zoom.step) }
+                    onZoomChanged = { zoom ->
+                        syncContinuousQuranZoom(pageNumber, zoom.step)
+                        // Stepped QVP reflow keeps the printed glyph paths but makes the laid-out
+                        // page taller. Grow both the page view and its host frame so lower ayat
+                        // are not clipped at the original printed-page height.
+                        pageView.post {
+                            val hostFrame = zoomFrame ?: return@post
+                            val laidOutHeight = loaded.currentLayout?.contentH?.roundToInt() ?: zoomBasePageHeight
+                            val expandedHeight = maxOf(zoomBasePageHeight, laidOutHeight)
+                            pageView.layoutParams?.let { params ->
+                                if (params.height != expandedHeight) {
+                                    params.height = expandedHeight
+                                    pageView.layoutParams = params
+                                }
+                            }
+                            hostFrame.layoutParams?.let { params ->
+                                val targetHeight = expandedHeight + dp(28)
+                                if (params.height != targetHeight) {
+                                    params.height = targetHeight
+                                    hostFrame.layoutParams = params
+                                }
+                            }
+                        }
+                    }
                     paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
@@ -2024,6 +2049,8 @@ class MainActivity : Activity(), SensorEventListener {
                 frame.removeAllViews()
                 val width = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
                 val pageHeight = (width * loaded.height / loaded.width).roundToInt()
+                zoomBasePageHeight = pageHeight
+                zoomFrame = frame
                 frame.layoutParams = frame.layoutParams.apply { height = pageHeight + dp(28) }
                 val pageColumn = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
