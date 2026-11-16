@@ -85,7 +85,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranContinuousSelectedPage = -1
     private var quranContinuousSelectedHighlight = 0
     private var quranContinuousHost: LinearLayout? = null
-    private var quranContinuousZoomStep = 3
+    private var quranContinuousZoomStep = 4
     private var quranContinuousApplyingZoom = false
 
     /** Lets QVP scroll inside a zoomed page, then hands the gesture to the outer reader at its edge. */
@@ -2022,7 +2022,7 @@ class MainActivity : Activity(), SensorEventListener {
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
                     padSide = dp(2).toFloat()
-                    reflowBreaks = QvpBreaks.PRINTED
+                    reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
                         quranAudioHighlightGlobal = 0
                         clearQuranContinuousSelection()
