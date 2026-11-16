@@ -85,6 +85,23 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranContinuousSelectedPage = -1
     private var quranContinuousSelectedHighlight = 0
     private var quranContinuousHost: LinearLayout? = null
+    private var quranContinuousZoomStep = 1
+    private var quranContinuousApplyingZoom = false
+
+    /** Lets QVP scroll inside a zoomed page, then hands the gesture to the outer reader at its edge. */
+    private inner class QuranAwareScrollView(context: Context) : ScrollView(context) {
+        private var downY = 0f
+
+        override fun onInterceptTouchEvent(event: android.view.MotionEvent): Boolean {
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> downY = event.y
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    if (!shouldParentScrollQuranPage(event.y - downY)) return false
+                }
+            }
+            return super.onInterceptTouchEvent(event)
+        }
+    }
     private var quranAudioHighlightGlobal = 0
     private var quranMushafOfflineStatusView: TextView? = null
     private var quranMushafOfflineDownloadButton: Button? = null
@@ -180,7 +197,7 @@ class MainActivity : Activity(), SensorEventListener {
         quranFontSize = getPreferences(0).getFloat("quran_font_size", 32f).coerceIn(26f, 42f)
         val shell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(bg) }
         content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(18), dp(18), dp(18)); layoutDirection = View.LAYOUT_DIRECTION_RTL }
-        val scroll = ScrollView(this).apply { addView(content); isFillViewport = true }
+        val scroll = QuranAwareScrollView(this).apply { addView(content); isFillViewport = true }
         mainScroll = scroll
         shell.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         val nav = LinearLayout(this).apply {
@@ -1755,6 +1772,8 @@ class MainActivity : Activity(), SensorEventListener {
     private fun showQuranMushafPages(surahNumber: Int, focusAyah: Int, startPage: Int) {
         releaseQuranMushafPage()
         val token = quranMushafRequestId
+        quranContinuousZoomStep = 1
+        quranContinuousApplyingZoom = false
         quranContinuousCurrentPage = startPage
         val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
         val mushafPaperColor = if (quranNightMode) Color.BLACK else Color.WHITE
@@ -1869,6 +1888,42 @@ class MainActivity : Activity(), SensorEventListener {
         }
     }
 
+    /** Return true when the outer ScrollView may take this vertical drag from QVP. */
+    private fun shouldParentScrollQuranPage(fingerDeltaY: Float): Boolean {
+        val view = quranContinuousViews[quranContinuousCurrentPage] ?: quranMushafView
+        if (view == null || !view.isZoomed || view.width <= 0 || view.height <= 0) return true
+        val page = view.page ?: return true
+        if (page.currentLayout == null) return true
+        val viewportWidth = view.width.toFloat()
+        val viewportHeight = view.height.toFloat()
+        val top = page.dressClamp(QvpView(view.viewScale, view.viewOx, 1_000_000f), viewportWidth, viewportHeight).offsetY
+        val bottom = page.dressClamp(QvpView(view.viewScale, view.viewOx, -1_000_000f), viewportWidth, viewportHeight).offsetY
+        val edgeTolerance = dp(3).toFloat()
+        return when {
+            fingerDeltaY > 0f -> view.viewOy >= top - edgeTolerance
+            fingerDeltaY < 0f -> view.viewOy <= bottom + edgeTolerance
+            else -> false
+        }
+    }
+
+    /** Keep the same QVP zoom step on every loaded page; QVP calibrates each page's step itself. */
+    private fun syncContinuousQuranZoom(sourcePage: Int, step: Int) {
+        quranContinuousZoomStep = step.coerceAtLeast(0)
+        if (quranContinuousApplyingZoom) return
+        quranContinuousApplyingZoom = true
+        try {
+            quranContinuousViews.forEach { (number, view) ->
+                if (number == sourcePage || view.zoom.step == quranContinuousZoomStep) return@forEach
+                val steps = view.zoomSteps
+                if (steps.isNotEmpty()) {
+                    view.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.lastIndex))
+                }
+            }
+        } finally {
+            quranContinuousApplyingZoom = false
+        }
+    }
+
     private fun clearQuranContinuousSelection() {
         val selectedPage = quranContinuousSelectedPage
         val selectedHighlight = quranContinuousSelectedHighlight
@@ -1935,7 +1990,9 @@ class MainActivity : Activity(), SensorEventListener {
                         )
                     }
                 }
-                val pageView = QvpPageView(this).apply {
+                lateinit var pageView: QvpPageView
+                pageView = QvpPageView(this).apply {
+                    onZoomChanged = { zoom -> syncContinuousQuranZoom(pageNumber, zoom.step) }
                     paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
@@ -1961,17 +2018,6 @@ class MainActivity : Activity(), SensorEventListener {
                     contentDescription = "صفحة المصحف " + pageNumber
                     page = loaded
                 }
-                pageView.setOnTouchListener { _, event ->
-                    when (event.actionMasked) {
-                        android.view.MotionEvent.ACTION_DOWN -> {
-                            val zoomed = pageView.zoom.step > 0 || pageView.zoom.zoom > 1.01f
-                            pageView.parent?.requestDisallowInterceptTouchEvent(zoomed)
-                        }
-                        android.view.MotionEvent.ACTION_POINTER_DOWN -> pageView.parent?.requestDisallowInterceptTouchEvent(true)
-                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> pageView.parent?.requestDisallowInterceptTouchEvent(false)
-                    }
-                    false
-                }
                 quranContinuousPages[pageNumber] = loaded
                 quranContinuousViews[pageNumber] = pageView
                 val frame = quranContinuousFrames.getOrNull(pageNumber - 1) ?: return@onSuccess
@@ -1994,6 +2040,13 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 pageColumn.addView(pageNumberLabel, LinearLayout.LayoutParams(-1, dp(28)))
                 frame.addView(pageColumn, FrameLayout.LayoutParams(-1, -1))
+                pageView.post {
+                    if (token != quranMushafRequestId || quranContinuousViews[pageNumber] !== pageView) return@post
+                    val steps = pageView.zoomSteps
+                    if (steps.isNotEmpty()) {
+                        pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.lastIndex))
+                    }
+                }
             }.onFailure {
                 quranContinuousFrames.getOrNull(pageNumber - 1)?.let { frame ->
                     frame.removeAllViews()
@@ -2102,20 +2155,6 @@ class MainActivity : Activity(), SensorEventListener {
                     }
                     contentDescription = "صفحة المصحف $pageNumber"
                     page = loaded
-                }
-                pageView.setOnTouchListener { _, event ->
-                    when (event.actionMasked) {
-                        android.view.MotionEvent.ACTION_DOWN -> {
-                            val zoomed = pageView.zoom.step > 0 || pageView.zoom.zoom > 1.01f
-                            pageView.parent?.requestDisallowInterceptTouchEvent(zoomed)
-                        }
-                        android.view.MotionEvent.ACTION_POINTER_DOWN ->
-                            pageView.parent?.requestDisallowInterceptTouchEvent(true)
-                        android.view.MotionEvent.ACTION_UP,
-                        android.view.MotionEvent.ACTION_CANCEL ->
-                            pageView.parent?.requestDisallowInterceptTouchEvent(false)
-                    }
-                    false
                 }
                 quranMushafView = pageView
                 container.removeAllViews()
