@@ -1772,7 +1772,7 @@ class MainActivity : Activity(), SensorEventListener {
     private fun showQuranMushafPages(surahNumber: Int, focusAyah: Int, startPage: Int) {
         releaseQuranMushafPage()
         val token = quranMushafRequestId
-        quranContinuousZoomStep = 3
+        quranContinuousZoomStep = 4
         quranContinuousApplyingZoom = false
         quranContinuousCurrentPage = startPage
         val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
@@ -2001,7 +2001,10 @@ class MainActivity : Activity(), SensorEventListener {
                         // are not clipped at the original printed-page height.
                         pageView.post {
                             val hostFrame = zoomFrame ?: return@post
-                            val laidOutHeight = loaded.currentLayout?.contentH?.roundToInt() ?: zoomBasePageHeight
+                            val layoutHeight = loaded.currentLayout?.contentH ?: zoomBasePageHeight.toFloat()
+                            // PRINTED mode preserves every original row break; account for QVP's
+                            // public view scale when sizing the scrolling page host.
+                            val laidOutHeight = (layoutHeight * pageView.viewScale).roundToInt()
                             val expandedHeight = maxOf(zoomBasePageHeight, laidOutHeight)
                             pageView.layoutParams?.let { params ->
                                 if (params.height != expandedHeight) {
@@ -2022,7 +2025,7 @@ class MainActivity : Activity(), SensorEventListener {
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
                     padSide = dp(2).toFloat()
-                    reflowBreaks = QvpBreaks.FITTED
+                    reflowBreaks = QvpBreaks.PRINTED
                     onWordTap = { word, _ ->
                         quranAudioHighlightGlobal = 0
                         clearQuranContinuousSelection()
