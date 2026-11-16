@@ -1253,7 +1253,7 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 panelCard.addView(remainingLabel)
                 val dhikrText = TextView(this@MainActivity).apply {
-                    text = entry.body; textSize = if (entry.id == "ayat-kursi") 30f else 23f; gravity = Gravity.CENTER
+                    text = entry.body; textSize = 23f; gravity = Gravity.CENTER
                     setTextColor(cream); typeface = azkarTypeface("Amiri-Regular")
                     setLineSpacing(dp(9).toFloat(), 1.12f); setPadding(0, dp(25), 0, dp(25))
                     isClickable = true; isFocusable = true
