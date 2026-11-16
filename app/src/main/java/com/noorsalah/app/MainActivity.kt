@@ -1908,8 +1908,8 @@ class MainActivity : Activity(), SensorEventListener {
 
     /** Keep the same QVP zoom step on every loaded page; QVP calibrates each page's step itself. */
     private fun syncContinuousQuranZoom(sourcePage: Int, step: Int) {
-        quranContinuousZoomStep = step.coerceAtLeast(0)
         if (quranContinuousApplyingZoom) return
+        quranContinuousZoomStep = step.coerceAtLeast(0)
         quranContinuousApplyingZoom = true
         try {
             quranContinuousViews.forEach { (number, view) ->
