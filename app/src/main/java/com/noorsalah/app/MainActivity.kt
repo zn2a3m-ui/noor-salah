@@ -1782,15 +1782,15 @@ class MainActivity : Activity(), SensorEventListener {
         val mushafPaperColor = if (quranNightMode) Color.BLACK else Color.WHITE
         content.removeAllViews()
         // Give the Mushaf page almost the full screen width while keeping a small safe margin.
-        content.setPadding(dp(6), dp(18), dp(6), dp(18))
-        text("القرآن الكريم", 25f, gold, true, Gravity.CENTER)
+        content.setPadding(dp(6), dp(5), dp(6), dp(5))
+        text("القرآن الكريم", 23f, gold, true, Gravity.CENTER)
         content.addView(button("العودة إلى فهرس السور") { showPage("quran") }, LinearLayout.LayoutParams(-1, -2))
         val pageLabel = TextView(this).apply {
             text = "صفحات المصحف • رواية حفص عن عاصم"
             textSize = 14f
             setTextColor(muted)
             gravity = Gravity.CENTER
-            setPadding(0, dp(5), 0, dp(5))
+            setPadding(0, dp(2), 0, dp(2))
         }
         content.addView(pageLabel, LinearLayout.LayoutParams(-1, -2))
         content.addView(button(if (quranNightMode) "☀ إيقاف وضع القراءة الليلية" else "☾ تفعيل وضع القراءة الليلية") {
@@ -1799,8 +1799,8 @@ class MainActivity : Activity(), SensorEventListener {
             showQuranMushafPages(surahNumber, focusAyah, pageToKeep)
         }, LinearLayout.LayoutParams(-1, -2))
         text("تصفّح صفحات المصحف الأصلية بالتمرير. المس كلمة للاستماع، أو رقم الآية لحفظ موضع متابعة القراءة.", 12f, muted, false, Gravity.CENTER)
-        gap(8)
-        card {
+        gap(3)
+        card(compact = true) {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
             val prefs = getPreferences(0)
             val savedEdition = prefs.getString("quran_reciter", "ar.mahermuaiqly") ?: "ar.mahermuaiqly"
@@ -3311,15 +3311,15 @@ class MainActivity : Activity(), SensorEventListener {
         dialog.show()
     }
 
-    private fun card(block: LinearLayout.() -> Unit) {
+    private fun card(compact: Boolean = false, block: LinearLayout.() -> Unit) {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(17), dp(16), dp(17), dp(16))
-            background = shape(panel, 20, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(39, 87, 67))
+            setPadding(dp(if (compact) 12 else 17), dp(if (compact) 8 else 16), dp(if (compact) 12 else 17), dp(if (compact) 8 else 16))
+            background = shape(panel, if (compact) 16 else 20, if (isLightTheme) Color.rgb(222, 211, 187) else Color.rgb(39, 87, 67))
             elevation = dp(2).toFloat()
             block()
         }
-        content.addView(box, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+        content.addView(box, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(if (compact) 5 else 10) })
     }
 
     private fun LinearLayout.line(value: String, size: Float, color: Int, bold: Boolean = false, gravity: Int = Gravity.START) {
