@@ -2294,7 +2294,7 @@ class MainActivity : Activity(), SensorEventListener {
     private fun adjustQuranMushafZoom(zoomIn: Boolean, surahNumber: Int, focusAyah: Int) {
         val previous = quranMushafMagnification
         quranMushafMagnification = if (zoomIn) {
-            (previous * 1.25f).coerceAtMost(8.0f)
+            (previous * 1.25f).coerceAtMost(10.0f)
         } else {
             (previous / 1.25f).coerceAtLeast(1f)
         }
