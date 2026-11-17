@@ -85,7 +85,7 @@ class MainActivity : Activity(), SensorEventListener {
     private var quranContinuousSelectedPage = -1
     private var quranContinuousSelectedHighlight = 0
     private var quranContinuousHost: LinearLayout? = null
-    private var quranContinuousZoomStep = 0
+    private var quranContinuousZoomStep = 4
     /** Shared QVP reflow step; each page calibrates the same step to its own content. */
     private var quranContinuousApplyingZoom = false
 
@@ -1774,7 +1774,7 @@ class MainActivity : Activity(), SensorEventListener {
     private fun showQuranMushafPages(surahNumber: Int, focusAyah: Int, startPage: Int) {
         releaseQuranMushafPage()
         val token = quranMushafRequestId
-        quranContinuousZoomStep = 0
+        quranContinuousZoomStep = 4
         quranContinuousApplyingZoom = false
         quranContinuousCurrentPage = startPage
         val quranNightMode = getPreferences(0).getBoolean("quran_night_mode", false)
@@ -1797,7 +1797,7 @@ class MainActivity : Activity(), SensorEventListener {
             getPreferences(0).edit().putBoolean("quran_night_mode", !quranNightMode).apply()
             showQuranMushafPages(surahNumber, focusAyah, pageToKeep)
         }, LinearLayout.LayoutParams(-1, -2))
-        text("تصفّح صفحات المصحف الأصلية. كبّر بإصبعين واسحب الصفحة؛ يحافظ العرض على رسم الكلمات والتشكيل دون إعادة ترتيب الأسطر. المس كلمة للاستماع، أو رقم الآية لحفظ موضع القراءة.", 12f, muted, false, Gravity.CENTER)
+        text("تصفّح صفحات المصحف الأصلية بالتمرير. المس كلمة للاستماع، أو رقم الآية لحفظ موضع متابعة القراءة.", 12f, muted, false, Gravity.CENTER)
         gap(3)
         card(compact = true) {
             line("التلاوة الصوتية للسورة", 17f, gold, true)
@@ -1996,12 +1996,15 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 lateinit var pageView: QvpPageView
                 pageView = QvpPageView(this).apply {
-                    // Keep the printed Mushaf geometry fixed while allowing pinch magnification.
-                    zoomMode = QvpZoomMode.MAGNIFY
+                    onZoomChanged = { zoom ->
+                        syncContinuousQuranZoom(pageNumber, zoom.step)
+                    }
                     paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
-                    lineSpacing = 1f
+                    // Extra vertical clearance during zoomed reflow; QVP 0.8.0's row collision pass
+                    // measures word bounds, while some inline decoration bounds extend beyond them.
+                    lineSpacing = 1.18f
                     padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
@@ -2046,7 +2049,13 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 pageColumn.addView(pageNumberLabel, LinearLayout.LayoutParams(-1, dp(28)))
                 frame.addView(pageColumn, FrameLayout.LayoutParams(-1, -1))
-
+                pageView.post {
+                    if (token != quranMushafRequestId || quranContinuousViews[pageNumber] !== pageView) return@post
+                    val steps = pageView.zoomSteps
+                    if (steps.isNotEmpty()) {
+                        pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
+                    }
+                }
             }.onFailure {
                 quranContinuousFrames.getOrNull(pageNumber - 1)?.let { frame ->
                     frame.removeAllViews()
@@ -2131,7 +2140,9 @@ class MainActivity : Activity(), SensorEventListener {
                     paperColor = Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
-                    lineSpacing = 1f
+                    // Extra vertical clearance during zoomed reflow; QVP 0.8.0's row collision pass
+                    // measures word bounds, while some inline decoration bounds extend beyond them.
+                    lineSpacing = 1.18f
                     padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
@@ -2157,13 +2168,19 @@ class MainActivity : Activity(), SensorEventListener {
                     contentDescription = "صفحة المصحف $pageNumber"
                     page = loaded
                 }
-                // Pinch zoom magnifies the original printed page; it does not reflow rows.
+                pageView.onZoomChanged = { zoom ->
+                    quranContinuousZoomStep = zoom.step
+                }
                 quranMushafView = pageView
                 container.removeAllViews()
                 val availableWidth = (resources.displayMetrics.widthPixels - dp(36)).coerceAtLeast(dp(280))
                 val pageHeight = (availableWidth * loaded.height / loaded.width).roundToInt()
                 container.addView(pageView, LinearLayout.LayoutParams(-1, pageHeight))
-
+                pageView.post {
+                    if (requestId != quranMushafRequestId || quranMushafView !== pageView) return@post
+                    val steps = pageView.zoomSteps
+                    pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
+                }
                 }.onFailure {
                     Toast.makeText(
                         this,
