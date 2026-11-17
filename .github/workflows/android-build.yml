@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: noor-salah-android-build
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
