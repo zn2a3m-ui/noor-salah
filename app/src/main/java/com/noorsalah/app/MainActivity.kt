@@ -2000,8 +2000,8 @@ class MainActivity : Activity(), SensorEventListener {
                 pageView = QvpPageView(this).apply {
                     onZoomChanged = { zoom ->
                         syncContinuousQuranZoom(pageNumber, zoom.step)
-                        // QVP reflows this page's own words into additional rows. Resize only
-                        // this page's view/frame; neighbouring page identities remain untouched.
+                        // QVP owns the taller reflowed content and scrolls it inside this
+                        // fixed page viewport. Resizing the view would trigger a fresh layout/reset.
                         pageView.post { syncQuranReflowedPageHeight(pageView) }
                     }
                     paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
@@ -2228,33 +2228,15 @@ class MainActivity : Activity(), SensorEventListener {
         quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
 
     /**
-     * Let QVP enlarge the original vector glyphs and wrap this page's own words into more rows.
-     * The page's width and identity never change; only its height follows the resulting layout.
+     * QVP keeps reflowed rows in its virtual content height and scrolls them inside this
+     * fixed page viewport. Do not resize QvpPageView after zoom: onSizeChanged() in QVP
+     * relayouts the page and resets its zoom/pan state, which can destabilize row placement.
+     * Keeping the viewport fixed also preserves each printed page's identity and boundary.
      */
     private fun syncQuranReflowedPageHeight(view: QvpPageView) {
-        val page = view.page ?: return
-        val layout = page.currentLayout ?: return
-        val measuredWidth = view.width.takeIf { it > 0 }
-            ?: (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
-        val originalHeight = (measuredWidth * page.height.toFloat() / page.width.toFloat()).roundToInt()
-        val reflowHeight = (layout.contentH * view.viewScale).roundToInt()
-        val expandedHeight = maxOf(originalHeight, reflowHeight)
-        view.layoutParams?.let { params ->
-            if (params.height != expandedHeight) {
-                params.height = expandedHeight
-                view.layoutParams = params
-            }
-        }
-
-        val entry = quranContinuousViews.entries.firstOrNull { it.value === view } ?: return
-        val hostFrame = quranContinuousFrames.getOrNull(entry.key - 1) ?: return
-        val targetFrameHeight = expandedHeight + dp(28)
-        hostFrame.layoutParams?.let { params ->
-            if (params.height != targetFrameHeight) {
-                params.height = targetFrameHeight
-                hostFrame.layoutParams = params
-            }
-        }
+        // Deliberately leave the view and its page frame at their original dimensions.
+        // QvpPageView handles scrolling through layout.contentH internally.
+        if (view.page?.currentLayout == null) return
     }
 
     /**
