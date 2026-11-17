@@ -2003,7 +2003,7 @@ class MainActivity : Activity(), SensorEventListener {
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
                     padSide = dp(2).toFloat()
-                    reflowBreaks = QvpBreaks.GREEDY
+                    reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
                         quranAudioHighlightGlobal = 0
                         clearQuranContinuousSelection()
@@ -2138,7 +2138,7 @@ class MainActivity : Activity(), SensorEventListener {
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
                     padSide = dp(2).toFloat()
-                    reflowBreaks = QvpBreaks.GREEDY
+                    reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
                         if (quranSelectedAyahHighlight != 0) {
                             loaded.removeHighlight(quranSelectedAyahHighlight)
@@ -2217,12 +2217,6 @@ class MainActivity : Activity(), SensorEventListener {
     private fun quranPageStart(pageNumber: Int): Pair<Int, Int> =
         quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
 
-    /**
-     * Keep the QVP viewport at the printed page size. QVP lays out the reflowed rows
-     * in its virtual content area and scrolls that content internally; changing the
-     * Android View height after zoom would trigger onSizeChanged(), relayout the page,
-     * and reset the engine's zoom/row geometry.
-     */
     /**
      * The reader buttons move through QVP's native reflow steps, not a bitmap/vector magnifier.
      * QVP recalibrates each page's step so the same step gives a consistent reading size.
