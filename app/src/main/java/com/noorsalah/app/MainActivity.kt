@@ -1998,9 +1998,6 @@ class MainActivity : Activity(), SensorEventListener {
                 pageView = QvpPageView(this).apply {
                     onZoomChanged = { zoom ->
                         syncContinuousQuranZoom(pageNumber, zoom.step)
-                        // QVP owns the taller reflowed content and scrolls it inside this
-                        // fixed page viewport. Resizing the view would trigger a fresh layout/reset.
-                        pageView.post { syncQuranReflowedPageHeight(pageView) }
                     }
                     paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
                     padTop = dp(5).toFloat()
@@ -2055,7 +2052,6 @@ class MainActivity : Activity(), SensorEventListener {
                     if (steps.isNotEmpty()) {
                         pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
                     }
-                    syncQuranReflowedPageHeight(pageView)
                 }
             }.onFailure {
                 quranContinuousFrames.getOrNull(pageNumber - 1)?.let { frame ->
@@ -2168,7 +2164,6 @@ class MainActivity : Activity(), SensorEventListener {
                 }
                 pageView.onZoomChanged = { zoom ->
                     quranContinuousZoomStep = zoom.step
-                    pageView.post { syncQuranReflowedPageHeight(pageView) }
                 }
                 quranMushafView = pageView
                 container.removeAllViews()
@@ -2179,7 +2174,6 @@ class MainActivity : Activity(), SensorEventListener {
                     if (requestId != quranMushafRequestId || quranMushafView !== pageView) return@post
                     val steps = pageView.zoomSteps
                     pageView.zoomToStep(quranContinuousZoomStep.coerceIn(0, steps.size))
-                    syncQuranReflowedPageHeight(pageView)
                 }
                 }.onFailure {
                     Toast.makeText(
@@ -2224,38 +2218,11 @@ class MainActivity : Activity(), SensorEventListener {
         quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
 
     /**
-     * Let a reflowed mushaf page occupy its full virtual height in the outer reader.
-     * QVP's reflow content height is calculated from the unchanged page width and zoom;
-     * changing only the viewport height preserves the row geometry. QVP relayouts on
-     * size change, so this is called after each zoom has committed.
+     * Keep the QVP viewport at the printed page size. QVP lays out the reflowed rows
+     * in its virtual content area and scrolls that content internally; changing the
+     * Android View height after zoom would trigger onSizeChanged(), relayout the page,
+     * and reset the engine's zoom/row geometry.
      */
-    private fun syncQuranReflowedPageHeight(view: QvpPageView) {
-        val page = view.page ?: return
-        val layout = page.currentLayout ?: return
-        if (view.width <= 0 || page.width <= 0 || page.height <= 0) return
-
-        val printedHeight = (view.width.toFloat() * page.height / page.width).roundToInt()
-        val contentHeight = if (layout.reflowed) {
-            (layout.contentH * view.viewScale).roundToInt().coerceAtLeast(printedHeight)
-        } else {
-            printedHeight
-        }
-        if (view.layoutParams.height != contentHeight) {
-            view.layoutParams = view.layoutParams.apply { height = contentHeight }
-        }
-
-        // Continuous reading wraps each page and its page-number label in a frame.
-        // Grow that frame too, so the next printed page starts after the reflowed content.
-        val pageColumn = view.parent as? LinearLayout
-        val pageFrame = pageColumn?.parent as? FrameLayout
-        if (pageFrame != null) {
-            val targetFrameHeight = contentHeight + dp(28)
-            if (pageFrame.layoutParams.height != targetFrameHeight) {
-                pageFrame.layoutParams = pageFrame.layoutParams.apply { height = targetFrameHeight }
-            }
-        }
-    }
-
     /**
      * The reader buttons move through QVP's native reflow steps, not a bitmap/vector magnifier.
      * QVP recalibrates each page's step so the same step gives a consistent reading size.
@@ -2272,7 +2239,6 @@ class MainActivity : Activity(), SensorEventListener {
                 view.post {
                     val steps = view.zoomSteps
                     view.zoomToStep(targetStep.coerceIn(0, steps.size))
-                    syncQuranReflowedPageHeight(view)
                 }
             }
             return
