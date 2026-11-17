@@ -1994,8 +1994,6 @@ class MainActivity : Activity(), SensorEventListener {
                         )
                     }
                 }
-                var zoomFrame: FrameLayout? = null
-                var zoomBasePageHeight = 0
                 lateinit var pageView: QvpPageView
                 pageView = QvpPageView(this).apply {
                     onZoomChanged = { zoom ->
@@ -2035,8 +2033,6 @@ class MainActivity : Activity(), SensorEventListener {
                 frame.removeAllViews()
                 val width = (resources.displayMetrics.widthPixels - dp(12)).coerceAtLeast(dp(280))
                 val pageHeight = (width * loaded.height / loaded.width).roundToInt()
-                zoomBasePageHeight = pageHeight
-                zoomFrame = frame
                 frame.layoutParams = frame.layoutParams.apply { height = pageHeight + dp(28) }
                 val pageColumn = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
@@ -2228,15 +2224,36 @@ class MainActivity : Activity(), SensorEventListener {
         quranMushafAtlas?.pageRange(pageNumber)?.first ?: quranRepository.pageStart(pageNumber)
 
     /**
-     * QVP keeps reflowed rows in its virtual content height and scrolls them inside this
-     * fixed page viewport. Do not resize QvpPageView after zoom: onSizeChanged() in QVP
-     * relayouts the page and resets its zoom/pan state, which can destabilize row placement.
-     * Keeping the viewport fixed also preserves each printed page's identity and boundary.
+     * Let a reflowed mushaf page occupy its full virtual height in the outer reader.
+     * QVP's reflow content height is calculated from the unchanged page width and zoom;
+     * changing only the viewport height preserves the row geometry. QVP relayouts on
+     * size change, so this is called after each zoom has committed.
      */
     private fun syncQuranReflowedPageHeight(view: QvpPageView) {
-        // Deliberately leave the view and its page frame at their original dimensions.
-        // QvpPageView handles scrolling through layout.contentH internally.
-        if (view.page?.currentLayout == null) return
+        val page = view.page ?: return
+        val layout = page.currentLayout ?: return
+        if (view.width <= 0 || page.width <= 0 || page.height <= 0) return
+
+        val printedHeight = (view.width.toFloat() * page.height / page.width).roundToInt()
+        val contentHeight = if (layout.reflowed) {
+            (layout.contentH * view.viewScale).roundToInt().coerceAtLeast(printedHeight)
+        } else {
+            printedHeight
+        }
+        if (view.layoutParams.height != contentHeight) {
+            view.layoutParams = view.layoutParams.apply { height = contentHeight }
+        }
+
+        // Continuous reading wraps each page and its page-number label in a frame.
+        // Grow that frame too, so the next printed page starts after the reflowed content.
+        val pageColumn = view.parent as? LinearLayout
+        val pageFrame = pageColumn?.parent as? FrameLayout
+        if (pageFrame != null) {
+            val targetFrameHeight = contentHeight + dp(28)
+            if (pageFrame.layoutParams.height != targetFrameHeight) {
+                pageFrame.layoutParams = pageFrame.layoutParams.apply { height = targetFrameHeight }
+            }
+        }
     }
 
     /**
