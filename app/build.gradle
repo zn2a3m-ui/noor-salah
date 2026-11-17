@@ -60,8 +60,8 @@ tasks.register("prepareBundledAdhanAssets") {
                 java.net.HttpURLConnection connection = null
                 try {
                     connection = (java.net.HttpURLConnection) new URL(source.url).openConnection()
-                    connection.connectTimeout = 30000
-                    connection.readTimeout = 300000
+                    connection.connectTimeout = 15000
+                    connection.readTimeout = 60000
                     connection.setRequestProperty("User-Agent", "NoorSalah-Android-Build/1.0 (open-source app; contact: github.com/zn2a3m-ui/noor-salah)")
                     connection.setRequestProperty("Accept", "audio/ogg, audio/webm, application/octet-stream;q=0.9, */*;q=0.5")
                     int status = connection.responseCode
@@ -111,8 +111,8 @@ tasks.register("prepareBundledAdhanAssets") {
                     java.net.HttpURLConnection fallbackConnection = null
                     try {
                         fallbackConnection = (java.net.HttpURLConnection) new URL(adhanFallbackApkUrl).openConnection()
-                        fallbackConnection.connectTimeout = 30000
-                        fallbackConnection.readTimeout = 300000
+                        fallbackConnection.connectTimeout = 15000
+                        fallbackConnection.readTimeout = 90000
                         fallbackConnection.setRequestProperty("User-Agent", "NoorSalah-Android-Build/1.0")
                         if (fallbackConnection.responseCode != 200) {
                             throw new java.io.IOException("Fallback preview APK returned HTTP " + fallbackConnection.responseCode)
