@@ -2002,6 +2002,9 @@ class MainActivity : Activity(), SensorEventListener {
                     paperColor = if (getPreferences(0).getBoolean("quran_night_mode", false)) Color.BLACK else Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
+                    // Extra vertical clearance during zoomed reflow; QVP 0.8.0's row collision pass
+                    // measures word bounds, while some inline decoration bounds extend beyond them.
+                    lineSpacing = 1.18f
                     padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
@@ -2137,6 +2140,9 @@ class MainActivity : Activity(), SensorEventListener {
                     paperColor = Color.WHITE
                     padTop = dp(5).toFloat()
                     padBottom = dp(5).toFloat()
+                    // Extra vertical clearance during zoomed reflow; QVP 0.8.0's row collision pass
+                    // measures word bounds, while some inline decoration bounds extend beyond them.
+                    lineSpacing = 1.18f
                     padSide = dp(2).toFloat()
                     reflowBreaks = QvpBreaks.FITTED
                     onWordTap = { word, _ ->
